@@ -1,0 +1,33 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+
+{% block bloodhound-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Edit BloodHound Server
+{% endblock title %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+  <main>
+    <div class="py-3">
+        <form method="post">{% csrf_token %}
+            {% bootstrap_form form layout='horizontal' %}
+
+            <a href="{% url 'event_tracker:bloodhound-server-list' %}" role="button" class="btn btn-secondary">Cancel</a>
+            {%  if action == 'Create' %}
+              <button type="submit" class="btn btn-success">Create</button>
+            {% else %}
+              <button type="submit" class="btn btn-primary">Update</button>
+            {% endif %}
+
+        </form>
+    </div>
+  </main>
+</div>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

@@ -1,0 +1,48 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+{% load tz %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Detection Advice
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/highlightjs.html" %}
+    {% include "base/external-libs/clipboardjs.html" %}
+
+    <style nonce="{{request.csp_nonce}}">
+    .language-html {
+        white-space: break-spaces;
+    }
+    </style>
+{% endblock head %}
+
+{% block filter %}
+{% include "event_tracker/eventfilter_form.html" %}
+{% endblock %}
+
+{% block body %}
+<script nonce="{{request.csp_nonce}}">new ClipboardJS('.btn');</script>
+<div class="container">
+
+<h2 class="mt-3">Detection Advice</h2>
+
+<button role="button" class="btn btn-primary btn-sm mt-3 mb-3" data-clipboard-target="#code">
+<i class="fas fa-clipboard"></i>&nbsp; Copy to clipboard
+</button>
+
+<pre class="">
+    <code id="code" class="m3 language-html border">{% filter force_escape|tidytextformarkdown:True %}The following detection advice is provided by MITRE for the techniques used:
+
+{% include "parts/detection_advice_part.html" %}{% endfilter %}</code>
+</pre>
+
+</div>
+<script nonce="{{request.csp_nonce}}">hljs.highlightAll();</script>
+{% endblock body %}

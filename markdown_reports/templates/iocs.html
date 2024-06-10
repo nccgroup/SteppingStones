@@ -1,0 +1,147 @@
+{% extends "base/base.html" %}
+{% load tz %}
+{% load custom_tags %}
+
+{% load static %}
+{% load humanize %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Indicators of Compromise
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/highlightjs.html" %}
+    {% include "base/external-libs/clipboardjs.html" %}
+
+    <style nonce="{{request.csp_nonce}}">
+    .language-html {
+        white-space: break-spaces;
+    }
+    </style>
+{% endblock head %}
+
+{% block filter %}
+{% include "event_tracker/eventfilter_form.html" %}
+{% endblock %}
+
+{% block body %}
+<script nonce="{{request.csp_nonce}}">new ClipboardJS('.btn');</script>
+<div class="container">
+
+<h2 class="mt-3">Indicators of Compromise</h2>
+
+<button role="button" class="btn btn-primary btn-sm mt-3 mb-3" data-clipboard-target="#file-iocs">
+<i class="fas fa-clipboard"></i>&nbsp; Copy to clipboard
+</button>
+
+<pre class=""><code id="file-iocs" class="m3 language-html border">{% filter force_escape|tidytextformarkdown %}
+
+# External Infrastructure
+
+When assessing <<TKTK COMPANY>> from the Internet, a number of different hosts were used to perform testing. Below is a list of these addresses:
+
+{% for external_host in external_sources %}
+* {{ external_host }}{% endfor %}
+
+# Internal Infrastructure
+
+When performing internal testing, the following hosts were predominantly used:
+
+{% for internal_host in internal_sources %}
+* {{ internal_host }}{% endfor %}
+
+# Command and Control – Sessions Established
+
+The following table shows a complete list of systems on which the implant was used to established command and control or to move laterally within the environment.
+
+This table can be used to retrospectively rule in, or out malicious activity detected within the environment. It is important to note that the list does not include every host accessed via RDP. Note: All times are represented in UTC:
+
+{% timezone "UTC" %}<table>
+  <colgroup>
+    <col width="15%">
+    <col width="18%">
+    <col width="18%">
+    <col width="18%">
+    <col width="31%">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Timestamp Established</th>
+      <th>Channel</th>
+      <th>User</th>
+      <th>Host</th>
+      <th>PID</th>
+    </tr>
+  </thead>
+  <tbody>{% for beacon in visible_beacons %}
+    <tr>
+      <td>{{ beacon.opened|render_ts_utc }}</td>
+      <td>{% if beacon.session == "ssh" %}SSH (inbound){% elif beacon.listener.payload == "windows/beacon_https/reverse_https" %}HTTPS (outbound){% elif beacon.listener.payload == "windows/beacon_bind_pipe" %}SMB (peer-to-peer){% endif %}</td>
+      <td>{{ beacon.user_human }}</td>
+      <td>{{ beacon.computer }}</td>
+      <td>{% if beacon.process %}{{ beacon.process | lower }} (PID: {{ beacon.pid }}){% endif %}</td>
+    </tr>{% endfor %}
+  </tbody>
+</table>
+{% endtimezone %}
+# File Artifacts
+
+The following is a list of files used during the exercise, which may be used to retrospectively identify any missed
+alerts. Whilst efforts have been made to remove these artifacts, in some cases they could still remain within
+<<TKTK COMPANY>> systems due to users making copies, hosts no longer being accessible or being unable to remove them
+with the level of access that was obtained.
+
+
+<table>
+ <colgroup>
+    <col width="21%">
+    <col width="79%">
+  </colgroup>
+<thead>
+    <tr>
+        <th>File</th>
+        <th>Description</th>
+    </tr>
+</thead>
+<tbody>
+{% for file in associated_files %}    <tr>
+        <td>**{{ file.filename }}**{% if file.size %}
+
+&nbsp; {#required to space heading from text#}
+
+{{ file.size|intcomma }} bytes{% endif %}</td>
+        <td>{% if file.description %}{{ file.description|default:"" }}
+
+&nbsp;
+
+{% endif %}*Location{{ file.filedistribution_set.all|pluralize }}:*
+{% for filedistribution in file.filedistribution_set.all %}{% if filedistribution.location %}{% if filedistribution.event.target.host and ":\\" in filedistribution.location|path_relative_to_host:filedistribution.event.target.host %}
+{% ifchanged %}* {{ filedistribution.event.target.host }} - {{ filedistribution.location|path_relative_to_host:filedistribution.event.target.host }}{{ filedistribution.removed|yesno:" (Removed)," }}{% endifchanged %}{% else %}
+{% ifchanged %}* {{ filedistribution.location }}{{ filedistribution.removed|yesno:" (Removed)," }}{% endifchanged %}
+{% endif %}{% elif "@" in filedistribution.event.target.user %}
+{% ifchanged %}* {{ filedistribution.event.target.user }}{{ filedistribution.removed|yesno:" (Removed)," }}{% endifchanged %}{% else %}
+{% ifchanged %}* {% if filedistribution.event.target.user %}{{ filedistribution.event.target.user }} on {% endif %}{{ filedistribution.event.target.host }}{{ filedistribution.removed|yesno:" (Removed)," }}{% endifchanged %}
+{% endif %}
+{% endfor %}
+&nbsp;
+
+{% if file.md5_hash %}*MD5:* `{{ file.md5_hash }}`
+{% endif %}
+{% if file.sha1_hash %}*SHA1:* `{{ file.sha1_hash }}`
+{% endif %}
+{% if file.sha256_hash %}*SHA256:* `{{ file.sha256_hash }}`{% endif %}</td>
+    </tr>
+{% endfor %}
+</tbody>
+</table>
+{% endfilter -%}
+</code></pre>
+
+</div>
+<script nonce="{{request.csp_nonce}}">hljs.highlightAll();</script>
+{% endblock body %}

@@ -1,0 +1,144 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block cobalt-strike-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Team Servers
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/datatables-basic.html" %}
+<style nonce="{{request.csp_nonce}}">
+td.accordion-button {
+    cursor: pointer;
+    padding: 0.6em 0;
+}
+
+.accordion-button::after {
+    margin-left: 0.2em !important;
+}
+
+#table-filter {
+    display: flex; justify-content: flex-end; align-items: center
+}
+</style>
+{% endblock %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+<div class="container-fluid">
+    <div class="py-4 row">
+        <div class="col-md-8">
+            {% if perms.cobalt_strike_monitor.add_teamserver  %}
+            <a href="{% url 'event_tracker:team-server-add' %}" class="btn btn-success"><i class="fa-regular fa-calendar-plus"></i> Add Team Server</a>
+            {% endif %}
+            {% if teamserver_list %}
+            <div class="btn-group" role="group" aria-label="Reporting">
+                <a href="{% url 'event_tracker:team-server-config' %}" class="btn btn-outline-secondary"><i class="fa-solid fa-file-lines"></i> UI Config</a>
+            </div>
+            {% endif %}
+        </div>
+        <div id="table-filter" class="col-md-4"></div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+      {% if teamserver_list %}
+        <div>
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Host</th>
+                  <th scope="col">Port</th>
+                  <th scope="col">Password</th>
+                  <th scope="col">Active</th>
+                  <th></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+
+              {% for teamserver in teamserver_list %}
+                <tr class="accordion">
+                  <td class="accordion-button collapsed border-bottom">&nbsp;</td>
+                  <td>{{ teamserver.description|default_if_none:"-" }}</td>
+                  <td>{{ teamserver.hostname }}</td>
+                  <td>{{ teamserver.port }}</td>
+                  <td>{{ teamserver.password }}</td>
+                  <td>{{ teamserver.active|yesno }}</td>
+                  <td>
+                    <div class="btn-toolbar" role="toolbar" >
+                      <div class="btn-group" role="group">
+                          {% if perms.cobalt_strike_monitor.change_teamserver %}
+                          <a href="{% url 'event_tracker:team-server-update' teamserver.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Team Server"><i class="fa-regular fa-pen-to-square"></i></a>
+                          {% endif %}
+                          {% if perms.cobalt_strike_monitor.delete_teamserver %}
+                          <a href="{% url 'event_tracker:team-server-delete' teamserver.id %}" role="button" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Delete Team Server"><i class="fa-regular fa-trash-can"></i></a>
+                          {% endif %}
+                          <a href="{% url 'event_tracker:team-server-healthcheck' teamserver.id %}" role="button" class="btn btn-secondary btn-sm" data-toggle="tooltip" title="Team Server Healthcheck"><i class="fa-solid fa-heart-pulse"></i></a>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                      <ul>
+                      {%  for listener in teamserver.listener_set.all %}
+                          <li>{{ listener.html }}</li>
+                      {% endfor %}
+                      </ul>
+                  </td>
+                </tr>
+              {% endfor %}
+
+              </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="alert alert-secondary mt-3" role="alert">
+              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No Team Servers configured, please add one.
+            </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{request.csp_nonce}}">
+$(document).ready( function () {
+    var table = $('.table').DataTable({
+        searching: true,
+        paging: false,
+        "columnDefs": [
+            // hide the listener column, we'll expose it as an expanded row
+            {"visible": false, "targets": 7}
+        ]
+    });
+
+    $(".dataTables_filter").detach().appendTo('#table-filter');
+
+    // Add event listener for opening and closing details
+    $('.table tbody').on('click', 'td.accordion-button', function () {
+      var tr = $(this).closest('tr');
+      var td = tr.find('td').first();
+      var row = table.row( tr );
+
+      if ( row.child.isShown() ) {
+          // This row is already open - close it
+          row.child.hide();
+          td.addClass('collapsed');
+      }
+      else {
+          // Open this row
+          row.child(row.data()[7]).show();
+          td.removeClass('collapsed');
+      }
+    });
+});
+</script>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

@@ -1,0 +1,10 @@
+{% block filter %}
+{{ eventfilter.media }}
+<form class="d-flex me-2" method="post" id="eventfilter">
+  <label for="tactic" class="d-flex align-items-center text-white-50">Filter:&nbsp;&nbsp;</label>
+  <i class="fa-solid fa-star d-flex align-items-center text-white-50"></i>&nbsp;{{ eventfilter.starred }}&nbsp;&nbsp;
+  {{ eventfilter.tag }}&nbsp;&nbsp;
+  {{ eventfilter.tactic }}
+  {% csrf_token %}
+</form>
+{% endblock %}

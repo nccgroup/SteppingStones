@@ -1,0 +1,72 @@
+{% load static %}
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js" integrity="sha512-X/YkDZyjTf4wyc2Vy16YGCPHwAY8rZJY+POgokZjQB2mhIRFJCckEGc6YyX9eNsPfn0PzThEuNs+uaomE5CO6A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" integrity="sha512-b2QcS5SsA8tZodcDtGRELiGv5SaKSk1vDHDaQRda0htPYWZ6046lr3kJ5bAAQdpV2mmA/4v0wQF9MyU6/pDIAg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link href="{% static 'fontawesomefree/css/fontawesome.min.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'fontawesomefree/css/regular.min.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'fontawesomefree/css/solid.min.css' %}" rel="stylesheet" type="text/css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo:wght@200&display=swap" rel="stylesheet">
+
+    <style nonce="{{request.csp_nonce}}">
+        .header {
+            color: white;
+            font-family: 'Exo', sans-serif;
+            font-weight: 200;
+        }
+
+        .header span{
+            color: black !important;
+        }
+
+        .navbar {
+            background-color: #748da5;
+        }
+    </style>
+        <link rel="apple-touch-icon" sizes="180x180" href="{% static '/favicons/apple-touch-icon.png' %}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{% static '/favicons/favicon-32x32.png' %}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{% static '/favicons/favicon-16x16.png' %}">
+        <link rel="manifest" href="{% static '/favicons/site.webmanifest' %}">
+        <link rel="mask-icon" href="{% static '/favicons/safari-pinned-tab.svg' %}" color="#5bbad5">
+        <link rel="shortcut icon" href="{% static '/favicons/favicon.ico' %}">
+        <meta name="msapplication-TileColor" content="#da532c">
+        <meta name="msapplication-config" content="{% static '/favicons/browserconfig.xml' %}">
+        <meta name="theme-color" content="#ffffff">
+        <title>Stepping Stones : {% block title %}Initial Configuration{% endblock title %}</title>
+        {% block head %}{% endblock head %}
+  </head>
+
+  <body>
+    <script nonce="{{request.csp_nonce}}">
+        // Set theme to the user's preferred color scheme
+        function updateTheme() {
+          const colorMode = window.matchMedia("(prefers-color-scheme: dark)").matches ?
+            "dark" :
+            "light";
+          document.querySelector("html").setAttribute("data-bs-theme", colorMode);
+        }
+
+        // Set theme on load
+        updateTheme()
+
+        // Update theme when the preferred scheme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
+    </script>
+
+    <nav class="navbar sticky-top navbar-expand-lg navbar-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+          <img src="{% static "background/stone-stack.webp" %}" alt="" width="30" height="24" class="d-inline-block align-text-top">
+          <span class="header">Stepping <span>Stones</span></span>
+        </a>
+      </div>
+    </nav>
+
+    {% block body %}{% endblock body %}
+  </body>
+</html>

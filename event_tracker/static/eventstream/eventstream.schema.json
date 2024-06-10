@@ -1,0 +1,123 @@
+{
+  "$id": "https://st3pp1ngst0n3s.co.uk/es1/eventstream.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Stepping Stones Event Stream",
+  "type": "object",
+  "properties": {
+    "ts": {
+      "type": "string",
+      "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?([+-][0-9]{2}:[0-9]{2})?",
+      "format": "date-time",
+      "description": "ISO 8601 Timestamp of the event, or start of the event if event was long running.",
+      "examples": ["2024-04-01T17:02:01"]
+    },
+    "te": {
+      "type": "string",
+      "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?([+-][0-9]{2}:[0-9]{2})?",
+      "format": "date-time",
+      "description": "The time the event ended.",
+      "examples": ["2024-04-01T17:02:07"]
+    },
+    "op": {
+      "type": "string",
+      "description": "The operators name or unique identifier",
+      "minLength": 1,
+      "maxLength": 256,
+      "examples": ["ST"]
+    },
+    "s": {
+      "type": "object",
+      "description": "Source object",
+      "properties": {
+        "h": {
+          "type": "string",
+          "description": "The host the event occurred from.",
+          "minLength": 1,
+          "maxLength": 100,
+          "examples": ["10.5.1.8", "attacker.example.com"]
+        },
+        "u": {
+          "type": "string",
+          "description": "The user the event occurred from.",
+          "minLength": 1,
+          "maxLength": 100,
+          "examples": ["alice", "attacker@mail.example.com", "victimdomain\\compromiseduser"]
+        },
+        "p": {
+          "type": "string",
+          "description": "The process the event occurred from.",
+          "minLength": 1,
+          "maxLength": 100,
+          "examples": ["nmap.exe", "nessus.exe (PID: 123)"]
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "t": {
+      "type": "object",
+      "description": "Target object",
+      "properties": {
+        "h": {
+          "type": "string",
+          "description": "The host the event occurred to.",
+          "minLength": 1,
+          "maxLength": 100,
+          "examples": ["10.5.1.42", "victim.example.com", "Backup Cluster"]
+        },
+        "u": {
+          "type": "string",
+          "description": "The user the event occurred to.",
+          "minLength": 1,
+          "maxLength": 100,
+          "examples": ["bob", "victim@mail.example.com", "victimdomain\\victimuser"]
+        },
+        "p": {
+          "type": "string",
+          "description": "The process the event occurred to.",
+          "minLength": 1,
+          "maxLength": 100,
+          "examples": ["explore.exe", "winword.exe (PID: 2345)"]
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "d": {
+      "type": "string",
+      "description": "Description of the event",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "o": {
+      "type": "string",
+      "description": "Outcome of the event",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "ma": {
+      "type": "object",
+      "description": "MITRE ATT&CK Classification",
+      "properties": {
+        "ta": {
+          "type": "string",
+          "description": "The MITRE ATT&CK Tactic code",
+          "pattern": "TA[0-9]{4}",
+          "examples": ["TA0002"]
+        },
+        "t": {
+          "type": "string",
+          "description": "The MITRE ATT&CK Technique or Sub-technique code",
+          "pattern": "T[0-9]{4}(.[0-9]{3})?",
+          "examples": ["T1134", "T1548.003"]
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    }
+},
+  "required": [
+    "ts",
+    "d"
+  ]
+}

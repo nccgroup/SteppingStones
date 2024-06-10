@@ -1,0 +1,186 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load humanize %}
+{% load static %}
+
+
+{% block cobalt-strike-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+CS Beacon Timeline
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/momentjs.html" %}
+    <script src="https://cdn.jsdelivr.net/npm/timelines-chart@2.12.1/dist/timelines-chart.min.js" integrity="sha384-iGu4wltko+k58uoi9LkXqLN+0n6eytdA8XafHeDjfPzOtf7Szhgu4DocjbTCVAWP" crossorigin="anonymous"></script>
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container-fluid">
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div id="timeline"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CSS which the timelines JS ordinarily tries to embed into the page -->
+<style nonce="{{request.csp_nonce}}">
+.timelines-chart {
+
+  text-align: center;
+
+  /* Cancel selection interaction */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+  .timelines-chart .axises line, .timelines-chart .axises path {
+      stroke: #808080;
+    }
+
+  .timelines-chart .axises .x-axis {
+      font: 12px sans-serif;
+    }
+
+  .timelines-chart .axises .x-grid line {
+      stroke: #D3D3D3;
+    }
+
+  .timelines-chart .axises .y-axis line, .timelines-chart .axises .y-axis path, .timelines-chart .axises .grp-axis line, .timelines-chart .axises .grp-axis path {
+        stroke: none;
+      }
+
+  .timelines-chart .axises .y-axis text, .timelines-chart .axises .grp-axis text {
+        fill: #2F4F4F;
+      }
+
+  .timelines-chart line.x-axis-date-marker {
+    stroke-width: 1;
+    stroke: #293cb7;
+    fill: "none";
+  }
+
+  .timelines-chart .series-group {
+    fill-opacity: 0.6;
+    stroke: #808080;
+    stroke-opacity: 0.2;
+  }
+
+  .timelines-chart .series-segment {
+    stroke: none;
+  }
+
+  .timelines-chart .series-group, .timelines-chart .series-segment {
+    cursor: crosshair;
+  }
+
+  .timelines-chart .legend {
+    font-family: Sans-Serif;
+  }
+
+  .timelines-chart .legend .legendText {
+      fill: #666;
+    }
+
+  .timelines-chart .reset-zoom-btn {
+    font-family: sans-serif;
+    fill: blue;
+    opacity: .6;
+    cursor: pointer;
+  }
+
+.brusher .grid-background {
+    fill: lightgrey;
+  }
+
+.brusher .axis path {
+    display: none;
+  }
+
+.brusher .tick text {
+    text-anchor: middle;
+  }
+
+.brusher .grid line, .brusher .grid path {
+      stroke: #fff;
+    }
+
+.chart-zoom-selection, .brusher .brush .selection {
+  stroke: blue;
+  stroke-opacity: 0.6;
+  fill: blue;
+  fill-opacity: 0.3;
+  shape-rendering: crispEdges;
+}
+
+.chart-tooltip {
+  color: #eee;
+  background: rgba(0,0,140,0.85);
+  padding: 5px;
+  border-radius: 3px;
+  font: 11px sans-serif;
+  z-index: 4000;
+}
+
+.chart-tooltip.group-tooltip {
+    font-size: 14px;
+  }
+
+.chart-tooltip.line-tooltip {
+    font-size: 13px;
+  }
+
+.chart-tooltip.group-tooltip, .chart-tooltip.line-tooltip {
+    font-weight: bold;
+  }
+
+.chart-tooltip.segment-tooltip {
+     text-align: center;
+  }
+</style>
+
+<script nonce="{{request.csp_nonce}}">
+const myChart = TimelinesChart();
+myChart
+  .dateMarker(true)
+  .leftMargin(200)
+  .rightMargin(200)
+  .maxLineHeight(20)
+  .zScaleLabel("Sleep duration (% of Max)")
+  .segmentTooltipContent(function(content){return content.data.tooltip + "<br/>" + moment(content.data.timeRange[0]).format('{% datetime_format_moment %}') + " to</br>" + moment(content.data.timeRange[1]).format('{% datetime_format_moment %}') })
+  .data([
+  {% for group, values in timeline.items %}
+      {
+          group: "{{ group }}",
+          data: [
+          {% for label, times in values.items %}
+              {
+                  label: "{{ label }}",
+                  data: [
+                  {% for time in times %}
+                      {
+                          timeRange: [new Date("{{time|getdictentry:"from"|date:"Y-m-d H:i:s"}}"), new Date("{{time|getdictentry:"to"|date:"Y-m-d H:i:s"}}")],
+                          val: {{time|getdictentry:"sleep_scale"}},
+                          tooltip: "Sleep: {{time|getdictentry:"sleep"}}s{% if time|getdictentry:"jitter" > 0.0 %}<br/>Jitter: {{ time|getdictentry:"jitter"|as_percentage }}{% endif %}"
+                      },
+                  {% endfor %}
+                  ],
+              },
+          {% endfor %}
+          ],
+      },
+  {% endfor %}
+  ])(document.getElementById("timeline"));
+
+</script>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

@@ -1,0 +1,108 @@
+{
+	"name": "{{name}}",
+	"versions": {
+		"attack": "12",
+		"navigator": "4.8.0",
+		"layer": "4.5"
+	},
+	"domain": "enterprise-attack",
+	"description": "",
+	"filters": {
+		"platforms": [
+			"Linux",
+			"macOS",
+			"Windows",
+			"Azure AD",
+			"Office 365",
+			"SaaS",
+			"IaaS",
+			"Google Workspace",
+			"PRE",
+			"Network",
+			"Containers"
+		]
+	},
+	"sorting": 0,
+	"layout": {
+		"layout": "side",
+		"aggregateFunction": "average",
+		"showID": false,
+		"showName": true,
+		"showAggregateScores": false,
+		"countUnscored": false
+	},
+	"hideDisabled": false,
+	"techniques": [
+      {% for event in events %}{% if event.mitre_attack_technique.mitre_id %}
+      {
+			"techniqueID": "{% firstof event.mitre_attack_subtechnique.mitre_id event.mitre_attack_technique.mitre_id %}",
+			"tactic": "{{event.mitre_attack_tactic.shortname}}",
+			"color": {% if event.prevented == "FUL" %}"#8FBC8F"{% elif event.prevented == "PAR" %}"#FFFACD"{% else %}"#F6CCD0"{% endif %},
+			"comment": "",
+			"enabled": true,
+			"metadata": [{
+				"name": "description",
+				"value":"{{event.description | escapejs }}"
+			}],
+			"showSubtechniques": false
+		},
+	  {% endif %}{% endfor %}
+	  {% for tactic, unused_technique_list in unused_techniques.items %}
+		 {% for unused_technique in unused_technique_list %}
+			{
+				"techniqueID": "{{unused_technique}}",
+				"tactic": "{{tactic}}",
+				"color": "",
+				"comment": "",
+				"enabled": false,
+				"metadata": [],
+				"links": [],
+				"showSubtechniques": false
+			},
+		 {% endfor %}
+	  {% endfor %}
+	  {% for tactic, unused_subtechnique_list in unused_subtechniques.items %}
+		 {% for unused_subtechnique in unused_subtechnique_list %}
+			{
+				"techniqueID": "{{unused_subtechnique}}",
+				"tactic": "{{tactic}}",
+				"color": "",
+				"comment": "",
+				"enabled": false,
+				"metadata": [],
+				"links": [],
+				"showSubtechniques": false
+			},
+		 {% endfor %}
+	  {% endfor %}
+	  {"ignore": "me"}  {# Add a dummy entry to the list to work-aroud having to ommit the last comma #}
+	],
+	"gradient": {
+		"colors": [
+			"#ff6666",
+			"#ffe766",
+			"#8ec843"
+		],
+		"minValue": 0,
+		"maxValue": 100
+	},
+	"legendItems": [
+		{
+			"label": "Fully prevented",
+			"color": "#8FBC8F"
+		},
+		{
+			"label": "Partially prevented",
+			"color": "#FFFACD"
+		},
+		{
+			"label": "Not prevented",
+			"color": "#F6CCD0"
+		}
+	],
+	"metadata": [],
+	"showTacticRowBackground": false,
+	"tacticRowBackground": "#dddddd",
+	"selectTechniquesAcrossTactics": true,
+	"selectSubtechniquesWithParent": false
+}

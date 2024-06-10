@@ -1,0 +1,36 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+MITRE Heat Map
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+{% endblock %}
+
+{% block filter %}
+    {% include "event_tracker/eventfilter_form.html" %}
+{% endblock %}
+
+{% block body %}
+<div class="container">
+
+<h2 class="mt-3">MITRE Heat Map</h2>
+
+<ul class="nav nav-pills">
+  <li class="nav-item">
+    <a class="nav-link {% if not include_subtechniques %}active{% endif %}" aria-current="page" href="{% url 'heat-map-with-options' view.kwargs.task_id 'exclude_subtechniques' %}">Summarise by Technique</a>
+  </li>
+  <li class="nav-item">
+     <a class="nav-link {% if include_subtechniques %}active{% endif %}" aria-current="page" href="{% url 'heat-map-with-options' view.kwargs.task_id 'include_subtechniques' %}">Break-out Subtechniques</a>
+  </li>
+</ul>
+
+<img src="data:image/png;base64,{{ heatmap_b64 }}"/>
+{% endblock body %}

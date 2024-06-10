@@ -1,0 +1,28 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+
+{% block eventstream-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Upload EventStream JSON
+{% endblock title %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+  <main>
+    <div class="py-3">
+        <form method="post" enctype="multipart/form-data">{% csrf_token %}
+            {% bootstrap_form form layout='horizontal' %}
+            <a href="{% url 'event_tracker:eventstream-list' %}" role="button" class="btn btn-secondary">Cancel</a>
+
+            <button type="submit" class="btn btn-success">Upload</button>
+        </form>
+    </div>
+  </main>
+</div>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

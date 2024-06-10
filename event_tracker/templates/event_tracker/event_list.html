@@ -1,0 +1,442 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Event List
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/datatables-pdfexport.html" %}
+
+    <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
+
+    <style nonce="{{request.csp_nonce}}">
+    .fa-ul {margin-left: 30px; margin-bottom: 0px}
+    .fa-li {color: lightgray}
+    div.dataTables_filter input {
+        margin-left: .5em;
+        display: inline-block;
+        width: auto;
+    }
+    .dt-buttons {
+        padding-left: .25em;
+    }
+
+    {% if perms.event_tracker.change_event %}
+    td .fa-star:hover {
+        cursor: pointer;
+        --bs-text-opacity: 100;
+    }
+    {% endif %}
+
+    .pdf-export-only {
+        display: none;
+    }
+
+    .fa-ul {
+        margin-left: 30px;
+        margin-bottom: 0px;
+    }
+
+    #table-filter {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center
+    }
+
+    td.desc, #event-to-delete-str {
+        word-break: break-word
+    }
+
+    pre code {
+        white-space: break-spaces;
+        word-break: break-word;
+    }
+    
+    {% for context in contexts %}
+    .ctx{{ context.id }} {
+        background-color: {{ context.colour }}20 !important;
+    }
+
+    .ctx{{ context.id }} i {
+        color:{{ context.colour }}80;
+    }
+    {% endfor %}
+    </style>
+{% endblock head %}
+
+{% block filter %}
+{% include "event_tracker/eventfilter_form.html" %}
+{% endblock %}
+
+{% block body %}
+{% block bootstrap5_content %}
+
+<div class="container-fluid">
+    <div class="py-4 row">
+        <div class="col-md-8">
+            {% if perms.event_tracker.add_event %}
+            <a href="{% url 'event_tracker:event-add' view.kwargs.task_id %}" class="btn btn-success"><i class="fa-regular fa-calendar-plus"></i> Add event</a>
+            {% endif %}
+            {% if perms.event_tracker.admin or event_list and perms.event_tracker.view_event %}
+            <div class="btn-group" role="group">
+            {% if plugins and event_list and perms.event_tracker.view_event %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-file-signature"></i> Reporting
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                    {% for plugin in plugins %}
+                        {% ifchanged plugin.category %}
+                            {% if not forloop.first %}<li><hr class="dropdown-divider"></li>{% endif %}
+                            <li><h6 class="dropdown-header">{{ plugin.category }}</h6></li>
+                        {% endifchanged %}
+                        <li><a href="{% url plugin.entry_point_name view.kwargs.task_id %}" class="dropdown-item"><i class="{{ plugin.icon_class }}"></i> {{ plugin.title }}</a></li>
+                    {% endfor %}
+                    </ul>
+                </div>
+            {% endif %} {% endif %}
+                <div class="dropdown">
+                  <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-download"></i> Export
+                  </button>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
+                  {% if event_list and perms.event_tracker.view_event %}
+                    <li><a href="{% url 'event_tracker:csv_export' view.kwargs.task_id %}" class="dropdown-item"><i class="fas fa-file-csv"></i> CSV Export</a></li>
+                    <li><a id="pdf-export" class="dropdown-item" href="#"><i class="fa-solid fa-file-pdf"></i> PDF of Visible Rows</a></li>
+                  {% endif %}
+                    {% if perms.event_tracker.admin %}<li><a href="{% url 'event_tracker:backup' %}" class="dropdown-item"><i class="fa-solid fa-database"></i> Database Backup</a></li>{% endif %}
+                  </ul>
+                </div>
+            </div>
+        {% if event_list and perms.event_tracker.view_event %}
+            {% if perms.event_tracker.change_event %}
+            <div class="btn-group" role="group">
+                <a id="bulk_update" href="{% url 'event_tracker:event-bulk-edit' view.kwargs.task_id %}" class="btn btn-outline-primary"><i class="fa-solid fa-fill-drip"></i> Edit All Starred</a>
+            </div>
+            {% endif %}
+        </div>
+        <div id="table-filter" class="col-md-4"></div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="table-responsive">
+        {{ dateformat }}
+
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th>
+                    {% if perms.event_tracker.change_event %}
+                    <a href="{% url "event_tracker:toggle_qs_stars" view.kwargs.task_id %}">
+                        {% if all_starred %}
+                            <span title="Clear all visible stars"><i class="fa-regular fa-circle-xmark"></i></span>
+                        {% else %}
+                            <span title="Set all visible stars"><i class="fa-solid fa-circle-check"></i></span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+                  </th>
+                  <th scope="col">Timestamp</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Target</th>
+                  <th scope="col">Description</th>
+
+                  <th scope="col">Detected?</th>
+                  <th scope="col">Prevented?</th>
+
+                  <th scope="col">MITRE Ref.</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+
+                {% for event in event_list %}
+                    <tr>
+                      <td><i class="{% if event.starred %}fa-solid{% else %}fa-regular text-opacity-50{% endif %} fa-star text-warning {% if perms.event_tracker.change_event %}clickable-star" data-star-toggle="{% url 'event_tracker:event-toggle-star' event.task_id event.id %}"{% else %}"{% endif %}></i>
+                      </td>
+                      <td class="timestamp">{{ event.timestamp|render_ts_local }}</td>
+                      <td class="ctx{{ event.source.id }}">
+                          <ul class="fa-ul">
+                              {% if event.source.host %}<li><i class="fa-li fas fa-network-wired"></i>{{ event.source.host | breakonpunctuation }}</li>{% endif %}
+                              {% if event.source.user %}<li><i class="fa-li fas fa-user"></i>{{ event.source.user | breakonpunctuation }}</li>{% endif %}
+                              {% if event.source.process %}<li><i class="fa-li far fa-window-maximize"></i>{{ event.source.process | breakonpunctuation }}</li>{% endif %}
+                              {% if not event.source.host and not event.source.user and not event.source.process %}-{% endif %}
+                          </ul>
+                      </td>
+                      <td class="ctx{{ event.target.id }}">
+                          <ul class="fa-ul">
+                              {% if event.target.host %}<li><i class="fa-li fas fa-network-wired"></i>{{ event.target.host | breakonpunctuation }}</li>{% endif %}
+                              {% if event.target.user %}<li><i class="fa-li fas fa-user"></i>{{ event.target.user | breakonpunctuation }}</li>{% endif %}
+                              {% if event.target.process %}<li><i class="fa-li far fa-window-maximize"></i>{{ event.target.process | breakonpunctuation }}</li>{% endif %}
+                              {% if not event.target.host and not event.target.user and not event.target.process %}-{% endif %}
+                          </ul>
+                      </td>
+                      <td class="desc">
+                          {% if event.filedistribution_set.exists %}<i class="text-muted fa-solid fa-paperclip"></i>&ensp;{% endif %}
+                          {% for tag in event.tags.all %}<span class="badge bg-info"><span class="pdf-export-only">[</span>{{ tag }}<span class="pdf-export-only">]</span></span>&nbsp;{% endfor %}
+                          <span class="description">{{ event.description|linebreaksbr|breakonpunctuation }}</span>
+                          {% if event.raw_evidence %}
+                              <pre class="mt-3 mb-0"><code>{{ event.raw_evidence | breakonpunctuation }}</code></pre>
+                          {% endif %}
+                          {% if event.outcome %}<div class="mt-3">Outcome: {{ event.outcome }}</div>{% endif %}
+                      </td>
+                      <td class="{{ event.detected|status_to_class }} bg-opacity-25">{{ event.get_detected_display }}</td>
+                      <td class="{{ event.prevented|status_to_class }} bg-opacity-25">{{ event.get_prevented_display }}</td>
+                      <td>
+                          {% if event.mitre_attack_subtechnique %}
+                              {{ event.mitre_attack_subtechnique.mitre_id }} {{ event.mitre_attack_technique.name }} - {{ event.mitre_attack_subtechnique.name }}
+                          {% elif event.mitre_attack_technique %}
+                              {{ event.mitre_attack_technique }}
+                          {% elif event.mitre_attack_tactic %}
+                              {{ event.mitre_attack_tactic }}
+                          {% else %}
+                              -
+                          {% endif %}
+                      </td>
+                      <td>
+                          <div class="btn-toolbar" role="toolbar" >
+                              <div class="btn-group" role="group">
+                                  {% if perms.event_tracker.change_event %}
+                                  <a href="{% url 'event_tracker:event-update' event.task_id event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                                  {% elif perms.event_tracker.change_event_limited %}
+                                  <a href="{% url 'event_tracker:event-update-limited' event.task_id event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                                  {% endif %}
+                                  {% if perms.event_tracker.add_event %}
+                                  <a href="{% url 'event_tracker:event-clone' view.kwargs.task_id event.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Clone Event"><i class="far fa-copy"></i></a>
+                                  <a href="{% url 'event_tracker:event-lat-move-clone' view.kwargs.task_id event.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Lat Move: New Event with this Target as Source"><i class="fa-solid fa-arrows-turn-to-dots"></i></a>
+                                  {% endif %}
+                                  {% if perms.event_tracker.delete_event %}
+                                  <a data-delete-url="{% url 'event_tracker:event-delete' event.task_id event.id %}" role="button" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Delete Event"><i class="fa-regular fa-trash-can"></i></a>
+                                  {% endif %}
+                              </div>
+                          </div>
+                      </td>
+                    </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            </div>
+            <div class="row">
+                <div class="md-12">
+                    <div class="alert alert-secondary mt-3" role="alert">
+                        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                        No events found.
+                        {% if perms.event_tracker.add_event %}
+                            Either <i class="fa-solid fa-arrow-turn-up fa-flip-horizontal"></i> <b>add a new event</b> or
+                        {% else %}
+                            You may need to 
+                        {% endif %}
+                        <b><a href="#" id="clear-filter">clear the filter</a></b> <i class="fa-solid fa-arrow-turn-up"></i>.
+                        <script nonce="{{request.csp_nonce}}">
+                            $("#clear-filter").on("click", function() {
+                                $('#eventfilter select').val('');
+                                $('#eventfilter').submit();
+                            })
+                        </script>
+                    </div>
+                </div>
+            {% endif %}
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
+
+{% if perms.event_tracker.delete_event %}
+<div class="modal" tabindex="-1" id="event-to-delete-modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Are you sure?</h5>
+        <button role="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <span id="event-to-delete-str"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button role="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" id="event-to-delete-form">{% csrf_token %}<input type="submit" value="Delete" class="btn btn-danger"></form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{request.csp_nonce}}">
+$("a[title='Delete Event']").on("click", function() {deleteEvent(this)});
+
+function deleteEvent(src) {
+    src_q = $(src);
+
+    str = "Event at: " + src_q.parents("tr").find(".timestamp").text() +
+        " - " + src_q.parents("tr").find(".description").text();
+
+    $("#event-to-delete-str").text(str);
+    $("#event-to-delete-form").attr("action", src_q.attr("data-delete-url"));
+    $('#event-to-delete-modal').modal('show');
+}
+</script>
+{% endif %}
+
+{% if perms.event_tracker.change_event %}
+<script nonce="{{request.csp_nonce}}">
+  $(".clickable-star").on("click", function() {star_click(this)})
+
+  function star_click(src){
+    src_q = $(src)
+
+    $.getJSON(src_q.attr("data-star-toggle"))
+       .done(function (data) {
+          if(data['starred'])
+          {
+            src_q.removeClass('fa-regular text-opacity-50').addClass('fa-solid');
+            $('#id_starred').removeAttr('disabled'); //Ensure the star filter option is enabled as we now have at least one to filter on
+            $('#bulk_update').removeClass('disabled'); //Ensure the bulk update button is enabled as we now have at least one to filter on
+          }
+          else
+          {
+            src_q.removeClass('fa-solid').addClass('fa-regular text-opacity-50');
+            if ($('.fa-star.fa-solid').length <= 1)  // 1 star for the filter icon itself
+            {
+              $('#id_starred').attr('disabled', true); //Ensure the star filter option is disabled as there is nothing starred anymore
+              $('#bulk_update').addClass('disabled'); //Ensure the bulk update button is disabled as there is nothing starred anymore
+            }
+          }
+       }
+    );
+  }
+
+if ($('.fa-star.fa-solid').length <= 1)  // 1 star for the filter icon itself
+{
+    $('#bulk_update').addClass('disabled'); //Ensure the bulk update button is disabled as there is nothing starred anymore
+}
+</script>
+{% endif %}
+
+<script nonce="{{request.csp_nonce}}">
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+    $.fn.dataTable.moment('{% datetime_format_moment %}');
+    $('.table').DataTable({
+        searching: true,
+        paging: false,
+        buttons: [
+            {
+                extend: 'searchBuilder',
+                config: {
+                    columns: [1],
+                    conditions: {
+                        moment: {
+                            '!between': null,
+                            '!null': null,
+                            'null': null,
+                            '=': null,
+                            '!=': null
+                        }
+                    },
+                },
+                className: "dt-searchBuilder"
+            },
+        ],
+        language: {
+            searchBuilder: {
+                button: {
+                    0: 'Timebox',
+                    _: 'Timebox (%d)'
+                }
+            }
+        },
+        fixedHeader: {
+            header: true,
+            headerOffset: $('.navbar').outerHeight()
+        },
+        order: [[1, 'desc']],
+        columns: [
+            {orderable: false},
+            null,
+            null,
+            null,
+            {orderable: false},
+            null,
+            null,
+            null,
+            {orderable: false},
+        ]
+    });
+    // Add buttons for DataTables functionality we don't want to expose in the datatables button bar
+    new $.fn.dataTable.Buttons($('.table'), {
+        buttons: [
+            {
+                text: 'Export PDF',
+                action: function (e, dt, node, config) {
+                    let outer_dt = dt;
+                    let outer_config = config;
+                    let orig_len = dt.page.len();
+
+                    doExport = function (e, _dt, node, _config) {
+                        // Deregister the event handler
+                        dt.off('draw', doExport);
+                        // Trigger the print action
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config);
+                        // Redraw the table at the original page size
+                        dt.page.len(orig_len).draw();
+                    }
+
+                    // Register an event handler to print the table once all the data is loaded
+                    dt.on( 'draw', doExport )
+                    // Trigger a non-paginated table draw
+                    dt.page.len(-1).draw();
+                },
+                extend: 'pdfHtml5',  // Required to pull in default config
+                orientation: "landscape",
+                customize: function (doc, config, dt) {
+                    // Ensure the main text column doesn't stretch when given long content
+                    doc.content[1].table.widths = ['auto', 75, 75, 350, 40, 40, 'auto'];
+                    doc.content[1].table.body[0][4].text = "Detect"
+                    doc.content[1].table.body[0][5].text = "Prevent"
+                    // Sprinkle in some corporate branding
+                    doc.footer = function (currentPage, pageCount) {
+                        return [
+                            {
+                                canvas: [
+                                    { type: 'line', x1: 40, y1: 0, x2: 800, y2: 0, lineWidth: 0.5, lineColor: '#242C7A'}
+                                ]
+                            },
+                            {
+                                columns: [
+                                    currentPage.toString() + ' / ' + pageCount,
+                                    {svg: '{{REPORT_FOOTER_IMAGE}}', alignment: 'center'},
+                                    {text: '{{REPORT_FOOTER_TEXT}}', alignment: 'right'},
+                                ],
+                                margin: [40, 10],
+                            },
+                        ]
+                    }
+                },
+                title: "Event Logs",
+                exportOptions: {
+                    columns: [1,2,3,4,5,6,7],
+                    stripNewlines: false
+                }
+            }
+        ]
+    })
+    $(".dataTables_filter").detach().appendTo('#table-filter');
+
+    var table = $('table').DataTable();
+    table.button('.dt-searchBuilder').container().appendTo( '#table-filter' );
+
+    $('#pdf-export').on('click', function() {$('.table').DataTable().buttons('.buttons-pdf').trigger()})
+});
+
+</script>
+
+{% endblock bootstrap5_content %}
+{% endblock body %}

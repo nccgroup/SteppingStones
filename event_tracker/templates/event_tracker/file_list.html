@@ -1,0 +1,95 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+
+{% block file-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+File List
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/datatables-basic.html" %}
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="table-responsive">
+            {% if object_list %}
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">Created</th>
+                  <th scope="col">Target</th>
+                  <th scope="col">Location</th>
+                  <th scope="col">Filename</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Removed?</th>
+                  {% if perms.event_tracker.change_event %}<th></th>{% endif %}
+                </tr>
+              </thead>
+              <tbody>
+
+                {% for filedistribution in object_list %}
+                    <tr>
+                      <td>{{ filedistribution.event.timestamp|render_ts_local }}</td>
+                      <td>{{ filedistribution.event.target.host }}</td>
+                      <td>{{ filedistribution.location | breakonpunctuation }}</td>
+                      <td>{{ filedistribution.file.filename | breakonpunctuation }}</td>
+                      <td>{{ filedistribution.file.description }}</td>
+                      <td class="{{ filedistribution.removed|yesno:'bg-success,bg-danger'}} bg-opacity-25">{{ filedistribution.removed|yesno|capfirst }}</td>
+                      {% if perms.event_tracker.change_event %}
+                      <td>
+                          <a href="{% url 'event_tracker:event-update' filedistribution.event.task_id filedistribution.event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                      </td>
+                      {% endif %}
+                    </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+                <div class="alert alert-secondary mt-3" role="alert">
+                  <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No files logged against any events.{% if perms.event_tracker.change_event %} You can associate files with an event via the "Add File" button when editing an event.{% endif %}
+                </div>
+            {% endif %}
+        </div>
+      </div>
+    </div>
+</div>
+
+
+<script nonce="{{request.csp_nonce}}">
+$(function () {
+  $('[data-toggle="tooltip"]').tooltip();
+  $.fn.dataTable.moment('{% datetime_format_moment %}');
+  $('.table').DataTable({
+      searching: false,
+      paging: false,
+      fixedHeader: {
+            header: true,
+            headerOffset: $('.navbar').outerHeight()
+        },
+      order: [[0, 'desc']],
+      columns: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        {% if perms.event_tracker.change_event %}
+        { orderable: false },
+        {% endif %}
+      ]
+  } )
+})
+</script>
+
+{% endblock bootstrap5_content %}
+{% endblock body %}

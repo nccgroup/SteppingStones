@@ -1,0 +1,173 @@
+{% load static %}
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js" integrity="sha512-X/YkDZyjTf4wyc2Vy16YGCPHwAY8rZJY+POgokZjQB2mhIRFJCckEGc6YyX9eNsPfn0PzThEuNs+uaomE5CO6A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" integrity="sha512-b2QcS5SsA8tZodcDtGRELiGv5SaKSk1vDHDaQRda0htPYWZ6046lr3kJ5bAAQdpV2mmA/4v0wQF9MyU6/pDIAg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <link href="{% static 'fontawesomefree/css/fontawesome.min.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'fontawesomefree/css/regular.min.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'fontawesomefree/css/solid.min.css' %}" rel="stylesheet" type="text/css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo:wght@200&display=swap" rel="stylesheet">
+
+    <style nonce="{{request.csp_nonce}}">
+        .header {
+            color: white;
+            font-family: 'Exo', sans-serif;
+            font-weight: 200;
+        }
+
+        .header span{
+            color: black !important;
+        }
+
+        .navbar {
+            background-color: #748da5;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            color: unset !important;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .select2-container--bootstrap-5 .select2-selection--single {
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23DEE2E6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+            }
+        }
+    </style>
+        <link rel="apple-touch-icon" sizes="180x180" href="{% static '/favicons/apple-touch-icon.png' %}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{% static '/favicons/favicon-32x32.png' %}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{% static '/favicons/favicon-16x16.png' %}">
+        <link rel="manifest" href="{% static '/favicons/site.webmanifest' %}">
+        <link rel="mask-icon" href="{% static '/favicons/safari-pinned-tab.svg' %}" color="#5bbad5">
+        <link rel="shortcut icon" href="{% static '/favicons/favicon.ico' %}">
+        <meta name="msapplication-TileColor" content="#da532c">
+        <meta name="msapplication-config" content="{% static '/favicons/browserconfig.xml' %}">
+        <meta name="theme-color" content="#ffffff">
+        <title>Stepping Stones : {% block title %}Home{% endblock title %}</title>
+        {% block head %}{% endblock head %}
+  </head>
+
+  <body>
+    <script nonce="{{request.csp_nonce}}">
+        // Set theme to the user's preferred color scheme
+        function updateTheme() {
+          const colorMode = window.matchMedia("(prefers-color-scheme: dark)").matches ?
+            "dark" :
+            "light";
+          document.querySelector("html").setAttribute("data-bs-theme", colorMode);
+        }
+
+        // Set theme on load
+        updateTheme()
+
+        // Update theme when the preferred scheme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
+    </script>
+
+    <nav class="navbar sticky-top navbar-expand-lg navbar-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+          <img src="{% static "background/stone-stack.webp" %}" alt="" width="30" height="24" class="d-inline-block align-text-top">
+          <span class="header">Stepping <span>Stones</span></span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            {% if perms.event_tracker.view_event %}
+            <li class="nav-item">
+              <a class="nav-link {% block event-menu-class %}{% endblock event-menu-class %}" aria-current="page" href="/">Events</a>
+            </li>
+            {% endif %}
+            {% if perms.event_tracker.view_file %}
+            <li class="nav-item">
+              <a class="nav-link {% block file-menu-class %}{% endblock file-menu-class %}" aria-current="page" href="{% url 'event_tracker:file-list' 1 %}">Files</a>
+            </li>
+            {% endif %}
+            {% if perms.event_tracker.view_credential %}
+            <li class="nav-item">
+              <a class="nav-link {% block cred-menu-class %}{% endblock cred-menu-class %}" aria-current="page" href="{% url 'event_tracker:credential-list' 1 %}">Credentials</a>
+            </li>
+            {% endif %}
+            {% if perms.cobalt_strike_monitor %}
+            <li class="nav-item dropdown">
+              <a class="nav-link {% block cobalt-strike-menu-class %}{% endblock cobalt-strike-menu-class %} dropdown-toggle" href="#" id="navbarDropdown1" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Cobalt Strike
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="navbarDropdown1">
+                {% if perms.cobalt_strike_monitor.view_teamserver %}
+                <li><a class="dropdown-item" href="{% url 'event_tracker:team-server-list' %}">Team Servers</a></li>
+                {% endif %}
+                {% if perms.cobalt_strike_monitor.view_beacon %}
+                <li><a class="dropdown-item" href="{% url 'event_tracker:cs-beacons-list' %}">Beacons</a></li>
+                {% endif %}
+                {% if perms.cobalt_strike_monitor.view_beacon and perms.cobalt_strike_monitor.view_beaconpresence %}
+                <li><a class="dropdown-item" href="{% url 'event_tracker:cs-beacon-timeline' %}">Beacon Timeline</a></li>
+                {% endif %}
+                {% if perms.cobalt_strike_monitor.view_archive %}
+                <li><a class="dropdown-item" href="{% url 'event_tracker:cs-logs-list' %}">Logs</a></li>
+                <li><a class="dropdown-item" href="{% url 'event_tracker:cs-uploads-list' %}">Uploads</a></li>
+                {% endif %}
+                {% if perms.cobalt_strike_monitor.view_download  %}
+                <li><a class="dropdown-item" href="{% url 'event_tracker:cs-downloads-list' %}">Downloads</a></li>
+                {% endif %}
+              </ul>
+            </li>
+            {% endif %}
+            {% if perms.event_tracker.view_eventstream %}
+            <li class="nav-item">
+              <a class="nav-link {% block eventstream-menu-class %}{% endblock eventstream-menu-class %}" aria-current="page" href="{% url 'event_tracker:eventstream-list' %}">EventStream</a>
+            </li>
+            {% endif %}
+            {% if perms.event_tracker.view_webhook %}
+            <li class="nav-item">
+              <a class="nav-link {% block webhooks-menu-class %}{% endblock webhooks-menu-class %}" aria-current="page" href="{% url 'event_tracker:webhook-list' %}">Webhooks</a>
+            </li>
+            {% endif %}
+            {% if perms.event_tracker.view_bloodhoundserver %}
+            <li class="nav-item dropdown">
+              <a class="nav-link {% block bloodhound-menu-class %}{% endblock bloodhound-menu-class %} dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                BloodHound
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="navbarDropdown2">
+                <li><a class="dropdown-item" href="{% url 'event_tracker:bloodhound-server-list' %}">BloodHound Servers</a></li>
+                <li><a class="dropdown-item" href="{% url 'event_tracker:bloodhound-ou' %}">OU Tree</a></li>
+                <li><a class="dropdown-item" href="{% url 'event_tracker:bloodhound-stats' %}">Stats</a></li>
+              </ul>
+            </li>
+            {% endif %}
+          </ul>
+
+          {% block filter %}{% endblock filter %}
+
+          <ul class="navbar-nav">
+            <li class="nav-item py-2 py-lg-1 col-12 col-lg-auto">
+              <div class="vr d-none d-lg-flex h-100 mx-lg-2 text-white"></div>
+              <hr class="d-lg-none my-2 text-white-50">
+            </li>
+            <li class="nav-item dropdown">
+              <button type="button" class="btn btn-link nav-link py-2 px-0 px-lg-2 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-display="static">
+                {{ user.get_username | upper }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'password_change' %}">Change Password</a></li>
+                <li><form action="{% url 'logout' %}" method="post">
+                  {% csrf_token %}
+                  <button class="dropdown-item" type="submit">Log Out</button>
+                </form></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    {% block body %}{% endblock body %}
+  </body>
+</html>

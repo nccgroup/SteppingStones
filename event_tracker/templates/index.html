@@ -1,0 +1,9 @@
+{% if tasks %}
+    <ul>
+    {% for task in tasks %}
+        <li><a href="{% url 'event_tracker:event-list' task.id %}">{{ task.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No tasks logged.</p>
+{% endif %}

@@ -1,0 +1,658 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Edit Event
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+
+    <script src="{% static "scripts/jquery.formset.js" %}"></script>
+    <style nonce="{{request.csp_nonce}}">
+        .form-select { height: 2.5em !important;}
+        .select2-selection__arrow { visibility: hidden; }
+        .select2-container .select2-selection--single .select2-selection__rendered {
+            padding-right: 0 !important;
+            padding-left: 0 !important;
+            line-height: normal !important; }
+
+        .select2-container .select2-selection--single .select2-selection__clear {
+            position: absolute !important;
+        }
+
+        .select2-container {
+            min-width: unset !important;
+        }
+
+        .dynamic-form-add td { --bs-table-accent-bg: unset !important; }
+
+        span.selection > span.select2-selection--multiple {
+            padding-left: 6px;
+        }
+
+        ul.select2-selection__rendered {
+            display: flex !important;
+            padding-left: 0px !important;
+            line-height: 0.8 !important;
+        }
+
+        li .select2-selection__choice__remove, .select2-selection--multiple .select2-selection__clear {
+            color: transparent !important;
+            cursor: pointer;
+        }
+
+        .select2-selection__choice {
+            color: revert !important;
+        }
+
+        li .select2-search__field {
+            caret-color: transparent;
+        }
+
+        .select2-selection--multiple .select2-selection__clear {
+            right: 2.25em !important;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .link-secondary {
+                color: #DEE2E6 !important;
+            }
+        }
+
+        textarea[name="description"], textarea[name="raw_evidence"] {
+            height: 100px;
+        }
+
+        .border-dashed {
+            border: dashed;
+        }
+
+        .inline-select2-button {
+            float:right;
+            font-size: small;
+            padding-top: 0.5em;
+            padding-right: 0.5em
+        }
+
+        .select2-results__option--highlighted {
+            filter: brightness(80%);
+        }
+
+    {% for context in contexts %}
+        li:has(.ctx{{ context.id }}) {
+            background-color: {{ context.colour }}20;
+        }
+
+        .ctx{{ context.id }} i {
+            color:{{ context.colour }}80;
+        }
+    {% endfor %}
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/core.min.js" integrity="sha512-t8vdA86yKUE154D1VlNn78JbDkjv3HxdK/0MJDMBUXUjshuzRgET0ERp/0MAgYS+8YD9YmFwnz6+FWLz1gRZaw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/md5.min.js" integrity="sha512-3sGbaDyhjGb+yxqvJKi/gl5zL4J7P5Yh4GXzq+E9puzlmVkIctjf4yP6LfijOUvtoBI3p9pLKia9crHsgYDTUQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/sha1.min.js" integrity="sha512-NHw1e1pc4RtmcynK88fHt8lpuetTUC0frnLBH6OrjmKGNnwY4nAnNBMjez4DRr9G1b+NtufOXLsF+apmkRCEIw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/sha256.min.js" integrity="sha512-fv28nWHTcWfoN3KBd2fs+YWsirQ+L0b/iIRS7HcNDPSAwxy6oSjRrYjQ+OtJoJz0wUKsVcPYgwcZzK04KfHD0A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    {# Theme to make the Select2 widgets used by auto complete look more like Bootstrap v5 widgets #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/g10f/select2-bootstrap-5-theme@617f9e043877e191dadde5ed0fe4a4fabc3e70e6/dist/select2-bootstrap-5-theme.min.css" integrity="sha384-0GMsXvAE6WvMpK8B2x4/d2RjXldOHRu8BhF2MMstRaEOTVj63X+wcEV6PY4pzh3c" crossorigin="anonymous">
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+  <main>
+    <div class="py-3">
+      <form method="post">
+        {% csrf_token %}
+        {% bootstrap_field form.task layout='horizontal'%}
+        <div class="mb-3 row">
+            <div class="col-sm-2">{% bootstrap_label "Timestamp" label_class="col-form-label" label_for="timestamp"%}</div>
+            <div class="col-sm-10">
+                {% bootstrap_field form.timestamp type='datetime-local' show_label=False wrapper_class="col" %}
+                <div class="collapse{% if form.timestamp_end.value %} show{% endif %}" id="timestamp_end_collapsible">
+                    <div class="col-md-2">{% bootstrap_label "...until..." label_class="col-form-label" label_for="timestamp_end"%}</div>
+                    <div class="col">{% bootstrap_field form.timestamp_end type='datetime-local' show_label=False wrapper_class="col" %}</div>
+                </div>
+            </div>
+        </div>
+        <div class="select-form-container">
+            {% bootstrap_field form.source layout='horizontal'%}
+            <div class="mb-3 row collapse collapsible-form">
+                <div class="col-sm-2">&nbsp;</div>
+                <div class="col-sm-10">
+                    <div class="row">
+                        <div id="source-warning">
+                            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                              <div>
+                                  <i class="fas fa-exclamation-triangle"></i> Changes below will also apply to any other events that use the source selected above as their source or target
+                              </div>
+                            </div>
+                        </div>
+                        {% bootstrap_field form.source_host    wrapper_class="col" addon_before="<i class='fas fa-network-wired'></i>" placeholder="n/a" %}
+                        {% bootstrap_field form.source_user    wrapper_class="col" addon_before="<i class='fas fa-user'></i>" placeholder="n/a" %}
+                        {% bootstrap_field form.source_process wrapper_class="col" addon_before="<i class='far fa-window-maximize'></i>" placeholder="n/a" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="select-form-container">
+            {% bootstrap_field form.target layout='horizontal'%}
+            <div class="mb-3 row collapse collapsible-form">
+                <div class="col-sm-2">&nbsp;</div>
+                <div class="col-sm-10">
+                    <div class="row">
+                        <div id="target-warning">
+                            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                              <div>
+                                  <i class="fas fa-exclamation-triangle"></i> Changes below will also apply to any other events that use the target selected above as their source or target
+                              </div>
+                            </div>
+                        </div>
+                        {% bootstrap_field form.target_host    wrapper_class="col" addon_before="<i class='fas fa-network-wired'></i>" placeholder="n/a" %}
+                        {% bootstrap_field form.target_user    wrapper_class="col" addon_before="<i class='fas fa-user'></i>" placeholder="n/a" %}
+                        {% bootstrap_field form.target_process wrapper_class="col" addon_before="<i class='far fa-window-maximize'></i>" placeholder="n/a" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% bootstrap_field form.operator layout='horizontal'%}
+        {% bootstrap_field form.tags layout='horizontal'%}
+        {% bootstrap_field form.description layout='horizontal'%}
+        {% bootstrap_field form.raw_evidence layout='horizontal'%}
+
+          <div class="mb-3 row">
+            <div class="col-sm-2 pt-3">IOCs</div>
+            <div class="col-sm-10">
+                <div class="row">
+                      <table class="table table-striped table-borderless mb-0">
+                            <tr>{{ file_distributions_formset.management_form }}</tr>
+                            {% for form in file_distributions_formset.forms %}
+                                <tr class="formset_row-{{ file_distributions_formset.prefix }}">
+                                    <td width="95%">
+                                        {% for hidden in form.hidden_fields %}
+                                            {{ hidden }}
+                                        {% endfor %}
+                                        {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+
+                                            <div class="select-form-container">
+                                            {% bootstrap_field form.file layout='horizontal' horizontal_label_class='col-md-1' horizontal_field_class='col-md-11' %}
+                                            <div class="row mb-3 collapse collapsible-form">
+                                                <div class="col-md-1"></div>
+                                                <div class="col-md-11">
+                                                    <div class="alert-wrapper">
+                                                        <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                                          <div>
+                                                              <i class="fas fa-exclamation-triangle"></i> Changes below will also apply to any other events that reference the same file
+                                                          </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-2 border-5 rounded-3 p-3 mx-auto border-dark-subtle border-dashed file-drop">
+                                                        <p class="mt-3 text-center">Drop file here to set values below <i class="fas fa-level-down-alt"></i></p>
+                                                    </div>
+                                                    <script nonce="{{request.csp_nonce}}">
+                                                        $(".file-drop")
+                                                            .on("drop", function(event) {
+                                                                dropHandler(event.originalEvent)
+                                                            })
+                                                            .on("dragover", function(event) {
+                                                                //Prevent file from being opened
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                            });
+
+                                                        // Hide the file fields when a user selection of a dropdown overrides them
+                                                        $("select[name^='filedistribution_set']").on("change", function() {updateFieldsVisibility("select[name^='filedistribution_set']")});
+                                                    </script>
+                                                    <div class="row mb-2">
+                                                        {% bootstrap_field form.fileform.filename wrapper_class="col-9" %}
+                                                        {% bootstrap_field form.fileform.size wrapper_class="col-3" addon_after="bytes" placeholder="n/a" %}
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        {% bootstrap_field form.fileform.description     wrapper_class="col" placeholder="n/a" %}
+                                                    </div>
+                                                    <div class="row mb-2">
+                                                        {% bootstrap_field form.fileform.md5_hash wrapper_class="col" placeholder="n/a" %}
+                                                        {% bootstrap_field form.fileform.sha1_hash wrapper_class="col" placeholder="n/a" %}
+                                                        {% bootstrap_field form.fileform.sha256_hash wrapper_class="col" placeholder="n/a" %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% bootstrap_field form.location layout='horizontal' placeholder="Path, mailbox address, etc" horizontal_label_class='col-md-1' horizontal_field_class='col-md-11' %}
+                                    {% bootstrap_field form.removed horizontal_label_class='col-md-1' horizontal_field_class='col-md-11' wrapper_class='mb-0' %}
+                                    </td>
+                                    <td width="5%">
+                                        <!-- Remove button will be placed here -->
+                                    </td>
+                                </tr>
+                                {% if forloop.last %}
+                                    <tr class="d-none"><td><!--dummy row to go with JS added hidden row to maintain visual stripe pairs --></td></tr>
+                                {% endif %}
+                            {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% bootstrap_field form.outcome layout='horizontal'%}
+        {% bootstrap_field form.detected layout='horizontal'%}
+        {% bootstrap_field form.prevented layout='horizontal'%}
+
+        <div class="mb-3 row">
+            <div class="col-sm-2">MITRE ATT&CK</div>
+            <div class="col-sm-10">
+                <div id="mitre" class="row">
+                    {% bootstrap_field form.mitre_attack_tactic       wrapper_class="col" %}
+                    {% bootstrap_field form.mitre_attack_technique    wrapper_class="col" %}
+                    {% bootstrap_field form.mitre_attack_subtechnique wrapper_class="col" %}
+                </div>
+            </div>
+        </div>
+
+        <script nonce="{{request.csp_nonce}}">
+          $("#mitre select").addClass("rounded-end").wrap("<div class='input-group'></div>");
+          let inputGroups = $("#mitre .input-group");
+          inputGroups.eq(0).append($('<button id="tacticLink" role="button" class="btn btn-link"><i class="fas fa-info-circle"></i></button>')
+              .on("click", function() {window.open("https://attack.mitre.org/tactics/" + $("#id_mitre_attack_tactic option:selected").text().split(" ")[0]); return false}));
+          inputGroups.eq(1).append($('<button id="techniqueLink" role="button" class="btn btn-link"><i class="fas fa-info-circle"></i></button>')
+              .on("click", function() {window.open("https://attack.mitre.org/techniques/" + $("#id_mitre_attack_technique option:selected").text().split(" ")[0]); return false}));
+          inputGroups.eq(2).append($('<button id="subtechniqueLink" role="button" class="btn btn-link" ><i class="fas fa-info-circle"></i></button>')
+              .on("click", function() {var parts =  $("#id_mitre_attack_subtechnique option:selected").text().split(" ")[0].split("."); window.open("https://attack.mitre.org/techniques/" + parts[0] + "/" + parts[1]); return false}));
+
+          $(function () {
+              $("#id_mitre_attack_tactic").on("change", tacticChanged);
+              $("#id_mitre_attack_technique").on("change", techniqueChanged);
+              $("#id_mitre_attack_subtechnique").on("change", subtechniqueChanged);
+          })
+        </script>
+
+          <a role="button" class="btn btn-secondary back-button">Cancel</a>
+          {%  if action == 'Create' %}
+            <button type="submit" class="btn btn-success">Create</button>
+          {% else %}
+            <button type="submit" class="btn btn-primary">Update</button>
+          {% endif %}
+        </form>
+
+    </div>
+  </main>
+</div>
+{% endblock bootstrap5_content %}
+
+    {{ form.media }}
+
+    <script nonce="{{request.csp_nonce}}">
+    $(function() {
+        $(".back-button").on("click", function() {history.back()})
+
+        // Ripple list updates, preserving selected values in case this is an edit of an existing object
+        tacticChanged($('#id_mitre_attack_technique').val())
+
+        // Show form fields when nothing is selected (e.g. creating new event)
+        updateFieldsVisibility("#id_source");
+        updateFieldsVisibility("#id_target");
+
+        // Ensure the form fields are hidden when a user selection overrides them
+        $("#id_source").on("change", function() {updateFieldsVisibility("#id_source")});
+        $("#id_target").on("change", function() {updateFieldsVisibility("#id_target")});
+
+        $("span.select2-selection__arrow").remove();
+    });
+
+    // -- Timestamp & End Timestamp behavior ---
+
+    // Add "show timestamp end" button to end of timestamp field
+    timestamp_field = $("#id_timestamp");
+    timestamp_field.addClass("border-end-0").addClass("pe-0");
+    timestamp_field.wrap("<div class='input-group'></div>").parent().append(
+        '<button role="button" id="show-end-button" class="btn btn-link link-secondary border border-start-0"' +
+            '{% if form.timestamp_end.value %}disabled{% endif %}>' +
+          '<i class="fa-regular fa-calendar-check"></i>' +
+        '</button>');
+
+    // When the "show timestamp end" button is clicked
+    $("#show-end-button").on("click", function (){
+        // Expand the collapsible
+        var timestamp_end_collapsible = document.getElementById('timestamp_end_collapsible')
+        new bootstrap.Collapse(timestamp_end_collapsible, {
+          show: true
+        });
+
+        // Copy timestamp to timestamp end
+        $("#id_timestamp_end").val($("#id_timestamp").val());
+
+        // Don't submit the form
+        return false;
+    });
+
+    // Tie the show end button state to the visibility of the timestamp
+    $("#timestamp_end_collapsible")
+        .on("show.bs.collapse", function(){
+            $("#show-end-button").prop("disabled", true);
+        })
+        .on("hide.bs.collapse", function() {
+            // Enable the show end button when the end timestamp is being hidden
+            $("#show-end-button").prop("disabled", false);
+        })
+        .on("hidden.bs.collapse", function(){
+            // Remove the field value if it's been fully "deleted"/hidden
+            $("#id_timestamp_end").val(null);
+        });
+
+    // Add "delete timestamp end" button to end of end_timestamp field
+    timestamp_field = $("#id_timestamp_end");
+    timestamp_field.addClass("border-end-0").addClass("pe-0");
+    timestamp_field.wrap("<div class='input-group'></div>").parent().append(
+      '<button role="button" id="hide-end-button" class="btn btn-outline-danger border border-start-0">' +
+        '<i class="fa-regular fa-calendar-xmark"></i>' +
+      '</button>');
+
+    // When the "delete timestamp end" button is clicked
+    $("#hide-end-button").on("click", function (){
+        // Hide the collapsible
+        var timestamp_end_collapsible = document.getElementById('timestamp_end_collapsible')
+        new bootstrap.Collapse(timestamp_end_collapsible, {
+          show: false
+        });
+
+        // Don't submit the form
+        return false;
+    });
+
+    // --- Generic functions to support the editable drop downs ---
+
+    /*
+    Assumes DOM structure like:
+
+    class=select-form-container
+      select field
+      class=collapsible-form
+        class=alert-wrapper
+          class=alert
+        input fields (can be explictly ignored with class=ignore-input)
+     */
+
+    // Integrates the state of the dropdown with the visibility of the form below it
+    function updateFieldsVisibility(selector, forceShow = false) {
+        $(selector).each(function(i, obj){
+
+            var selection = $(this).val()
+            var associatedFieldWrapper = $(this).closest(".select-form-container").find(".collapsible-form")
+            var editWarningWrapper = associatedFieldWrapper.find(".alert").parent()
+
+            var bsCollapse = new bootstrap.Collapse(associatedFieldWrapper, {
+              toggle: false
+            })
+
+            if (selection == '' || forceShow === true) {
+                bsCollapse.show();
+
+                if (selection == '') {
+                    editWarningWrapper.hide();
+                } else {
+                    editWarningWrapper.show();
+                }
+            } else {
+                bsCollapse.hide();
+                // Clear all input fields
+                associatedFieldWrapper.find("input:not(.ignore-input)").val("")
+            }
+        })
+    }
+
+    // Extract hidden data from selection to populate the form fields when edit or clone is clicked
+    function editEventHandler(e) {
+        e.stopPropagation();
+
+        var eventTarget = $(e.target)
+        var select = eventTarget.closest(".select2-container").prev()
+        var associatedFieldWrapper = select.closest(".select-form-container").find(".collapsible-form")
+
+        // Find the JSON hidden in the selection text and parse it to an array
+        var valueArray = JSON.parse(select.next().find(".rawdata").text())
+
+        // Set each input field to the corresponding array entry
+        if (valueArray.length == 3) {
+            //Presume this is a context drop down, which needs special handling because values for Select2 aren't set on the input elements
+            associatedFieldWrapper.find("select.host-field").append(new Option(valueArray[0], valueArray[0], true, true)).trigger('change');
+            associatedFieldWrapper.find("select.user-field").append(new Option(valueArray[1], valueArray[1], true, true)).trigger('change');
+            associatedFieldWrapper.find("select.process-field").append(new Option(valueArray[2], valueArray[2], true, true)).trigger('change');
+        } else {
+            associatedFieldWrapper.find("input:not(.ignore-input)").each(function(i, obj){$(this).val(valueArray[i])})
+        }
+        // Show the fields
+        updateFieldsVisibility(select, true)
+    }
+
+    function clearEventHandler(e) {
+        e.stopPropagation();
+        var eventTarget = $(e.target);
+        var select = eventTarget.closest(".select2-container").prev();
+        select.val(null).trigger('change'); //Clear the selection
+        updateFieldsVisibility(select); //Update the warning visibility to match selection
+    }
+
+    // Give ability to pseudo edit existing user/host/process values by populating the search box with their current value
+    $(".context-field").on('select2:open', (e) => {
+       setTimeout(() => {
+           document.querySelector('.select2-container--open .select2-search__field').value = e.target.value;
+       });
+    });
+
+    // Rename the tooltip on the Select2 clear buttons (Default is "Remove all items" which sounds scary)
+    $(document).on("DOMNodeInserted", ".select2-selection__clear", function (e) {
+        $(e.target).attr("title", "Clear");
+    });
+
+    // Add decorations to the drop downs
+    $("select.user-field").wrap("<div class='input-group flex-nowrap'></div>");
+    let userFieldInputGroups = $(".input-group .user-field ");
+    userFieldInputGroups.parent().prepend('<span class="input-group-text"><i class="fas fa-user"></i></span>')
+
+    $("select.host-field").wrap("<div class='input-group flex-nowrap'></div>");
+    let hostFieldInputGroups = $(".input-group .host-field ");
+    hostFieldInputGroups.parent().prepend('<span class="input-group-text"><i class="fas fa-network-wired"></i></span>')
+
+    $("select.process-field").wrap("<div class='input-group flex-nowrap'></div>");
+    let processFieldInputGroups = $(".input-group .process-field ");
+    processFieldInputGroups.parent().prepend('<span class="input-group-text"><i class="far fa-window-maximize"></i></span>')
+
+    $("select.host-field").siblings("span.input-group-text").on("click", function(self){
+        let eventSrc = self;
+        $.getJSON("https://api.ipify.org?format=jsonp&callback=?",
+          function(json) {
+            let data = {'id': json.ip, 'text': json.ip}
+            select2Obj = $(self.target).closest(".input-group").find("select");
+            
+            // Set the value, creating a new option if necessary
+            if (select2Obj.find("option[value='" + data.id + "']").length) {
+                select2Obj.val(data.id).trigger('change');
+            } else { 
+                // Create a DOM Option and pre-select by default
+                var newOption = new Option(data.text, data.id, true, true);
+                // Append it to the select
+                select2Obj.append(newOption).trigger('change');
+            }
+          }
+        );
+    });
+    
+    // Customise look and actions of every dropdown widgets' buttons
+    $(document).on("DOMNodeInserted", ".clonable-dropdown span.select2-selection__clear", function(e){
+        if (e.target.textContent === "×") {
+            var eventTarget = $(e.target)
+            var select = eventTarget.closest(".select2-container").prev()
+
+            // Add a clone widget to the start
+            select.next().find(".select2-selection__rendered")
+                .append($("<i class='far fa-copy link-secondary inline-select2-button' title='Clone Selection...'></i>")
+                    // React to clone widget click
+                    .on("mousedown", function(e) {
+                        editEventHandler(e); // Do the edit logic to populate the form
+                        clearEventHandler(e); // And also clear the selection to indicate something new is being created
+                    }));
+
+            // Add an edit widget to the start
+            select.next().find(".select2-selection__rendered")
+                .append($("<i class='far fa-edit link-secondary inline-select2-button' title='Edit Selection...'></i>")
+                    // React to edit widget click
+                    .on("mousedown", editEventHandler));
+
+            // Change the cross to a plus to better convey new, and override behaviour
+            select.next().find(".select2-selection__rendered")
+                .append($("<i class='far fa-plus-square link-secondary inline-select2-button' title='New Entry...'></i>")
+                 // React to new widget click
+                .on("mousedown", clearEventHandler));
+
+            // Remove the default clear button from the UI
+            select.next().find(".select2-selection__clear").remove()
+        }
+    })
+
+    // Ensure the fields are shown for select-forms in formsets
+    function customiseNewFileDropdown(row)
+    {
+        updateFieldsVisibility(row.find("select"))
+    }
+
+    // ---- MITRE ATT&CK ----
+    function tacticChanged(idToSelect) {
+        // Populate the techniques
+        var techniqueList = $('#id_mitre_attack_technique')
+        techniqueList.empty()
+        techniqueList.prop('disabled', true)
+
+        if ($("#id_mitre_attack_tactic").val() > 0) {
+            $("#tacticLink").prop('disabled', false);
+
+            techniqueList.append(new Option("Loading...", null, false, false))
+            const re = /^\w*? /;
+            var tacticShortname = slug($("#id_mitre_attack_tactic option:selected").text().split(re)[1]);
+
+            // Store the subtechnique in case this isn't a change and we need to preserve it
+            var subTechniqueList = $('#id_mitre_attack_subtechnique')
+            var prevSubTechniqueSelection = subTechniqueList.val()
+
+            $.ajax({url: '/event-tracker/api/mitre/techniques-for/' + tacticShortname,
+                   type: 'get',
+                   success: function (response) {
+                       techniqueList.empty()
+                       $.each(response.result, function(i, resultPair){
+                           var option = new Option(resultPair.value, resultPair.id, false, resultPair.id == idToSelect)
+                           techniqueList.append(option)
+                       })
+                       techniqueList.prop('disabled', false);
+
+                       techniqueChanged(prevSubTechniqueSelection);
+                   }
+            })
+        } else {
+            $("#tacticLink").prop('disabled', true);
+
+            techniqueList.append(new Option("Select Tactic", null, false, false))
+
+            // Clear sub techniques if there's no technique selected
+            techniqueChanged(-1)
+        }
+    }
+
+    function techniqueChanged(idToSelect) {
+        var subTechniqueList = $('#id_mitre_attack_subtechnique')
+        subTechniqueList.empty()
+        subTechniqueList.prop('disabled', true)
+
+        if ($("#id_mitre_attack_technique").val() > 0) {
+            $("#techniqueLink").prop('disabled', false);
+
+            subTechniqueList.append(new Option("Loading...", null, false, false))
+            const re = /^\w*? /;
+            var techniqueCode = $("#id_mitre_attack_technique option:selected").text().split(" ", 1)[0];
+            $.ajax({url: '/event-tracker/api/mitre/subtechniques-for/' + techniqueCode,
+                   type: 'get',
+                   success: function (response) {
+                       subTechniqueList.empty()
+
+                       $.each(response.result, function(i, resultPair){
+                           var option = new Option(resultPair.value, resultPair.id, false, resultPair.id == idToSelect)
+                           subTechniqueList.append(option)
+                       })
+                       subTechniqueList.prop('disabled', subTechniqueList.children().length <= 1)
+
+                       subtechniqueChanged();
+                   }
+            })
+        } else {
+            $("#techniqueLink").prop('disabled', true);
+            subTechniqueList.append(new Option("Select Technique", null, false, false));
+            subtechniqueChanged();
+        }
+    }
+
+    function subtechniqueChanged() {
+        if ($("#id_mitre_attack_subtechnique").val() > 0) {
+            $("#subtechniqueLink").prop('disabled', false);
+        }
+        else {
+            $("#subtechniqueLink").prop('disabled', true);
+        }
+    }
+
+    function slug(text)
+    {
+        return text.toLowerCase().replaceAll(" ", "-");
+    }
+
+    // ---- Dynamic formsets ----
+
+    $('.formset_row-{{ file_distributions_formset.prefix }}').formset({
+        addText: 'Add File',
+        addCssClass: 'btn btn-outline-success',
+        deleteText: '<i class="fa-regular fa-trash-can"></i>',
+        deleteCssClass: 'btn btn-outline-danger',
+        prefix: '{{ file_distributions_formset.prefix }}',
+        hideLastAddForm: true,
+        added: customiseNewFileDropdown,
+    });
+
+    // ---- Browser file hashing ----
+    function dropHandler(e) {
+      console.log('File(s) dropped');
+        e.stopPropagation();
+        e.preventDefault();
+
+        var files = e.dataTransfer.files; // FileList object.
+
+        // files is a list but we will only process the first if multiple files are dropped
+        var file = files[0];
+
+        var reader = new FileReader();
+
+        reader.onloadend = (function() {
+            var event_target = $(e.target);
+            return function(evt) {
+                if (evt.target.readyState == FileReader.DONE) {
+                    var container =  $(e.target).closest(".select-form-container");
+                    container.find("input[name$=filename]").val(file.name);
+                    container.find("input[name$=size]").val(file.size);
+                    var data = CryptoJS.enc.Latin1.parse(evt.target.result)
+                    container.find("input[name$=md5_hash]").val(CryptoJS.MD5(data));
+                    container.find("input[name$=sha1_hash]").val(CryptoJS.SHA1(data));
+                    container.find("input[name$=sha256_hash]").val(CryptoJS.SHA256(data));
+                }
+            }
+          })();
+
+        reader.readAsBinaryString(file);
+    }
+    </script>
+{% endblock body %}
+
+

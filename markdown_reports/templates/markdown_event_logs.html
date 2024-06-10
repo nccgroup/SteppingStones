@@ -1,0 +1,64 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+{% load tz %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Event Logs
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/highlightjs.html" %}
+    {% include "base/external-libs/clipboardjs.html" %}
+
+    <style nonce="{{request.csp_nonce}}">
+    .language-html {
+        white-space: break-spaces;
+    }
+    </style>
+{% endblock head %}
+
+{% block filter %}
+{% include "event_tracker/eventfilter_form.html" %}
+{% endblock %}
+
+{% block body %}
+<script nonce="{{request.csp_nonce}}">new ClipboardJS('.btn');</script>
+<div class="container">
+
+<h2 class="mt-3">Event Logs</h2>
+
+<button role="button" class="btn btn-primary btn-sm mt-3 mb-3" data-clipboard-target="#code">
+<i class="fas fa-clipboard"></i>&nbsp; Copy to clipboard
+</button>
+
+<pre class=""><code id="code" class="m3 language-html border">{% filter force_escape %}The following table shows specific actions which were performed as part of the exercise. It is recommended that these
+items are worked through retrospectively to identify any traces of the activities in logs and assess if there is sufficient
+prevention and detection mechanisms in place to defend against similar actions in future.
+
+Note:
+
+* All times are represented in UTC
+* The following definitions are used:
+  * **Detected**:
+    * *Not Applicable* - It is not reasonable to expect this event to be identified by the target organisation
+    * *Unknown* - It was not possible to determine if the event was recorded or resulted in an alert from an attacker's perspective.
+    * *No Trace* - There was no logging or telemetry which captured the event
+    * *Event Recorded* - The event is retrospectively recognisable in logs or telemetry but did not result in an alert being raised at the time of the event
+    * *Alert Raised* - The event was sufficiently beyond baseline activity as to trigger an automated alert which was fed to the defensive team
+  * **Prevented**:
+    * *Not Applicable* - It is not reasonable to expect this action to be blocked by the target organisation
+    * *Not Prevented* - The action occurred as expected without interference from any locked-down configuration or security products
+    * *Manual Intervention* - The action was blocked as a result of manual activity instigated by the defensive team
+    * *Blocked as Standard* - The action was prevented by an existing technical control, i.e. a configuration or product present as part of the target organisation's business-as-usual
+
+{% timezone "UTC" %}{% include "parts/event_table_part.html" %}{% endtimezone %}{% endfilter -%}
+</code></pre>
+
+</div>
+<script nonce="{{request.csp_nonce}}">hljs.highlightAll();</script>
+{% endblock body %}

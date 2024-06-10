@@ -1,0 +1,29 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block cobalt-strike-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Delete Team Server
+{% endblock title %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+  <main>
+    <div class="py-3">
+      <form action="" method="post">{% csrf_token %}
+        <div class="alert alert-danger" role="alert">
+          Are you sure you want to delete "{{ object.hostname }}:{{ object.port }}"{% if object.description %} ({{ object.description }}){% endif %}?</p>
+
+          <a href="{% url 'event_tracker:team-server-list' %}" role="button" class="btn btn-secondary">Cancel</a>
+          <input type="submit" class="btn btn-danger" value="Confirm" />
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

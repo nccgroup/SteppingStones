@@ -1,0 +1,11 @@
+[Unit]
+Description=Stepping Stones Cobalt Strike Bot
+
+[Service]
+Restart=on-failure
+WorkingDirectory=/opt/steppingstones
+ExecStart=/opt/steppingstones/.venv/bin/python manage.py process_tasks
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target

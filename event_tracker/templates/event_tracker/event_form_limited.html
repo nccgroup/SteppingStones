@@ -1,0 +1,135 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Edit Event
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    <style nonce="{{request.csp_nonce}}">
+         input[disabled], textarea[disabled], select[disabled] { color: #6c757d; }
+
+        .form-select { height: 2.5em !important;}
+        .select2-selection__arrow { visibility: hidden; }
+        .select2-container .select2-selection--single .select2-selection__rendered {
+            padding-right: 0 !important;
+            padding-left: 0 !important;
+            line-height: normal !important; }
+
+        .select2-container .select2-selection--single .select2-selection__clear {
+            position: absolute !important;
+        }
+
+        .select2-container {
+            min-width: unset !important;
+        }
+
+        span.selection > span.select2-selection--multiple {
+            padding-left: 6px;
+        }
+
+        ul.select2-selection__rendered {
+            display: flex !important;
+            padding-left: 0px !important;
+            line-height: 0.8 !important;
+        }
+
+        li .select2-selection__choice__remove, .select2-selection--multiple .select2-selection__clear {
+            color: transparent !important;
+            cursor: pointer;
+        }
+
+        .select2-selection__choice {
+            color: revert !important;
+        }
+
+        li .select2-search__field {
+            caret-color: transparent;
+        }
+
+        .select2-selection--multiple .select2-selection__clear {
+            right: 2.25em !important;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .link-secondary {
+                color: #DEE2E6 !important;
+            }
+        }
+    </style>
+
+    {# Theme to make the Select2 widgets used by auto complete look more like Bootstrap v5 widgets #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/g10f/select2-bootstrap-5-theme@617f9e043877e191dadde5ed0fe4a4fabc3e70e6/dist/select2-bootstrap-5-theme.min.css" integrity="sha384-0GMsXvAE6WvMpK8B2x4/d2RjXldOHRu8BhF2MMstRaEOTVj63X+wcEV6PY4pzh3c" crossorigin="anonymous">
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+  <main>
+    <div class="py-3">
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3 row">
+            <div class="col-sm-2">Timestamp</div>
+            <div class="col-sm-10">
+                {% bootstrap_field form.timestamp type='datetime-local' show_label=False wrapper_class="col" %}
+            </div>
+        </div>
+
+        {% bootstrap_field form.source layout='horizontal'%}
+
+        <div class="select-form-container">
+            {% bootstrap_field form.target layout='horizontal'%}
+            <div class="mb-3 row collapse collapsible-form">
+                <div class="col-sm-2">&nbsp;</div>
+                <div class="col-sm-10">
+                    <div class="row">
+                        <div id="target-warning">
+                            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                              <div>
+                                  <i class="fas fa-exclamation-triangle"></i> Changes below will also apply to any other events that use the target selected above as their source or target
+                              </div>
+                            </div>
+                        </div>
+                        {% bootstrap_field form.target_host    wrapper_class="col" addon_before="<i class='fas fa-network-wired'></i>" placeholder="n/a" %}
+                        {% bootstrap_field form.target_user    wrapper_class="col" addon_before="<i class='fas fa-user'></i>" placeholder="n/a" %}
+                        {% bootstrap_field form.target_process wrapper_class="col" addon_before="<i class='far fa-window-maximize'></i>" placeholder="n/a" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% bootstrap_field form.description layout='horizontal'%}
+
+        {% bootstrap_field form.outcome layout='horizontal'%}
+        {% bootstrap_field form.detected layout='horizontal'%}
+        {% bootstrap_field form.prevented layout='horizontal'%}
+
+           <a role="button" class="btn btn-secondary back-button">Cancel</a>
+          {%  if action == 'Create' %}
+            <button type="submit" class="btn btn-success">Create</button>
+          {% else %}
+            <button type="submit" class="btn btn-primary">Update</button>
+          {% endif %}
+        </form>
+
+        <script nonce="{{request.csp_nonce}}">
+            $(".back-button").on("click", function() {history.back()})
+        </script>
+
+    </div>
+  </main>
+</div>
+{% endblock bootstrap5_content %}
+
+    {{ form.media }}
+
+{% endblock body %}
+
+

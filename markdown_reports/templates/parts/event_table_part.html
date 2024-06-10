@@ -1,0 +1,60 @@
+{% load custom_tags %}
+<table>
+  <colgroup>
+    <col width="14mm">
+    <col width="23mm">
+    <col width="0">
+    <col width="12mm">
+    <col width="12mm">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Date Time</th>
+      <th>TTP</th>
+      <th>Detail</th>
+      <th>Detected</th>
+      <th>Prevented</th>
+    </tr>
+  </thead>
+  <tbody>{% for event in event_list reversed  %}{% filter tidytextformarkdown %}
+    <tr>
+      <td>{% if event.timestamp_end %}{{ event.timestamp|render_ts_to_ts_utc:event.timestamp_end }}{% else %}{{ event.timestamp|render_ts_utc }}{% endif %}</td>
+      <td>{% if event.mitre_attack_subtechnique %}**{{ event.mitre_attack_subtechnique.mitre_id }}**
+{{ event.mitre_attack_technique.name }}: {{ event.mitre_attack_subtechnique.name }}
+{% elif event.mitre_attack_technique %}**{{ event.mitre_attack_technique.mitre_id }}**
+{{ event.mitre_attack_technique.name }}
+{% elif event.mitre_attack_tactic %}**{{ event.mitre_attack_tactic.mitre_id }}**
+{{ event.mitre_attack_tactic.name }}
+{% else %}-{% endif %}</td>
+      <td>{% for tag in event.tags.names|exclude:eventfilter.get_tag_string %}{% if forloop.first %}#### {% else %} {% endif %}[{{ tag|title }}]{% endfor %}
+**{{ event.description|firstsentence }}**
+
+{{ event.description|afterfirstsentence|consolidatelinebreaks|preventunexpectedcodeblocks }}
+
+{% endfilter -%}{% if event.raw_evidence %}~~~{% autoescape off %}
+{{ event.raw_evidence }}{% endautoescape %}
+~~~
+
+{% endif %}{% filter tidytextformarkdown %}{% if event.source != event.target %}
+Source: {{ event.source.short_string }}
+
+Target: {{ event.target.short_string }}
+{% elif event.source is not None %}
+{%  if event.source.host %}
+Host: {{ event.source.host }}
+{% endif %}{%  if event.source.user %}
+User: {{ event.source.user }}
+{% endif %}{%  if event.source.process %}
+Process: {{ event.source.process }}
+{% endif %}{% endif %}
+{% for filedistribution in event.filedistribution_set.all %}{% if forloop.first %}Associated File{{ event.filedistribution_set.all|pluralize }}:
+
+{% endif %}* {{ filedistribution.file.filename }}{% if filedistribution.location %} ({{ filedistribution.location }}){% endif %}{% if filedistribution.file.size %} - {{ filedistribution.file.size|filesizeformat }}{% endif %}{% if filedistribution.file.sha1_hash %} [SHA1: {{ filedistribution.file.sha1_hash }}]{% elif filedistribution.file.md5_hash %} [MD5: {{ filedistribution.file.md5_hash }}]{% endif %}
+{% endfor %}
+{%  if event.outcome %}
+**Outcome:** {{ event.outcome }}{% endif %}</td>
+      <td{% if event.detected != None and event.detected != "UNK" and event.detected != "N/A" %} bgcolor="{{ event.detected|status_to_html_color }}"{% endif %}>{{ event.detected|detected_enum_to_label }}</td>
+      <td{% if event.prevented != None and event.prevented != "N/A" %} bgcolor="{{ event.prevented|status_to_html_color }}"{% endif %}>{{ event.prevented|prevented_enum_to_label }}</td>
+    </tr>{% endfilter %}{% endfor %}
+  </tbody>
+</table>

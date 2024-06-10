@@ -1,0 +1,181 @@
+$last_session = {{last_session_timestamp}};
+sub session_filter
+{
+    return iff(parseNumber($1["opened"]) > $last_session, $1, $null);
+}
+
+sub session_sorter
+{
+    $a = parseNumber($1["opened"]);
+    $b = parseNumber($2["opened"]);
+
+   return $a cmp $b;
+}
+
+# archives and beaconlogs appear to always be date sorted, no need for sorters
+$last_archive = {{last_archive_timestamp}};
+sub archive_filter
+{
+    return iff($1["when"] > $last_archive, $1, $null);
+}
+
+$last_beaconlog = {{last_beaconlog_timestamp}};
+sub beaconlog_filter
+{
+    return iff(parseNumber($1[-1]) > $last_beaconlog, $1, $null);
+}
+
+$last_credential = {{last_credential_timestamp}};
+sub credential_filter
+{
+    return iff($1["added"] > $last_credential, $1, $null);
+}
+
+sub credential_sorter
+{
+    $a = $1["added"];
+    $b = $2["added"];
+
+   return $a cmp $b;
+}
+
+$last_download = {{last_download_timestamp}};
+sub download_filter
+{
+    return iff(parseNumber($1["date"]) > $last_download, $1, $null);
+}
+
+sub download_sorter
+{
+    $a = parseNumber($1["date"]);
+    $b = parseNumber($2["date"]);
+
+   return $a cmp $b;
+}
+
+on beacons {
+   dumpmodelhashofhashes("[L]", data_query("listeners"));
+
+   $last_session_obj = dumpmodelarraysofhashes("[S]", data_query("sessions"), &session_sorter, &session_filter);
+   if ($last_session_obj) { $last_session = parseNumber($last_session_obj["opened"]); }
+
+   $last_beaconlog_obj = dumpmodelarrayofarrays("[B]", data_query("beaconlog"), &beaconlog_filter);
+   if ($last_beaconlog_obj) { $last_beaconlog = parseNumber($last_beaconlog_obj[-1]); }
+
+   # Deal with metadata after any new beacon sessions have been created, but before our "last" figure is too far off.
+   # Our processing of checkins needs sleep data from beacon logs so needs to come after that too
+   $ignored = dumpmodelhashofhashes("[M]", $1, @("last", "note", "sleep"));
+
+   $last_archive_obj = dumpmodelarraysofhashes("[A]", data_query("archives"), $null, &archive_filter);
+   if ($last_archive_obj) { $last_archive = $last_archive_obj["when"]; }
+
+   $last_credential_obj = dumpmodelarraysofhashes("[C]", data_query("credentials"), &credential_sorter, &credential_filter);
+   if ($last_credential_obj) { $last_credential = $last_credential_obj["added"]; }
+
+   $last_download_obj = dumpmodelarraysofhashes("[D]", data_query("downloads"), &download_sorter, &download_filter);
+   if ($last_download_obj) { $last_download = $last_download_obj["date"]; }
+}
+
+sub dumpmodelarraysofhashes {
+    # $1 : the prefix
+    # $2 : the model to dump
+    # $3 : an optional closure to sort the data, can be $null
+    # $4 : a closure for filtering the whole array to just new content
+    # Returns : The last element from the batch which is just dumped, or $null if none were dumped
+
+    $result = $null;
+
+    if ($2)
+    {
+        if ($3)
+        {
+            $data = sort($3, $2);
+        }
+        else
+        {
+            $data = $2;
+        }
+
+        $subarray = filter($4, $data);
+
+        foreach $index => $entry ($subarray) {
+            print("$1 [" . ($index) . "] ");
+
+            foreach $key(keys($entry))
+            {
+               $value = $entry[$key];
+               cleanvalue($value);
+               push(@values, "\"$key\":\" $+ $value $+ \"");
+            }
+
+            println("{" . join(", ", @values) . "}" );
+
+            clear(@values);
+            $result = $entry
+        }
+    }
+
+    return $result;
+}
+
+sub dumpmodelarrayofarrays {
+    # $1 : the prefix
+    # $2 : the model to dump
+    # $3 : a closure for filtering the whole array
+    # Returns : The last element from the batch which is just dumped, or $null if none were dumped
+
+    $data = $2;
+    $result = $null;
+    if ($data)
+    {
+        $subarray = filter($3, $data);
+
+        foreach $index => $entry ($subarray) {
+            print("$1 [" . ($index + $3) . "] ");
+
+            foreach $value($entry)
+            {
+               cleanvalue($value);
+               push(@values, "\" $+ $value $+ \"");
+            }
+
+            println("[" . join(", ", @values) . "]" );
+
+            clear(@values);
+            $result = $entry
+        }
+    }
+
+    return $result;
+}
+
+sub dumpmodelhashofhashes {
+    # $1 : the prefix
+    # $2 : the model to dump
+    # $3 : (optional) The fields to dump, as array of field names
+
+    foreach $index => $entry ($2) {
+        print("$1 [" . ($index) . "] ");
+
+        $keys = iff($3, $3, keys($entry));
+
+        foreach $key($keys)
+        {
+           $value = $entry[$key];
+           cleanvalue($value);
+           push(@values, "\"$key\":\" $+ $value $+ \"");
+        }
+
+        println("{" . join(", ", @values) . "}" );
+
+        clear(@values);
+    }
+}
+
+sub cleanvalue {
+   $1 = replace($1, "\\\\", "\\\\\\\\"); # Escape /
+   $1 = replace($1, "\"", "\\\\\""); #  Escape "
+   $1 = replace($1, "\r", "\\\\n"); #  Escape \r
+   $1 = replace($1, "\n", "\\\\n"); #  Escape \n
+   $1 = replace($1, "[^ -~][0-9A-F]?", ""); #  Remove non-ASCII (and any hex char after to cover syntax highlighting syntax)
+}

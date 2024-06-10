@@ -1,0 +1,11 @@
+[Unit]
+Description=Stepping Stones Web UI
+
+[Service]
+Restart=on-failure
+WorkingDirectory=/opt/steppingstones
+ExecStart=/opt/steppingstones/.venv/bin/python manage.py runserver 8000 --insecure
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target

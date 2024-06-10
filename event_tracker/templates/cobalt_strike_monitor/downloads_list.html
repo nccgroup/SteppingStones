@@ -1,0 +1,111 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+
+{% block cobalt-strike-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+CS Downloads
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/datatables-basic.html" %}
+
+    <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
+
+    <style nonce="{{request.csp_nonce}}">
+    .fa-ul {margin-left: 30px; margin-bottom: 0px}
+    </style>
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+      {% if download_list %}
+        <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">Timestamp</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Path</th>
+                  <th scope="col">Size</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+
+              {% for download in download_list %}
+                <tr>
+                  <td>{{ download.date|render_ts_local }}</td>
+                  <td>
+                    <ul class="fa-ul">
+                      {% if download.beacon.computer %}
+                      <li><span class="fa-li text-muted"><i class="fas fa-network-wired"></i></span>{{ download.beacon.computer }}</li>
+                      {% endif %}
+                      {% if download.beacon.user %}
+                      <li><span class="fa-li text-muted"><i class="fas fa-user"></i></span>{{ download.beacon.user }}</li>
+                      {% endif %}
+                      {% if download.beacon.process %}
+                      <li><span class="fa-li text-muted"><i class="far fa-window-maximize"></i></span>{{ download.beacon.process }}</li>
+                      {% endif %}
+                      {% if not download.beacon.computer and not download.beacon.user and not download.beacon.process %}
+                        -
+                      {% endif %}
+                    </ul>
+                  </td>
+                  <td>{{ download.path }}{{ download.name }}</td>
+                  <td>{{ download.size|filesizeformat }}</td>
+                  <td>
+                    <div class="btn-toolbar" role="toolbar" >
+                      <div class="btn-group" role="group">
+                          {% if download.event_mappings.exists and perms.event_tracker.change_event %}
+                            <a href="{% url 'event_tracker:event-update' download.event_mappings.first.event.task_id download.event_mappings.first.event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                          {% elif not download.event_mappings.exists and perms.event_tracker.add_event  %}
+                            <a href="{% url 'event_tracker:cs-download-to-event' download.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
+                          {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+
+              </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="alert alert-secondary mt-3" role="alert">
+              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No file downloads found, ensure the logs are being polled for.
+            </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+    <script nonce="{{request.csp_nonce}}">
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip();
+      $.fn.dataTable.moment('{% datetime_format_moment %}');
+      $('.table').DataTable({
+          fixedHeader: {
+            header: true,
+            headerOffset: $('.navbar').outerHeight()
+          },
+          order: [[0, 'desc']],
+          columns: [
+            null,
+            null,
+            null,
+            null,
+            { orderable: false },
+          ]
+      } )
+    })
+    </script>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

@@ -1,0 +1,130 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+
+{% block cobalt-strike-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+CS Beacon Exclusions
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/datatables-basic.html" %}
+
+    <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+      {% if object_list %}
+        <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">Rule</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody>
+
+              {% for beaconexclusion in object_list %}
+                <tr>
+                  <td>
+                      {% if beaconexclusion.beacon_id %}
+                          Exclude beacon with ID: <strong id="exclusion_id">{{ beaconexclusion.beacon_id }}</strong>
+                      {% elif beaconexclusion.computer %}
+                          Exclude all beacons on host: <strong id="exclusion_computer">{{ beaconexclusion.computer }}</strong>
+                      {% elif beaconexclusion.user %}
+                          Exclude all beacons from user: <strong id="exclusion_user">{{ beaconexclusion.user }}</strong>
+                      {% elif beaconexclusion.process %}
+                          Exclude all beacons spawned as: <strong id="exclusion_process">{{ beaconexclusion.process }}</strong>
+                      {% elif beaconexclusion.internal %}
+                          Exclude all beacons with internal IP: <strong id="exclusion_internal">{{ beaconexclusion.internal }}</strong>
+                      {% elif beaconexclusion.external %}
+                          Exclude all beacons with external IP: <strong id="exclusion_external">{{ beaconexclusion.external }}</strong>
+                      {% endif %}
+                  </td>
+                  <td>
+                    {% if perms.cobalt_strike_monitor.delete_beaconexclusion %}
+                    <div class="btn-toolbar" role="toolbar" >
+                        <div class="btn-group" role="group">
+                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deletion-modal" data-bs-id="{{beaconexclusion.id}}" data-bs-string="{{beaconexclusion}}" data-toggle="tooltip" title="Remove Exclusion Rule"><i class="fa-solid fa-eye"></i></a>
+                        </div>
+                    </div>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+
+              </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="alert alert-secondary mt-3" role="alert">
+              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No exclusion rules defined. Find a sample beacon you wish to hide on the <a href="{% url 'event_tracker:cs-beacons-list' %}">beacons page</a> and click <i class="fa-solid fa-eye-slash"></i>
+            </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+<div class="modal" tabindex="-1" id="deletion-modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Are you sure?</h5>
+        <button role="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to remove rule: <br/><span id="deletion-object-str"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button role="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" action="{% url 'event_tracker:cs-beacon-exclusion-delete' 0 %}"
+              id="deletion-form">{% csrf_token %}<input type="submit" value="Remove" class="btn btn-danger"></form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{request.csp_nonce}}">
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip();
+      $('.table').DataTable({
+          searching: false,
+          paging: false,
+          fixedHeader: {
+            header: true,
+            headerOffset: $('.navbar').outerHeight()
+          },
+          order: [[0, 'desc']],
+          columns: [
+            null,
+            { orderable: false },
+          ]
+      } )
+    })
+    
+var modal = document.getElementById('deletion-modal')
+modal.addEventListener('show.bs.modal', function (event) {
+  // Button that triggered the modal
+  var button = event.relatedTarget
+  // Extract info from data-bs-* attributes
+  var rule_id = button.getAttribute('data-bs-id')
+  // Update the modal's content.
+  modal.querySelector('#deletion-object-str').innerText = button.getAttribute('data-bs-string')
+
+  const regex = /(\/)(0)(\/delete\/$)/;
+  var targetUrl = $("#deletion-form").attr("action").replace(regex, "$1" + rule_id + "$3")
+  $("#deletion-form").attr("action", targetUrl)
+})
+    
+</script>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

@@ -1,0 +1,46 @@
+{% load django_bootstrap5 %}
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js" integrity="sha512-X/YkDZyjTf4wyc2Vy16YGCPHwAY8rZJY+POgokZjQB2mhIRFJCckEGc6YyX9eNsPfn0PzThEuNs+uaomE5CO6A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" integrity="sha512-b2QcS5SsA8tZodcDtGRELiGv5SaKSk1vDHDaQRda0htPYWZ6046lr3kJ5bAAQdpV2mmA/4v0wQF9MyU6/pDIAg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+  <body>
+    <script nonce="{{request.csp_nonce}}">
+        // Set theme to the user's preferred color scheme
+        function updateTheme() {
+          const colorMode = window.matchMedia("(prefers-color-scheme: dark)").matches ?
+            "dark" :
+            "light";
+          document.querySelector("html").setAttribute("data-bs-theme", colorMode);
+        }
+
+        // Set theme on load
+        updateTheme()
+
+        // Update theme when the preferred scheme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
+    </script>
+    {% block bootstrap5_content %}
+    <h2>{{ node_dict.name }}</h2>
+
+    <table class="table table-striped">
+    {% for key, value in node_dict.items %}
+        <tr>
+            <th {% if key == 'owned' and value == True %}class="text-danger"{% endif %}>{{ key }}</th>
+            <td {% if key == 'owned' and value == True %}class="text-danger"{% endif %}>{% if key == 'pwdlastset' or key == 'whencreated' or key == 'lastlogontimestamp' or key == 'lastlogon'%}
+                    {% if value == -1 %}
+                        Never
+                    {% else %}
+                        {{ value|epoch_to_ts|render_ts_local }}
+                    {% endif %}
+                {% elif key == 'highvalue' %}
+                    <a href="{% url 'event_tracker:bloodhound-node-toggle-highvalue' dn %}" class="btn {% if value %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm">{{ value }}</a>
+                {% else %}
+                    {{ value }}
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+    {% endblock bootstrap5_content %}
+</body>

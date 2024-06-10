@@ -1,0 +1,203 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load humanize %}
+{% load static %}
+
+
+{% block cobalt-strike-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+CS Beacons
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/datatables-basic.html" %}
+
+    <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container-fluid">
+    <div class="py-4 row">
+        <div class="col-md-12">
+            {% if perms.cobalt_strike_monitor.view_beaconexclusion %}
+            <a href="{% url 'event_tracker:cs-beacon-exclusion-list' %}" class="btn btn-outline-secondary"><i class="fa-solid fa-eye-low-vision"></i> View Beacon Exclusions</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+      {% if beacon_list %}
+        <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">First Seen</th>
+                  <th scope="col">Last Seen</th>
+                  <th scope="col">Expected</th>
+                  <th scope="col">User</th>
+                  <th scope="col">Computer</th>
+                  <th scope="col">Process</th>
+                  <th scope="col">External IP</th>
+                  <th scope="col">Internal IP</th>
+                  <th scope="col">OS</th>
+                  <th scope="col">Connection Events</th>
+                </tr>
+              </thead>
+              <tbody>
+
+              {% for beacon in beacon_list %}
+                <tr>
+                  <td title="{{ beacon.opened|naturaltime }}">{{ beacon.opened|render_ts_local }}</td>
+                  {% if beacon.last %}
+                    <td title="{{ beacon.last|naturaltime }}">{{ beacon.last|render_ts_local }}</td>
+                  {% else %}
+                    <td>n/a</td>
+                  {% endif %}
+                  {% if beacon.next_checkin_estimate %}
+                    <td title="{{ beacon.next_checkin_estimate|naturaltime }}{% if beacon.missed_checkins > 0 %} - missed {{ beacon.missed_checkins|floatformat:"0" }} checkin{{ beacon.missed_checkins|floatformat:"0"|pluralize }}{% endif %}"><div {% if beacon.missed_checkins > 2 %}class="text-danger"{% elif beacon.missed_checkins > 0 %}class="text-warning"{% endif %}>{{ beacon.next_checkin_estimate|render_ts_local }}</div></td>
+                  {% else %}
+                    <td>n/a</td>
+                  {% endif %}
+                  <td>{{ beacon.user }}</td>
+                  <td>{{ beacon.computer }}</td>
+                  <td>{% if beacon.session == "beacon" %}{{ beacon.process|lower }} (PID: {{ beacon.pid }}){% elif beacon.session == "ssh" %}SSH Server{% endif %}</td>
+                  <td>{{ beacon.external }}</td>
+                  <td>{{ beacon.internal }}</td>
+                  <td>{{ beacon.os_human }}</td>
+                  <td>
+                    <div class="btn-toolbar" role="toolbar" >
+                        <div class="btn-group" role="group">
+                            {% if beacon.event_mappings.exists and perms.event_tracker.change_event %}
+                                <a href="{% url 'event_tracker:event-update' beacon.event_mappings.first.event.task_id beacon.event_mappings.first.event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                            {% elif not beacon.event_mappings.exists and perms.event_tracker.add_event %}
+                                <a href="{% url 'event_tracker:cs-beacon-to-event' beacon.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
+                            {% endif %}
+                            {% if perms.cobalt_strike_monitor.add_beaconexclusion %}
+                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal" data-bs-id="{{beacon.id}}" data-bs-user="{{beacon.user}}" data-bs-computer="{{beacon.computer}}" data-bs-process="{{beacon.process}}" data-bs-internal="{{beacon.internal}}" data-bs-external="{{beacon.external}}" data-toggle="tooltip" title="Exclude Beacons Like This"><i class="fa-solid fa-eye-slash"></i></a>
+                            {% endif %}
+                            {% if beacon.id in reconnection_watcher_bids and perms.cobalt_strike_monitor.delete_beaconreconnectionwatcher %}
+                                <a href="{% url 'event_tracker:cs-beaconwatch-remove' beacon.id %}" role="button" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Stop watching for reconnect"><i class="fa-solid fa-bell-slash"></i></a>
+                            {% elif beacon.id not in reconnection_watcher_bids and perms.cobalt_strike_monitor.add_beaconreconnectionwatcher  %}
+                                <a href="{% url 'event_tracker:cs-beaconwatch-add' beacon.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Notify on reconnect"><i class="fa-solid fa-bell"></i></a>
+                            {% endif %}
+                        </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+
+              </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="alert alert-secondary mt-3" role="alert">
+              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No beacons found, ensure the logs are being polled for.
+            </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filterModalLabel">Create Exclusion Rule</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'event_tracker:cs-beacons-create-exclusion' %}">
+        <div class="modal-body">
+            {% csrf_token %}
+            <div class="form-group">
+              <input class="form-check-input" type="radio" name="exclusion_type" value="id" checked id="beacon_id">
+              <label class="form-check-label" for="beacon_id">
+                Exclude only this specific beacon
+              </label>
+            </div>
+            <div class="form-group">
+              <input class="form-check-input" type="radio" name="exclusion_type" value="computer" id="computer">
+              <label class="form-check-label" for="computer">
+                Exclude all beacons on host: <strong id="exclusion_computer">{{ form.computer.value }}</strong>
+              </label>
+            </div>
+            <div class="form-group">
+              <input class="form-check-input" type="radio" name="exclusion_type" value="user" id="user">
+              <label class="form-check-label" for="user">
+                Exclude all beacons from user: <strong id="exclusion_user">{{ form.user.value }}</strong>
+              </label>
+            </div>
+            <div class="form-group">
+              <input class="form-check-input" type="radio" name="exclusion_type" value="process" id="process">
+              <label class="form-check-label" for="process">
+                Exclude all beacons spawned as: <strong id="exclusion_process">{{ form.process.value }}</strong>
+              </label>
+            </div>
+            <div class="form-group">
+              <input class="form-check-input" type="radio" name="exclusion_type" value="internal" id="internal">
+              <label class="form-check-label" for="internal">
+                Exclude all beacons with internal IP: <strong id="exclusion_internal">{{ form.internal.value }}</strong>
+              </label>
+            </div>
+            <div class="form-group">
+              <input class="form-check-input" type="radio" name="exclusion_type" value="external" id="external">
+              <label class="form-check-label" for="external">
+                Exclude all beacons with external IP: <strong id="exclusion_external">{{ form.external.value }}</strong>
+              </label>
+            </div>
+            <input hidden name="beacon_id" id="exclusion_beacon_id">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-success">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script nonce="{{request.csp_nonce}}">
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip();
+      $.fn.dataTable.moment('{% datetime_format_moment %}');
+      $('.table').DataTable({
+          fixedHeader: {
+            header: true,
+            headerOffset: $('.navbar').outerHeight()
+          },
+          order: [[0, 'desc']],
+          columns: [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            { orderable: false },
+          ]
+      } )
+    })
+    
+var fitlerModal = document.getElementById('filterModal')
+fitlerModal.addEventListener('show.bs.modal', function (event) {
+  // Button that triggered the modal
+  var button = event.relatedTarget
+  // Update the modal's content from data-bs-* attributes
+  fitlerModal.querySelector('#exclusion_user').innerText = button.getAttribute('data-bs-user')
+  fitlerModal.querySelector('#exclusion_computer').innerText = button.getAttribute('data-bs-computer')
+  fitlerModal.querySelector('#exclusion_process').innerText = button.getAttribute('data-bs-process')
+  fitlerModal.querySelector('#exclusion_internal').innerText = button.getAttribute('data-bs-internal')
+  fitlerModal.querySelector('#exclusion_external').innerText = button.getAttribute('data-bs-external')
+  fitlerModal.querySelector('#exclusion_beacon_id').value = button.getAttribute('data-bs-id')
+})
+    
+</script>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

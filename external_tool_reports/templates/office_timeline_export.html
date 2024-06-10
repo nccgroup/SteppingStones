@@ -1,0 +1,36 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+{% load django_bootstrap5 %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Office Timeline Export
+{% endblock title %}
+
+{% block filter %}
+{% include "event_tracker/eventfilter_form.html" %}
+{% endblock %}
+
+{% block body %}
+<div class="container">
+  <h2 class="mt-3">Office Timeline Export</h2>
+
+  <p>For a concise export, use tags and/or stars on events and filter the export using the filter options above.</p>
+
+  <main>
+    <div class="py-3">
+        <form action="{% url 'office-timeline-export-generate' view.kwargs.task_id %}">{% csrf_token %}
+            {% bootstrap_form export_options layout='horizontal' %}
+
+            <a href="{% url 'event_tracker:event-list' task_id %}" role="button" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-download"></i> Export</button>
+
+        </form>
+    </div>
+  </main>
+</div>
+{% endblock body %}

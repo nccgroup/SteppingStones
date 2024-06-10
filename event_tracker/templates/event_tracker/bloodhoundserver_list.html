@@ -1,0 +1,74 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block bloodhound-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+BloodHound Servers
+{% endblock title %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+<div class="container-fluid">
+    <div class="py-4 row">
+        <div class="col-md-12">
+            {% if perms.event_tracker.add_bloodhoundserver %}
+            <a href="{% url 'event_tracker:bloodhound-server-add' %}" class="btn btn-success"><i class="fa-regular fa-calendar-plus"></i> Add BloodHound Server</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+      {% if bloodhoundserver_list %}
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">URL</th>
+                  <th scope="col">Username</th>
+                  <th scope="col">Password</th>
+                  <th scope="col">Active</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+
+              {% for server in bloodhoundserver_list %}
+                <tr>
+                  <td>{{ server.neo4j_connection_url }}</td>
+                  <td>{{ server.username }}</td>
+                  <td>{{ server.password }}</td>
+                  <td>{{ server.active|yesno }}</td>
+                  <td>
+                    <div class="btn-toolbar" role="toolbar" >
+                      <div class="btn-group" role="group">
+                          {% if perms.event_tracker.change_bloodhoundserver %}
+                          <a href="{% url 'event_tracker:bloodhound-server-update' server.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit BloodHound Server"><i class="fa-regular fa-pen-to-square"></i></a>
+                          {% endif %}
+                          {% if perms.event_tracker.delete_bloodhoundserver %}
+                          <a href="{% url 'event_tracker:bloodhound-server-delete' server.id %}" role="button" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Delete BloodHound Server"><i class="fa-regular fa-trash-can"></i></a>
+                          {% endif %}
+                          <a href="{{ server.neo4j_browser_url }}/browser?dbms={{ server.neo4j_connection_url_for_browser }}" role="button" class="btn btn-secondary btn-sm" data-toggle="tooltip" title="Open Neo4j Browser" target="_blank"><i class="fa-solid fa-magnifying-glass-arrow-right"></i></a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+
+              </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="alert alert-secondary mt-3" role="alert">
+              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No BloodHound Servers configured, please add one.
+            </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

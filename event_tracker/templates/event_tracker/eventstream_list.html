@@ -1,0 +1,189 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block eventstream-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+EventStream
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/datatables-pdfexport.html" %}
+
+    <script src="{% static "/scripts/bootstrap_input.js" %}"></script>
+
+    <style nonce="{{request.csp_nonce}}">
+    .fa-ul {
+        margin-left: 30px; margin-bottom: 0px
+    }
+
+    table.dataTable tr td:nth-child(4) {
+        word-break: break-all;
+    }
+    .dt-buttons {
+        float: right;
+        padding-left: .25em;
+    }
+    .dt-buttons > .btn {
+        padding: .200rem .75rem;
+    }
+    div.dataTables_wrapper div.dataTables_info {
+        padding-top: 0;
+    }
+    </style>
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container-fluid">
+    <div class="py-4 row">
+        <div class="col-md-12">
+        {% if perms.event_tracker.add_eventstream %}
+            <div class="btn-group" role="group" aria-label="Creation">
+                <a href="{% url 'event_tracker:eventstream-upload' %}" class="btn btn-success"><i class="fa-solid fa-house-flood-water"></i> Upload EventStream</a>
+
+                <div class="dropdown">
+                  <button class="btn btn-outline-info dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-info-circle"></i> EventStream Spec.
+                  </button>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                    <li><a class="dropdown-item" href="{% static 'eventstream/eventstream-example.json' %}">Example File</a></li>
+                    <li><a class="dropdown-item" href="{% static 'eventstream/eventstream.schema.json' %}">Schema</a></li>
+                    <li><a class="dropdown-item" href="{% static 'eventstream/schema-doc.html' %}">Schema Doc</a></li>
+                  </ul>
+                </div>
+            </div>
+            {% endif %}
+        <div class="mt-2">
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">Timestamp</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Target</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">MITRE</th>
+                  <th scope="col">Additional Data</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+
+              </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <script nonce="{{request.csp_nonce}}">
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip();
+      $.fn.dataTable.moment('{% datetime_format_moment %}');
+      $('.table').DataTable({
+          "pagingType": "bootstrap_input",
+          "processing": true,
+          "serverSide": true,
+          "ajax": "{% url 'event_tracker:eventstream-json' %}",
+          language: {
+            emptyTable: "No imported events found",
+            searchBuilder: {
+                button: {
+                    0: 'Timebox',
+                    _: 'Timebox (%d)'
+                }
+            }
+          },
+          buttons:[
+            {
+              extend: 'searchBuilder',
+              config: {
+                columns: [0],
+                conditions: {
+                  moment: {
+                    '!between': null,
+                    '!null': null,
+                    'null': null,
+                    '=': null,
+                    '!=': null
+                  }
+                },
+              }
+            },
+            {
+                text: 'Export PDF',
+                action: function (e, dt, node, config) {
+                    let outer_dt = dt;
+                    let outer_config = config;
+                    let orig_len = dt.page.len();
+
+                    doExport = function (e, _dt, node, _config) {
+                        // Deregister the event handler
+                        dt.off('draw', doExport);
+                        // Trigger the print action
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config);
+                        // Redraw the table at the original page size
+                        dt.page.len(orig_len).draw();
+                    }
+
+                    // Register an event handler to print the table once all the data is loaded
+                    dt.on( 'draw', doExport )
+                    // Trigger a non-paginated table draw
+                    dt.page.len(-1).draw();
+                },
+                extend: 'pdfHtml5',  // Required to pull in default config
+                orientation: "landscape",
+                customize: function (doc, config, dt) {
+                    // Ensure the main text column doesn't stretch when given long content
+                    doc.content[1].table.widths=['auto','auto','auto',400,'auto','auto','auto'];
+                    // Sprinkle in some corporate branding
+                    doc.footer = function (currentPage, pageCount) {
+                        return [
+                            {
+                                canvas: [
+                                    { type: 'line', x1: 40, y1: 0, x2: 800, y2: 0, lineWidth: 0.5, lineColor: '#242C7A'}
+                                ]
+                            },
+                            {
+                                columns: [
+                                    currentPage.toString() + ' / ' + pageCount,
+                                    {svg: '{{REPORT_FOOTER_IMAGE}}', alignment: 'center'},
+                                    {text: '{{REPORT_FOOTER_TEXT}}', alignment: 'right'},
+                                ],
+                                margin: [40, 10],
+                            },
+                        ]
+                    }
+                },
+                title: "EventStream Logs",
+                exportOptions: {
+                    columns: [0,1,2,3,4,5,6],
+                    stripNewlines: false
+                }
+            },
+          ],
+          dom: "<'row'<'col-sm-12 col-md-12'Bf>>" +
+        "<'row'<'col-sm-12'tr>>" +
+        "<'row'<'col-sm-12 col-md-4 d-flex justify-content-start align-items-center'i><'col-sm-12 col-md-4 d-flex justify-content-center align-items-center'l><'col-sm-12 col-md-4 d-flex justify-content-end align-items-center'p>>",
+          fixedHeader: {
+            header: true,
+            headerOffset: $('.navbar').outerHeight()
+          },
+          order: [[0, 'desc']],
+          columns: [
+            null,
+            { orderable: false },
+            { orderable: false },
+            null,
+            null,
+            { orderable: false },
+            { orderable: false },
+          ]
+      } )
+    })
+    </script>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

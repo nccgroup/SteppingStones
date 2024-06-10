@@ -1,0 +1,133 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+{% load tz %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Event Logs
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/highlightjs.html" %}
+
+    <style nonce="{{request.csp_nonce}}">
+    .language-html {
+        white-space: break-spaces;
+    }
+    </style>
+{% endblock head %}
+
+{% block filter %}
+{% include "event_tracker/eventfilter_form.html" %}
+{% endblock %}
+
+{% block body %}
+<div class="container">
+
+<h2 class="mt-3">Event Logs</h2>
+
+<button role="button" class="btn btn-primary btn-sm mt-3 mb-3" data-clipboard-target="#code{{ tactic.pk }}">
+<i class="fas fa-clipboard"></i>&nbsp; Copy to clipboard
+</button>
+
+<script nonce="{{request.csp_nonce}}">
+    $(".btn").on("click", function() {
+        const value = $("#to-copy").text();
+        const type = 'text/html';
+        const blob = new Blob([value], {type});
+
+        const cbi = new ClipboardItem({
+            [type]: blob
+        });
+
+        navigator.clipboard.write([cbi])
+    });
+</script>
+
+<pre class="" id="to-copy"><code id="code{{ tactic.pk }}" class="m3 language-html border">{% filter force_escape %}
+<p>The following table shows specific actions which were performed as part of the exercise. It is recommended that these
+items are worked through retrospectively to identify any traces of the activities in logs and assess if there is sufficient
+prevention and detection mechanisms in place to defend against similar actions in future.</p>
+<p>Note:</p>
+<ul>
+<li>All times are represented in UTC</li>
+<li>The following definitions are used:<ul>
+<li><strong>Detected</strong>:<ul>
+<li><em>Not Applicable</em> - It is not reasonable to expect this event to be identified by the target organisation</li>
+<li><em>Unknown</em> - It was not possible to determine if the event was recorded or resulted in an alert from an attacker&#39;s perspective.</li>
+<li><em>No Trace</em> - There was no logging or telemetry which captured the event</li>
+<li><em>Event Recorded</em> - The event is retrospectively recognisable in logs or telemetry but did not result in an alert being raised at the time of the event</li>
+<li><em>Alert Raised</em> - The event was sufficiently beyond baseline activity as to trigger an automated alert which was fed to the defensive team</li>
+</ul>
+</li>
+<li><strong>Prevented</strong>:<ul>
+<li><em>Not Applicable</em> - It is not reasonable to expect this action to be blocked by the target organisation</li>
+<li><em>Not Prevented</em> - The action occurred as expected without interference from any locked-down configuration or security products</li>
+<li><em>Manual Intervention</em> - The action was blocked as a result of manual activity instigated by the defensive team</li>
+<li><em>Blocked as Standard</em> - The action was prevented by an existing technical control, i.e. a configuration or product present as part of the target organisation&#39;s business-as-usual</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+{% timezone "UTC" %}
+<table>
+  <thead>
+    <tr>
+      <th>Date Time</th>
+      <th>TTP</th>
+      <th>Detail</th>
+      <th>Detected</th>
+      <th>Prevented</th>
+    </tr>
+  </thead>
+  <tbody>{% for event in event_list reversed  %}
+    <tr>
+      <td>{% if event.timestamp_end %}{{ event.timestamp|render_ts_to_ts_utc:event.timestamp_end }}{% else %}{{ event.timestamp|render_ts_utc }}{% endif %}</td>
+      <td>{% if event.mitre_attack_subtechnique %}<b>{{ event.mitre_attack_subtechnique.mitre_id }}</b>
+{{ event.mitre_attack_technique.name }}: {{ event.mitre_attack_subtechnique.name }}
+        {% elif event.mitre_attack_technique %}<b>{{ event.mitre_attack_technique.mitre_id }}</b>
+{{ event.mitre_attack_technique.name }}
+        {% elif event.mitre_attack_tactic %}<b>{{ event.mitre_attack_tactic.mitre_id }}</b>
+{{ event.mitre_attack_tactic.name }}
+{% else %}-{% endif %}</td>
+      <td>{% for tag in event.tags.names|exclude:eventfilter.get_tag_string %}{% if forloop.first %}<span style='color:#4472C4'>{% else %} {% endif %}[{{ tag|title }}]{% if forloop.last %}</span><br/>{% endif %}{% endfor %}
+<b>{{ event.description|firstsentence }}</b>
+
+{{ event.description|afterfirstsentence|linebreaksword }}
+<p>
+{% if event.source != event.target %}
+    Source: {{ event.source.short_string }}<br/>
+    Target: {{ event.target.short_string }}
+{% elif event.source is not None %}
+{%  if event.source.host %}
+Host: {{ event.source.host }}<br/>
+{% endif %}{%  if event.source.user %}
+User: {{ event.source.user }}<br/>
+{% endif %}{%  if event.source.process %}
+Process: {{ event.source.process }}
+{% endif %}{% endif %}</p>
+{% for filedistribution in event.filedistribution_set.all %}{% if forloop.first %}Associated File{{ event.filedistribution_set.all|pluralize }}:<ul>
+{% endif %}<li> {{ filedistribution.file.filename }}{% if filedistribution.location %} ({{ filedistribution.location }}){% endif %}{% if filedistribution.file.size %} - {{ filedistribution.file.size|filesizeformat }}{% endif %}{% if filedistribution.file.sha1_hash %} [SHA1: {{ filedistribution.file.sha1_hash }}]{% elif filedistribution.file.md5_hash %} [MD5: {{ filedistribution.file.md5_hash }}]{% endif %}</li>
+{% if forloop.last %}</ul>{% endif %}
+{% endfor %}
+{%  if event.outcome %}
+<b>Outcome:</b> {{ event.outcome }}{% endif %}</td>
+      <td{% if event.detected != None and event.detected != "UNK" and event.detected != "N/A" %} bgcolor="{{ event.detected|status_to_word_color}}"{% endif %}>{{ event.detected|detected_enum_to_label }}</td>
+      <td{% if event.prevented != None and event.prevented != "N/A" %}  bgcolor="{{ event.prevented|status_to_word_color}}"{% endif %}>{{ event.prevented|prevented_enum_to_label }}</td>
+    </tr>{% endfor %}
+  </tbody>
+</table>{% endtimezone %}{% endfilter -%}
+</code></pre>
+
+</div>
+<script nonce="{{request.csp_nonce}}">
+    hljs.highlightAll();
+</script>
+{% endblock body %}

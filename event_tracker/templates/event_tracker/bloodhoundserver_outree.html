@@ -1,0 +1,104 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block bloodhound-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+BloodHound Servers
+{% endblock title %}
+
+{% block head %}
+{% include "base/external-libs/jquery.html" %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/jstree.min.js" integrity="sha512-ekwRoEshEqHU64D4luhOv/WNmhml94P8X5LnZd9FNOiOfSKgkY12cDFz3ZC6Ws+7wjMPQ4bPf94d+zZ3cOjlig==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/themes/default/style.min.css" media="(prefers-color-scheme: light) or (prefers-color-scheme: no-preference)" integrity="sha512-A5OJVuNqxRragmJeYTW19bnw9M2WyxoshScX/rGTgZYj5hRXuqwZ+1AVn2d6wYTZPzPXxDeAGlae0XwTQdXjQA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/themes/default-dark/style.min.css" media="(prefers-color-scheme: dark)" integrity="sha512-CQDjN7GvO35Yq+qvFhfRO6mNhjEHoJ2xGcCV4EOQB10jdBjLKZN5DkXkoNg0VKq4/BfKyMtkqoZ2WmhGnT9Tmw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<style nonce="{{request.csp_nonce}}">
+#jstree_div {
+    background-color: transparent !important;
+}
+</style>
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-4 vh-100 overflow-scroll">
+            <div id="jstree_div"></div>
+        </div>
+        <div class="col-8">
+          <iframe id="selected" class="w-100 h-100" src="about:blank"></iframe>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{request.csp_nonce}}">
+if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    theme = "default-dark"
+} else {
+    theme = "default"
+}
+
+$(function () { $('#jstree_div').jstree({
+    'core' : {
+        'data' : {
+            'url' : "{% url "event_tracker:bloodhound-ou-api" %}",
+              'data' : function (node) {
+                  return { 'id' : node.id };
+              }
+        },
+        'themes': {
+            "name": theme
+        }
+    },
+    "types" : {
+      "default" : {
+        "icon" : 'fa-regular fa-circle-question'
+      },
+      "folder" : {
+        "icon" : "fa-solid fa-folder"
+      },
+      "folder-owned" : {
+        "icon" : "fa-solid fa-folder text-danger"
+      },
+      "ou" : {
+        "icon" : "fa-solid fa-folder-closed"
+      },
+      "container" : {
+        "icon" : "fa-solid fa-box"
+      },
+      "user" : {
+        "icon" : "fa-solid fa-user"
+      },
+      "user-owned" : {
+        "icon" : "fa-solid fa-user text-danger"
+      },
+      "group" : {
+        "icon" : "text-secondary fa-solid fa-user-group"
+      },
+      "computer" : {
+        "icon" : "fa-solid fa-desktop"
+      },
+      "computer-owned" : {
+        "icon" : "fa-solid fa-desktop text-danger"
+      },
+      "gpo" : {
+        "icon" : "fa-solid fa-list"
+      },
+    },
+    "plugins" : [ "types" ]
+}).on('changed.jstree', function (e, data) {
+    var i, j, r = [];
+    for(i = 0, j = data.selected.length; i < j; i++) {
+      r.push(data.instance.get_node(data.selected[i]).text);
+    }
+        $('#selected').attr("src", "{% url "event_tracker:bloodhound-node" "dndndn" %}".replace("dndndn", data.node.id.split(",").reverse().join(",")));
+  });
+});
+</script>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

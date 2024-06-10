@@ -1,0 +1,114 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+
+{% block cobalt-strike-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+CS Uploads
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/jquery.html" %}
+    {% include "base/external-libs/datatables-basic.html" %}
+
+    <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
+
+    <style nonce="{{request.csp_nonce}}">
+    .fa-ul {margin-left: 30px; margin-bottom: 0px}
+    </style>
+{% endblock head %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+      {% if archive_list %}
+        <div class="table-responsive mt-2">
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">Timestamp</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Path</th>
+                  <th scope="col">Size</th>
+                  <th scope="col">MD5 Hash</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+
+              {% for archive in archive_list %}
+                <tr>
+                  <td>{{ archive.when|render_ts_local }}</td>
+                  <td>
+                    <ul class="fa-ul">
+                      {% if archive.beacon.computer %}
+                      <li><span class="fa-li text-muted"><i class="fas fa-network-wired"></i></span>{{ archive.beacon.computer }}</li>
+                      {% endif %}
+                      {% if archive.beacon.user %}
+                      <li><span class="fa-li text-muted"><i class="fas fa-user"></i></span>{{ archive.beacon.user }}</li>
+                      {% endif %}
+                      {% if archive.beacon.process %}
+                      <li><span class="fa-li text-muted"><i class="far fa-window-maximize"></i></span>{{ archive.beacon.process }}</li>
+                      {% endif %}
+                      {% if not archive.beacon.computer and not archive.beacon.user and not archive.beacon.process %}
+                        -
+                      {% endif %}
+                    </ul>
+                  </td>
+                  <td>{{ archive.indicator_path }}</td>
+                  <td>{{ archive.indicator_size|filesizeformat }}</td>
+                  <td><samp>{{ archive.indicator_hash }}</samp></td>
+                  <td>
+                    <div class="btn-toolbar" role="toolbar" >
+                      <div class="btn-group" role="group">
+                          {% if archive.event_mappings.exists and perms.event_tracker.change_event %}
+                            <a href="{% url 'event_tracker:event-update' archive.event_mappings.first.event.task_id archive.event_mappings.first.event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                          {% elif not archive.event_mappings.exists and perms.event_tracker.add_event %}
+                            <a href="{% url 'event_tracker:cs-log-to-event' archive.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
+                          {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+
+              </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="alert alert-secondary mt-3" role="alert">
+              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No file IoCs found, ensure the logs are being polled for.
+            </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+    <script nonce="{{request.csp_nonce}}">
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip();
+      $.fn.dataTable.moment('{% datetime_format_moment %}');
+      $('.table').DataTable({
+          fixedHeader: {
+            header: true,
+            headerOffset: $('.navbar').outerHeight()
+          },
+          order: [[0, 'desc']],
+          columns: [
+            null,
+            null,
+            null,
+            null,
+            { orderable: false },
+            { orderable: false },
+          ]
+      } )
+    })
+    </script>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

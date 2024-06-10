@@ -1,0 +1,54 @@
+{% extends "base/base.html" %}
+{% load custom_tags %}
+{% load static %}
+
+{% block event-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+MITRE Detection Summary
+{% endblock title %}
+
+{% block head %}
+    {% include "base/external-libs/highlightjs.html" %}
+    {% include "base/external-libs/clipboardjs.html" %}
+
+    <style nonce="{{request.csp_nonce}}">
+    .language-html {
+        white-space: break-spaces;
+    }
+    </style>
+{% endblock head %}
+
+{% block body %}
+<script nonce="{{request.csp_nonce}}">new ClipboardJS('.btn');</script>
+<div class="container">
+
+<h2 class="mt-3">MITRE Detection Summary</h2>
+
+<button role="button" class="btn btn-primary btn-sm mt-3 mb-3" data-clipboard-target="#code">
+<i class="fas fa-clipboard"></i>&nbsp; Copy to clipboard
+</button>
+
+<pre class=""><code id="code" class="m3 language-html border">{% filter force_escape %}<table>
+    <thead>
+        <tr>
+            <th>Tactic</th>
+            <th>Detections</th>
+            <th>Preventions</th>
+        </tr>
+    </thead>
+    <tbody>{% for tactic in tactics %}{% if tactic.total > 0 %}
+        <tr>
+            <td>{{ tactic.name }}</td>
+            <td bgcolor="{{ tactic.percent_detected | percent_to_goodness_colour }}">{{ tactic.percent_detected | percent_to_words | title }}{# ({{ tactic.percent_detected | as_percentage }}) #}</td>
+            <td bgcolor="{{ tactic.percent_prevented | percent_to_goodness_colour }}">{{ tactic.percent_prevented | percent_to_words | title }}{# ({{ tactic.percent_prevented | as_percentage }}) #}</td>
+        </tr>{% endif %}{% endfor %}
+    </tbody>
+</table>{% endfilter -%}
+</code></pre>
+
+</div>
+<script nonce="{{request.csp_nonce}}">hljs.highlightAll();</script>
+{% endblock body %}

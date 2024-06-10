@@ -1,0 +1,55 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block cobalt-strike-menu-class %}
+active
+{% endblock %}
+
+{% block title %}
+Team Server Health Check
+{% endblock title %}
+
+{% block head %}
+<style nonce="{{request.csp_nonce}}">
+    .fa-check {
+        color: var(--bs-success);
+    }
+    .fa-xmark {
+        color: var(--bs-danger);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+  <main>
+    <div class="py-3">
+        <table class="table">
+            <tr>
+                <th>TCP Connection</th>
+                <td>{% if not tcp_error %}<i class="fa-solid fa-check"></i>{% else %}<i class="fa-solid fa-xmark"></i>{% endif %}</td>
+                <td>{{ tcp_error|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <th>Aggressor Execution</th>
+                <td>{% if "Synchronized OK." in aggressor_output %}<i class="fa-solid fa-check"></i>{% else %}<i class="fa-solid fa-xmark"></i>{% endif %}</td>
+                <td><pre>{{ aggressor_output|default:"N/A" }}</pre></td>
+            </tr>
+            <tr>
+                <th>SSBot Service Status</th>
+                <td>{% if "active (running)" in ssbot_status %}<i class="fa-solid fa-check"></i>{% else %}<i class="fa-solid fa-xmark"></i>{% endif %}</td>
+                <td><pre>{{ ssbot_status|default:"N/A" }}</pre></td>
+            </tr>
+            <tr>
+                <th>SSBot JVM Connection</th>
+                <td>{% if found_jvm %}<i class="fa-solid fa-check"></i>{% else %}<i class="fa-solid fa-xmark"></i>{% endif %}</td>
+                <td>N/A</td>
+            </tr>
+        </table>
+    </div>
+    <a href="{% url 'event_tracker:team-server-list' %}" role="button" class="btn btn-primary">Done</a>
+  </main>
+</div>
+{%  endblock bootstrap5_content %}
+{% endblock body %}

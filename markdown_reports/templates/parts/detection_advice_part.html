@@ -1,0 +1,11 @@
+{% filter mitredescriptiontomarkdown %}{% for tactic, technique_dict in event_tactics.items %}{% if technique_dict %}
+# {{tactic}}{% for technique, subtechniques in technique_dict.items %}
+
+## {{ technique }}{% for subtechnique in subtechniques %}
+
+**{{ subtechnique }}**
+
+{{ subtechnique.detection_advice }}
+        {% empty %}
+{{ technique.detection_advice }}{% endfor %}{% endfor %}
+{% endif %}{% endfor %}{% endfilter -%}

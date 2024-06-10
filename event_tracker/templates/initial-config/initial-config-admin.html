@@ -1,0 +1,26 @@
+{% extends "base/initial-setup.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+
+{% block title %}
+Create Task
+{% endblock title %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+  <main>
+    <div class="py-3">
+        <h2>Create Initial User</h2>
+        <form method="post">{% csrf_token %}
+            {% bootstrap_form form layout='horizontal' %}
+
+            {% bootstrap_form preferences_form layout='horizontal' %}
+
+            <button type="submit" class="btn btn-success">Create</button>
+        </form>
+    </div>
+  </main>
+</div>
+{%  endblock bootstrap5_content %}
+{% endblock body %}
