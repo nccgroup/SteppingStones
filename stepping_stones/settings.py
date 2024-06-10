@@ -151,10 +151,10 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CSRF_TRUSTED_ORIGINS = ['https://*.st3pp1ngst0n3s.co.uk','http://127.0.0.1']
+CSRF_TRUSTED_ORIGINS = ['https://*.example.net','http://127.0.0.1']
 
 USE_X_FORWARDED_HOST = True
-ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]', '.st3pp1ngst0n3s.co.uk']
+ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]', '.example.net']
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 BACKGROUND_TASK_RUN_ASYNC = True
