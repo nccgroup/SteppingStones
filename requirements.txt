@@ -21,7 +21,7 @@ json2table==1.1.5
 django-reversion==5.0.12
 django-taggit-bulk==0.0.4b1
 django-referrer-policy==1.0
-Pillow==10.2.0
+Pillow==10.3.0
 duckdb==0.10.1
 django_csp==3.8
 django-permissions-policy==4.19.0
