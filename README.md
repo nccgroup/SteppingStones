@@ -6,6 +6,8 @@ A hub for Red Team activity to aid in record keeping, situational awareness and 
 Stepping Stones provides a web based UI for the team to log activity and generate report snippets. 
 The UI is intended to be rapid enough to be used throughout the engagement, not just in the reporting phase.
 
+[Release Blog Post](https://research.nccgroup.com/2024/06/12/stepping-stones-a-red-team-activity-hub/)
+
 ## Installation
 
 Stepping Stones is a Python Django application, so to get a local copy running:
