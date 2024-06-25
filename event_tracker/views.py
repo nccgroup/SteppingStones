@@ -1019,7 +1019,7 @@ class EventStreamListJSON(PermissionRequiredMixin, BaseDatatableView):
             escaped_dict = {}
             for key, value in additional_data_dict.items():
                 escaped_dict[escape(key)] = escape(value)
-            return json2table.convert(escaped_dict, table_attributes={'class': 'table table-sm table-borderless mb-0'})
+            return json2table.convert(escaped_dict, table_attributes={'class': 'table shadow-sm table-sm table-borderless table-striped-columns mb-0'})
         elif column == '':  # The column with button in
             if row.event_mappings.exists() and self.request.user.has_perm('event_tracker.change_event'):
                 return f'<a href="{reverse("event_tracker:event-update", args=[row.event_mappings.first().event.task_id, row.event_mappings.first().event.id])}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>'

@@ -33,6 +33,15 @@ EventStream
     div.dataTables_wrapper div.dataTables_info {
         padding-top: 0;
     }
+
+    .table-striped-columns th {
+        width: 100px;
+        text-transform: capitalize;
+    }
+
+    .table-striped-columns th::after {
+        content: ':';
+    }
     </style>
 {% endblock head %}
 
