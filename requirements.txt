@@ -1,18 +1,18 @@
 django==5.0.6
 django-bootstrap5==24.2
-numpy==1.26.4
+numpy==2.0.0
 matplotlib==3.9.0
 django-autocomplete-light==3.11.0
 requests==2.32.3
 tldextract==5.1.2
 # Use fork of django-background-tasks which doesn't include "import imp" in tasks.py as that is removed in Py 3.12
 django4-background-tasks @ git+https://github.com/LoyalMed/django4-background-tasks.git@3a844eb
-psutil==5.9.8
+psutil==6.0.0
 impacket==0.11.0
 pyasn1==0.6.0
 fontawesomefree==6.5.1
 django-datatables-view==1.20.0
-neo4j==5.20.0
+neo4j==5.22.0
 dateparser==1.2.0
 django-taggit==5.0.1
 XlsxWriter==3.2.0
@@ -22,8 +22,8 @@ django-reversion==5.0.12
 django-taggit-bulk==0.0.4b1
 django-referrer-policy==1.0
 Pillow==10.3.0
-duckdb==0.10.1
+duckdb==1.0.0
 django_csp==3.8
-django-permissions-policy==4.19.0
-ansi2html==1.9.1
+django-permissions-policy==4.20.0
+ansi2html==1.9.2
 django-plugins-bihealth==0.5.2
