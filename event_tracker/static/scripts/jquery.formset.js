@@ -1,5 +1,5 @@
 /**
- * jQuery Formset 1.5-pre
+ * jQuery Formset 1.5-pre - slightly modified version of code from: https://github.com/elo80ka/django-dynamic-formset
  * @author Stanislaus Madueke (stan DOT madueke AT gmail DOT com)
  * @requires jQuery 1.2.6 or later
  *
