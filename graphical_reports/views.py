@@ -24,6 +24,7 @@ from event_tracker.models import Task, AttackTactic, AttackSubTechnique, AttackT
 from event_tracker.views import MitreEventListView
 from event_tracker.views_credentials import badness_colormap, intensity_colormap
 
+matplotlib.use('agg')
 
 class GraphicalMitreEventTimelineView(PermissionRequiredMixin, View):
     permission_required = 'event_tracker.view_event'
