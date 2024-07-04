@@ -1,4 +1,3 @@
-import contextlib
 import csv
 import io
 import itertools
@@ -472,7 +471,6 @@ def password_age_chart(request, task_id):
     else:
         return HttpResponseNotFound()
 
-@contextlib.contextmanager
 def plot_password_age_chart(enabled, system):
     # Password age
     password_ages = []
