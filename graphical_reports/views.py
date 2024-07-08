@@ -16,8 +16,8 @@ from django.db.models.functions import PercentRank
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django.views import View
-from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
+from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from event_tracker.models import Task, AttackTactic, AttackSubTechnique, AttackTechnique
@@ -51,7 +51,8 @@ class GraphicalMitreEventTimelineView(PermissionRequiredMixin, View):
         colors1 = [f'C{i}' for i in range(len(labels))]
 
         # create a horizontal plot
-        fig, ax = plt.subplots()
+        fig = Figure()
+        ax = fig.subplots()
 
         # Add bands for each weekend day in the range
         date_range = task.event_set.all().aggregate(start=Min("timestamp"), end=Max("timestamp"))
@@ -66,10 +67,10 @@ class GraphicalMitreEventTimelineView(PermissionRequiredMixin, View):
         ax.eventplot(data, colors=colors1, lineoffsets=labels)
 
         ax.grid(axis="y")
-        plt.xticks(rotation=45/2)
-        plt.tight_layout()
+        ax.xaxis.set_tick_params(labelrotation=45/2)
+        fig.tight_layout()
 
-        plt.savefig(response, dpi=300, transparent=True)
+        fig.savefig(response, dpi=300, transparent=True)
         return response
 
 
@@ -85,7 +86,8 @@ class GraphicalDailyDetectionsAndPreventionsView(PermissionRequiredMixin, View):
 
         exercise_days = task.event_set.dates("timestamp", "day")
 
-        fig, ax = plt.subplots()
+        fig = Figure()
+        ax = fig.subplots()
 
         labels = []
         neither_detected_nor_prevented = []
@@ -183,9 +185,9 @@ class GraphicalDailyDetectionsAndPreventionsView(PermissionRequiredMixin, View):
         ax.bar(labels, neither_detected_nor_prevented, width, label=f"Neither Detected Nor Prevented {(total_summary['neither_detected_nor_prevented'] / total_summary['total_events']):.2%}", color=badness_colormap(0.0))
 
         ax.legend()
-        plt.xticks(rotation=45/2)
+        ax.xaxis.set_tick_params(labelrotation=45/2)
 
-        plt.savefig(response, dpi=300, transparent=True)
+        fig.savefig(response, dpi=300, transparent=True)
         return response
 
 
@@ -211,10 +213,10 @@ class GraphicalMitreHeatMapEventListView(MitreEventListView):
                     order_by=[F("icount").asc(), ]
             ))
 
-        plt = self.generate_heatmap(context["event_tactics"], percentiles, include_subtechniques)
+        fig = self.generate_heatmap(context["event_tactics"], percentiles, include_subtechniques)
 
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png')
+        fig.savefig(buffer, format='png')
         buffer.seek(0)
         context['heatmap_b64'] = base64.b64encode(buffer.read()).decode("ASCII")
 
@@ -251,10 +253,10 @@ class GraphicalMitreHeatMapEventListView(MitreEventListView):
         # Define main "figure" (i.e. canvas)
         figure_height_inches = ((np.sum(subplot_heights) * 3) + len(tactics)) / 3 + 0.9
 
-        fig, ax = plt.subplots(ncols=1, nrows=len(tactics) + 2,
-                               figsize=(10, figure_height_inches), height_ratios=subplot_heights)
+        fig = Figure(figsize=(10, figure_height_inches))
+        ax = fig.subplots(ncols=1, nrows=len(tactics) + 2, height_ratios=subplot_heights)
 
-        plt.colorbar(ScalarMappable(cmap=intensity_colormap), cax=fig.get_axes()[0], orientation="horizontal", format=PercentFormatter(xmax=1))
+        fig.colorbar(ScalarMappable(cmap=intensity_colormap), cax=fig.get_axes()[0], orientation="horizontal", format=PercentFormatter(xmax=1))
         ax[0].set_title("Key: Number of attempts (as percentile)")
         ax[1].set_axis_off()
 
@@ -309,6 +311,6 @@ class GraphicalMitreHeatMapEventListView(MitreEventListView):
 
         fig.tight_layout()
 
-        plt.subplots_adjust(hspace=0.6)
+        fig.subplots_adjust(hspace=0.6)
 
-        return plt
+        return fig
