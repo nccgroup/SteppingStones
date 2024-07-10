@@ -21,14 +21,14 @@ Stepping Stones is a Python Django application, so to get a local copy running:
 `python manage.py makemigrations background_task`
 7) Get the database schema up to date: `python manage.py migrate`
 8) Start the application:
-  * If running on a Linux system with systemd, see [systemd guide](systemd/README.md)
-  * For dev versions:
-    * Run `python manage.py runserver` and `python manage.py process_tasks` concurrently
-  * For production versions:
-    * Run `python manage.py check --deploy` to obtain lockdown advice, and then follow a guide such as: 
+   * If running on a Linux system with systemd, see [systemd guide](systemd/README.md)
+   * For dev versions:
+     * Run `python manage.py runserver` and `python manage.py process_tasks` concurrently
+   * For production versions:
+     * Run `python manage.py check --deploy` to obtain lockdown advice, and then follow a guide such as: 
     https://docs.djangoproject.com/en/5.0/howto/deployment/
 9) Visit the application to configure a task and an admin user: e.g. access <http://127.0.0.1:8000> if running locally
-  * Note: The created user will also be used for the main app and shown as the "red team operator" against logged events, 
+   * Note: The created user will also be used for the main app and shown as the "red team operator" against logged events, 
   so pick a suitable username, e.g. "ST", or "stephen", rather than "admin". If using the Cobalt Strike integration, 
   using the same usernames for both tools will aid integration.
 
@@ -46,18 +46,18 @@ On the team server - punch a hole in the firewall to allow Stepping Stones to co
 If running a local copy, when the code has been updated in git and you want the new features:
 
 1) Stop both the services, e.g. with [systemd](systemd/README.md):
-  * `sudo service ssbot stop`
-  * `sudo service steppingstones stop`
+   * `sudo service ssbot stop`
+   * `sudo service steppingstones stop`
 2) Obtain the latest version, e.g. from <https://github.com/nccgroup/SteppingStones/archive/refs/heads/main.zip>
 3) Unzip the download and copy the files over the top of the deployment, e.g. `rm -rf /tmp/stepping-stones-main; unzip /tmp/stepping-stones-main.zip && cp -R /tmp/stepping-stones-main/* /opt/steppingstones`
 4) Activate the virtual environment (if not done so already) from the steppingstones directory: `.venv\Scripts\activate` or `source .venv/bin/activate` on *nix
 5) Pull in any new dependencies with: `pip install -r requirements.txt`
 6) Ensure the 3rd party background tasks modules has all the required migrations: `python manage.py makemigrations background_task`
 7) Run any migration scripts to morph your local database into the new schema: `python manage.py migrate`. 
-  * If Django prompts you to run `python manage.py makemigrations` then STOP and contact the Stepping Stones developers - it is important all users are working from the same set of migration scripts and these should be co-ordinated through the developers.
+   * If Django prompts you to run `python manage.py makemigrations` then STOP and contact the Stepping Stones developers - it is important all users are working from the same set of migration scripts and these should be co-ordinated through the developers.
 8) Restart both the services, e.g. with [systemd](systemd/README.md):
-  * `sudo service ssbot restart`
-  * `sudo service steppingstones restart`
+   * `sudo service ssbot restart`
+   * `sudo service steppingstones restart`
 9)  Ensure there are no errors, e.g. with [systemd](systemd/README.md) `journalctl -u steppingstones`
 
 ## Starting Again With A Clean Database
