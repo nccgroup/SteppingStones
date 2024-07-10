@@ -1,4 +1,3 @@
-import contextlib
 import csv
 import io
 import itertools
@@ -22,8 +21,8 @@ from django.utils.html import escape
 from django.views.generic import FormView, ListView, CreateView, UpdateView, DeleteView, TemplateView
 from django_datatables_view.base_datatable_view import BaseDatatableView
 from djangoplugins.models import ENABLED
-from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from neo4j.exceptions import ClientError
 
@@ -290,13 +289,12 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
 def password_complexity_piechart(request, task_id):
     credential_per_account, _, _, system, enabled = CredentialStatsView.get_filtered_creds(request)
 
-    with plot_password_complexity_piechart(credential_per_account, enabled, system) as fig:
-        response = HttpResponse(content_type='image/png')
-        fig.savefig(response, format='png')
+    fig = plot_password_complexity_piechart(credential_per_account, enabled, system)
+    response = HttpResponse(content_type='image/png')
+    fig.savefig(response, format='png')
 
-        return response
+    return response
 
-@contextlib.contextmanager
 def plot_password_complexity_piechart(credential_per_account, enabled, system):
     credential_per_account.update(complexity=Case(
         When(secret="", then=Value("blank")),
@@ -340,7 +338,7 @@ def plot_password_complexity_piechart(credential_per_account, enabled, system):
         upperalphaspecialnum=Count("pk", filter=Q(complexity="upperalphaspecialnum")),
         mixedalphaspecialnum=Count("pk", filter=Q(complexity="mixedalphaspecialnum")),
     ))
-    fig = plt.figure(figsize=(10, 8))
+    fig = Figure(figsize=(10, 8))
     ax = fig.subplots(2, height_ratios=[3, 1])
     piesegments = [counts['blank'], counts['numeric'], counts['special'],
                    counts['loweralpha'], counts['upperalpha'], counts['mixedalpha'],
@@ -368,28 +366,25 @@ def plot_password_complexity_piechart(credential_per_account, enabled, system):
                  title="Key",
                  loc="upper center",
                  ncol=2)
-    try:
-        yield fig
-    finally:
-        plt.close(fig)
+
+    return fig
 
 
 def password_structure_piechart(request, task_id):
     credential_per_account, _, _, system, enabled = CredentialStatsView.get_filtered_creds(request)
 
-    with plot_password_structure_piechart(credential_per_account, enabled, system) as fig:
-        response = HttpResponse(content_type='image/png')
-        fig.savefig(response, format='png')
+    fig = plot_password_structure_piechart(credential_per_account, enabled, system)
+    response = HttpResponse(content_type='image/png')
+    fig.savefig(response, format='png')
 
-        return response
+    return response
 
-@contextlib.contextmanager
 def plot_password_structure_piechart(credential_per_account, enabled, system):
     calculate_char_masks(credential_per_account)
 
     structurecounts = credential_per_account.values("structure").annotate(count=Count("structure")).order_by("count")
 
-    fig = plt.figure(figsize=(10, 8))
+    fig = Figure(figsize=(10, 8))
     ax = fig.subplots(2, height_ratios=[3, 1])
     piesegments = structurecounts.values_list("count", flat=True)
     pielabels = structurecounts.values_list("structure", flat=True)
@@ -408,24 +403,21 @@ def plot_password_structure_piechart(credential_per_account, enabled, system):
                  title="Key",
                  loc="upper center",
                  ncol=2)
-    try:
-        yield fig
-    finally:
-        plt.close(fig)
+
+    return fig
 
 
 def password_length_chart(request, task_id):
     credential_per_account, _, _, system, enabled = CredentialStatsView.get_filtered_creds(request)
 
-    with plot_password_length_chart(credential_per_account, enabled, system) as fig:
-        response = HttpResponse(content_type='image/png')
-        fig.savefig(response, format='png')
+    fig = plot_password_length_chart(credential_per_account, enabled, system)
+    response = HttpResponse(content_type='image/png')
+    fig.savefig(response, format='png')
 
-        return response
+    return response
 
-@contextlib.contextmanager
 def plot_password_length_chart(credential_per_account, enabled, system):
-    fig = plt.figure(figsize=(7, 8))
+    fig = Figure(figsize=(7, 8))
     ax = fig.subplots(2)
 
     lengths = credential_per_account.annotate(length=Length("secret")).order_by("length").values("length").annotate(
@@ -461,10 +453,8 @@ def plot_password_length_chart(credential_per_account, enabled, system):
                         l, y, s in zip(x, y, percents)],
                  loc="upper center",
                  ncol=2)
-    try:
-        yield fig
-    finally:
-        plt.close(fig)
+
+    return fig
 
 
 def password_age_chart(request, task_id):
@@ -472,16 +462,15 @@ def password_age_chart(request, task_id):
     system = statsfilter.get("system", None) or None
     enabled = statsfilter.get("enabled", False)
 
-    with plot_password_age_chart(enabled, system) as fig:
-        if fig:
-            response = HttpResponse(content_type='image/png')
-            fig.savefig(response, format='png')
+    fig = plot_password_age_chart(enabled, system)
+    if fig:
+        response = HttpResponse(content_type='image/png')
+        fig.savefig(response, format='png')
 
-            return response
-        else:
-            return HttpResponseNotFound()
+        return response
+    else:
+        return HttpResponseNotFound()
 
-@contextlib.contextmanager
 def plot_password_age_chart(enabled, system):
     # Password age
     password_ages = []
@@ -492,7 +481,7 @@ def plot_password_age_chart(enabled, system):
                     password_ages = session.execute_read(CredentialStatsView._bucket_password_ages, system, enabled)
                     #TODO merge multiple password_ages from different servers, rather than overwriting
     if password_ages:
-        fig = plt.figure(figsize=(8, 7))
+        fig = Figure(figsize=(8, 7))
         ax = fig.subplots(2)
 
         data = np.array(password_ages)
@@ -518,12 +507,9 @@ def plot_password_age_chart(enabled, system):
                      loc="upper center",
                      ncol=2)
 
-        try:
-            yield fig
-        finally:
-            plt.close(fig)
+        return fig
     else:
-        yield None
+        return None
 
 class CredentialListView(PermissionRequiredMixin, ListView):
     permission_required = 'event_tracker.view_credential'

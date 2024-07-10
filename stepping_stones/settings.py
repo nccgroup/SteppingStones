@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+import matplotlib
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -211,3 +212,6 @@ PERMISSIONS_POLICY = {
     "web-share": [],
     "xr-spatial-tracking": [],
 }
+
+# Define backend for matplotlib. Ensure a non-interactive backend is chosen to avoid dangling resources
+matplotlib.use('agg')
