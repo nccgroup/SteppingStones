@@ -12,22 +12,22 @@ The UI is intended to be rapid enough to be used throughout the engagement, not 
 
 Stepping Stones is a Python Django application, so to get a local copy running:
 
-* Install the latest version of Python 3 (tested with 3.12.2 on Windows and Linux)
-* Change into the root directory of a copy of this repository
-* Create a virtual environment to keep the dependencies separate from other apps: `python -m venv .venv`
-* Activate the virtual environment: `.venv\Scripts\activate` or `source .venv/bin/activate` on *nix
-* Install the dependencies: `pip install -r requirements.txt`
-* Ensure the 3rd party background tasks modules has all the required migrations:
+1) Install the latest version of Python 3 (tested with 3.12.2 on Windows and Linux)
+2) Change into the root directory of a copy of this repository
+3) Create a virtual environment to keep the dependencies separate from other apps: `python -m venv .venv`
+4) Activate the virtual environment: `.venv\Scripts\activate` or `source .venv/bin/activate` on *nix
+5) Install the dependencies: `pip install -r requirements.txt`
+6) Ensure the 3rd party background tasks modules has all the required migrations:
 `python manage.py makemigrations background_task`
-* Get the database schema up to date: `python manage.py migrate`
-* Start the application:
+7) Get the database schema up to date: `python manage.py migrate`
+8) Start the application:
   * If running on a Linux system with systemd, see [systemd guide](systemd/README.md)
   * For dev versions:
     * Run `python manage.py runserver` and `python manage.py process_tasks` concurrently
   * For production versions:
     * Run `python manage.py check --deploy` to obtain lockdown advice, and then follow a guide such as: 
     https://docs.djangoproject.com/en/5.0/howto/deployment/
-* Visit the application to configure a task and an admin user: e.g. access <http://127.0.0.1:8000> if running locally
+9) Visit the application to configure a task and an admin user: e.g. access <http://127.0.0.1:8000> if running locally
   * Note: The created user will also be used for the main app and shown as the "red team operator" against logged events, 
   so pick a suitable username, e.g. "ST", or "stephen", rather than "admin". If using the Cobalt Strike integration, 
   using the same usernames for both tools will aid integration.
@@ -45,20 +45,28 @@ On the team server - punch a hole in the firewall to allow Stepping Stones to co
 
 If running a local copy, when the code has been updated in git and you want the new features:
 
-* Stop both the services, e.g. with [systemd](systemd/README.md):
+1) Stop both the services, e.g. with [systemd](systemd/README.md):
   * `sudo service ssbot stop`
   * `sudo service steppingstones stop`
-* Obtain the latest version, e.g. from <https://github.com/nccgroup/SteppingStones/archive/refs/heads/main.zip>
-* Unzip the download and copy the files over the top of the deployment, e.g. `rm -rf /tmp/stepping-stones-main; unzip /tmp/stepping-stones-main.zip && cp -R /tmp/stepping-stones-main/* /opt/steppingstones`
-* Activate the virtual environment (if not done so already) from the steppingstones directory: `.venv\Scripts\activate` or `source .venv/bin/activate` on *nix
-* Pull in any new dependencies with: `pip install -r requirements.txt`
-* Ensure the 3rd party background tasks modules has all the required migrations: `python manage.py makemigrations background_task`
-* Run any migration scripts to morph your local database into the new schema: `python manage.py migrate`. 
+2) Obtain the latest version, e.g. from <https://github.com/nccgroup/SteppingStones/archive/refs/heads/main.zip>
+3) Unzip the download and copy the files over the top of the deployment, e.g. `rm -rf /tmp/stepping-stones-main; unzip /tmp/stepping-stones-main.zip && cp -R /tmp/stepping-stones-main/* /opt/steppingstones`
+4) Activate the virtual environment (if not done so already) from the steppingstones directory: `.venv\Scripts\activate` or `source .venv/bin/activate` on *nix
+5) Pull in any new dependencies with: `pip install -r requirements.txt`
+6) Ensure the 3rd party background tasks modules has all the required migrations: `python manage.py makemigrations background_task`
+7) Run any migration scripts to morph your local database into the new schema: `python manage.py migrate`. 
   * If Django prompts you to run `python manage.py makemigrations` then STOP and contact the Stepping Stones developers - it is important all users are working from the same set of migration scripts and these should be co-ordinated through the developers.
-* Restart both the services, e.g. with [systemd](systemd/README.md):
+8) Restart both the services, e.g. with [systemd](systemd/README.md):
   * `sudo service ssbot restart`
   * `sudo service steppingstones restart`
-* Ensure there are no errors, e.g. with [systemd](systemd/README.md) `journalctl -u steppingstones`
+9)  Ensure there are no errors, e.g. with [systemd](systemd/README.md) `journalctl -u steppingstones`
+
+## Starting Again With A Clean Database
+
+If you are using the same instance for different jobs and wish to archive the old data then start afresh you can:
+* Perform step 1 from _Updating the Application_ above to stop the application
+* Rename the SQLite database:
+  * `mv db.sqlite3 db.sqlite.OLD_CLIENT_NAME`
+* Perform steps 2,4 and 7-9 from _Installation_ above to create the correct database structure and access the freshly configured application.
 
 ## Backups
 
