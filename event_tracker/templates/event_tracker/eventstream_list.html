@@ -48,10 +48,10 @@ EventStream
 {% block body %}
 {% block bootstrap5_content %}
 <div class="container-fluid">
-    <div class="py-4 row">
+    <div class="row">
         <div class="col-md-12">
         {% if perms.event_tracker.add_eventstream %}
-            <div class="btn-group" role="group" aria-label="Creation">
+            <div class="btn-group" role="group" id="page-controls">
                 <a href="{% url 'event_tracker:eventstream-upload' %}" class="btn btn-success"><i class="fa-solid fa-house-flood-water"></i> Upload EventStream</a>
 
                 <div class="dropdown">
@@ -175,8 +175,12 @@ EventStream
             },
           ],
           layout: {
+            top: {
+                    rowClass: 'my-3',
+                    features: [$("#page-controls").detach(), 'search'] //TODO Re-add search builder!
+            },
             topStart: null,
-            topEnd: 'search',
+            topEnd: null,
             bottom: {
                     rowClass: 'mt-2',
                     features: ['info', 'pageLength', 'paging']
