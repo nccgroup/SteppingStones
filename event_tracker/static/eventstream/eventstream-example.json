@@ -1,2 +1,2 @@
 {"ts": "2024-04-01T17:02:01", "t": {"u": "victim", "h": "192.168.5.8"}, "d": "Dumped browser passwords"}
-{"ts": "2024-04-01T17:03:01", "te": "2024-04-01T17:06:20", "s": {"h": "attacker.example.com", "p": "spray.exe"}, "t": {"h": "192.168.5.6"}, "d": "Password sprayed Welcome123"}
+{"ts": "2024-04-01T17:03:01", "te": "2024-04-01T17:06:20", "s": {"h": "attacker.example.com", "p": "spray.exe"}, "t": {"h": "192.168.5.6"}, "d": "Password sprayed Welcome123", "e":  "spray.exe -u users.txt -p Welcome123 -t https://192.168.5.6/login.php", "ma":  {"ta": "TA0006", "t": "T1110.003"}}

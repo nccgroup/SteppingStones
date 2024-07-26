@@ -146,6 +146,7 @@ class ImportedEvent(models.Model):
     target_user = models.CharField(max_length=100)
     target_host = models.CharField(max_length=100)
     description = models.CharField(max_length=1000)
+    raw_evidence = models.CharField(max_length=5000, blank=True, null=True)
     outcome = models.CharField(max_length=1000, blank=True, null=True)
     mitre_tactic = models.CharField(null=True, max_length=6)
     mitre_technique = models.CharField(null=True, max_length=9)

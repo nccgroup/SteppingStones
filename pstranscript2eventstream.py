@@ -9,7 +9,7 @@ import re
 # Or always log with a registry mod: https://adamtheautomator.com/powershell-logging-2/#How_to_Turn_on_Transcripts_with_the_Registry
 
 def dump_to_json(eventstream_file, timestamp, user, host, command, output):
-    eventstream_file.write(json.dumps({"ts": timestamp.isoformat(), "s": {"u": user, "h": host}, "d": command, "output": output.lstrip("\n")}))
+    eventstream_file.write(json.dumps({"ts": timestamp.isoformat(), "s": {"u": user, "h": host}, "e": command, "output": output.lstrip("\n")}))
     eventstream_file.write("\n")
 
 def main(transcript_file, eventstream_file):
