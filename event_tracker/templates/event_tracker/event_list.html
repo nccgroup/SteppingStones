@@ -127,8 +127,6 @@ Event List
     <div class="row">
       <div class="col-md-12">
         <div class="table-responsive">
-        {{ dateformat }}
-
             <table class="table table-sm table-striped">
               <thead>
                 <tr>
@@ -428,10 +426,13 @@ $(function () {
             }
         ]
     })
-    $(".dataTables_filter").detach().appendTo('#table-filter');
+    var searchForm = $(".dt-search").detach().addClass('row').appendTo('#table-filter');
+    searchForm.find('label').addClass('col-sm-3 col-form-label-sm');
+    searchForm.find('input').wrap('<div class="col-sm-9"></div>');
 
     var table = $('table').DataTable();
-    table.button('.dt-searchBuilder').container().appendTo( '#table-filter' );
+    table.button('.dt-searchBuilder').container().appendTo('#table-filter');
+    $('.dt-searchBuilder').addClass('text-nowrap');
 
     $('#pdf-export').on('click', function() {$('.table').DataTable().buttons('.buttons-pdf').trigger()})
 });
