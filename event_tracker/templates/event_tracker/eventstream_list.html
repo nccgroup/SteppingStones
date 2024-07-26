@@ -174,9 +174,16 @@ EventStream
                 }
             },
           ],
-          dom: "<'row'<'col-sm-12 col-md-12'Bf>>" +
-        "<'row'<'col-sm-12'tr>>" +
-        "<'row'<'col-sm-12 col-md-4 d-flex justify-content-start align-items-center'i><'col-sm-12 col-md-4 d-flex justify-content-center align-items-center'l><'col-sm-12 col-md-4 d-flex justify-content-end align-items-center'p>>",
+          layout: {
+            topStart: null,
+            topEnd: 'search',
+            bottom: {
+                    rowClass: 'mt-2',
+                    features: ['info', 'pageLength', 'paging']
+            },
+            bottomStart: null,
+            bottomEnd: null
+          },
           fixedHeader: {
             header: true,
             headerOffset: $('.navbar').outerHeight()
