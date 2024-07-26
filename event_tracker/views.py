@@ -1072,8 +1072,6 @@ class EventStreamListJSON(PermissionRequiredMixin, BaseDatatableView):
                 value1 = timezone.make_aware(parse_datetime(value1))
                 if value2:
                     value2 = timezone.make_aware(parse_datetime(value2))
-                else:
-                    continue
             else:
                 query_column = "unknown_column"
 
