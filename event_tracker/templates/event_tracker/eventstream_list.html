@@ -176,18 +176,9 @@ EventStream
             },
           ],
           layout: {
-            top: {
-                    rowClass: 'my-3',
-                    features: [$("#page-controls").detach(), 'search'] //TODO Re-add search builder!
+            topStart: {
+                features: [$("#page-controls").detach()]
             },
-            topStart: null,
-            topEnd: null,
-            bottom: {
-                    rowClass: 'mt-2',
-                    features: ['info', 'pageLength', 'paging']
-            },
-            bottomStart: null,
-            bottomEnd: null
           },
           fixedHeader: {
             header: true,

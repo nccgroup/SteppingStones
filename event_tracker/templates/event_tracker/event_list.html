@@ -19,11 +19,7 @@ Event List
     <style nonce="{{request.csp_nonce}}">
     .fa-ul {margin-left: 30px; margin-bottom: 0px}
     .fa-li {color: lightgray}
-    div.dataTables_filter input {
-        margin-left: .5em;
-        display: inline-block;
-        width: auto;
-    }
+
     .dt-buttons {
         padding-left: .25em;
     }
@@ -42,12 +38,6 @@ Event List
     .fa-ul {
         margin-left: 30px;
         margin-bottom: 0px;
-    }
-
-    #table-filter {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center
     }
 
     td.desc, #event-to-delete-str {
@@ -79,8 +69,7 @@ Event List
 {% block bootstrap5_content %}
 
 <div class="container-fluid">
-    <div class="py-4 row">
-        <div class="col-md-8">
+        <div id="page-controls">
             {% if perms.event_tracker.add_event %}
             <a href="{% url 'event_tracker:event-add' view.kwargs.task_id %}" class="btn btn-success"><i class="fa-regular fa-calendar-plus"></i> Add event</a>
             {% endif %}
@@ -122,11 +111,9 @@ Event List
             </div>
             {% endif %}
         </div>
-        <div id="table-filter" class="col-md-4"></div>
-    </div>
     <div class="row">
       <div class="col-md-12">
-        <div class="table-responsive">
+        <div class="mt-2">
             <table class="table table-sm table-striped">
               <thead>
                 <tr>
@@ -351,6 +338,11 @@ $(function () {
                 }
             }
         },
+        layout: {
+            topStart: {
+                features: [$("#page-controls").detach()]
+            },
+        },
         fixedHeader: {
             header: true,
             headerOffset: $('.navbar').outerHeight()
@@ -427,13 +419,6 @@ $(function () {
             }
         ]
     })
-    var searchForm = $(".dt-search").detach().addClass('row').appendTo('#table-filter');
-    searchForm.find('label').addClass('col-sm-3 col-form-label-sm');
-    searchForm.find('input').wrap('<div class="col-sm-9"></div>');
-
-    var table = $('table').DataTable();
-    table.button('.dt-searchBuilder').container().appendTo('#table-filter');
-    $('.dt-searchBuilder').addClass('text-nowrap');
 
     $('#pdf-export').on('click', function() {$('.table').DataTable().buttons('.buttons-pdf').trigger()})
 });
