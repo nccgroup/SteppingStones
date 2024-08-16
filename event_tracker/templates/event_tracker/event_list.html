@@ -58,6 +58,11 @@ Event List
         color:{{ context.colour }}80;
     }
     {% endfor %}
+
+    div:has(+.dt-layout-table) {
+        padding-top: 0.5em;
+        padding-bottom: 1em;
+    }
     </style>
 {% endblock head %}
 

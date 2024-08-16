@@ -42,6 +42,11 @@ EventStream
     .table-striped-columns th::after {
         content: ':';
     }
+    
+    div:has(+.dt-layout-table) {
+        padding-top: 0.5em;
+        padding-bottom: 1em;
+    }
     </style>
 {% endblock head %}
 
