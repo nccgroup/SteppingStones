@@ -57,7 +57,7 @@ from dal import autocomplete
 from .plugins import EventReportingPluginPoint
 from .signals import cs_beacon_to_context, cs_beaconlog_to_file, notify_webhook_new_beacon, cs_listener_to_context, \
     get_driver_for
-from .templatetags.custom_tags import render_ts_local
+from .templatetags.custom_tags import render_ts_local, breakonpunctuation
 
 
 @permission_required('event_tracker.view_task')
@@ -1014,6 +1014,11 @@ class EventStreamListJSON(PermissionRequiredMixin, BaseDatatableView):
         elif column == 'target':
             dummy_context = Context(host=row.target_host, user=row.target_user, process=row.target_process)
             return dummy_context.get_visible_html()
+        elif column == 'description':
+            description = row.description
+            if row.raw_evidence:
+                description += f'<pre class="mt-3 mb-0"><code>{ breakonpunctuation(escape(row.raw_evidence)) }</code></pre>'
+            return description
         elif column == 'additional_data' and row.additional_data:
             additional_data_dict = json.loads(row.additional_data)
             escaped_dict = {}
@@ -1165,6 +1170,10 @@ class EventStreamUpload(PermissionRequiredMixin, TemplateView):
                     }
                     imported_event_dict["timestamp"] = parse_datetime(eventstream_dict.pop("ts"))
                     imported_event_dict["description"] = eventstream_dict.pop("d")
+
+                    if "e" in eventstream_dict:
+                        imported_event_dict["raw_evidence"] = eventstream_dict.pop("e")
+
                     if "te" in eventstream_dict:
                         imported_event_dict["timestamp_end"] = parse_datetime(eventstream_dict.pop("te"))
 
@@ -1264,7 +1273,8 @@ class EventStreamToEventView(EventCreateView):
             "mitre_attack_tactic": tactic,
             "mitre_attack_technique": technique,
             "mitre_attack_subtechnique": subtechnique,
-            "raw_evidence": imported_event.description,
+            "description": imported_event.description,
+            "raw_evidence": imported_event.raw_evidence,
             "outcome": imported_event.outcome,
         }
 

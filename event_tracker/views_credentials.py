@@ -1,3 +1,4 @@
+import contextlib
 import csv
 import io
 import itertools
@@ -201,8 +202,7 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
         for server in BloodhoundServer.objects.filter(active=True).all():
             if driver := get_driver_for(server):
                 with driver.session() as session:
-                    with contextlib.suppress(
-                            ClientError):  # Likely caused by no accounts being enabled for this system
+                    with contextlib.suppress(ClientError):  # Likely caused by no accounts being enabled for this system
                         old_passwords = session.execute_read(CredentialStatsView._oldest_password_ages, system,
                                                              enabled)
                         # TODO merge multiple old_passwords from different servers, rather than overwriting

@@ -85,13 +85,19 @@
     },
     "d": {
       "type": "string",
-      "description": "Description of the event",
+      "description": "Description of the event in human-readable terms.",
       "minLength": 1,
       "maxLength": 1000
     },
+    "e": {
+      "type": "string",
+      "description": "Evidence captured for the event in its rawest form, e.g. command I/O or HTTP request/response.",
+      "minLength": 1,
+      "maxLength": 5000
+    },
     "o": {
       "type": "string",
-      "description": "Outcome of the event",
+      "description": "Outcome of the event in human-readable terms.",
       "minLength": 1,
       "maxLength": 1000
     },
