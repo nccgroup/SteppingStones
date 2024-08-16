@@ -7,6 +7,7 @@
 
 <script nonce="{{request.csp_nonce}}">
     DataTable.datetime("{% datetime_format_moment %}")
+    DataTable.defaults.column.orderSequence = ['asc', 'desc']; // Remove neutral column sorting as an option - it breaks the server side query string parsing and feels clunky
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js" integrity="sha512-a9NgEEK7tsCvABL7KqtUTQjl69z7091EVPpw5KxPlZ93T141ffe1woLtbXTX+r2/8TtTvRX/v4zTL2UlMUPgwg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
