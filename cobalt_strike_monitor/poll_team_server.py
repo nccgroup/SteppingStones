@@ -76,24 +76,33 @@ on ready {
 }""")
             tempfile.close()
             jar_path = _get_jar_path()
-            p = subprocess.Popen(["java",
-                                  "-XX:ParallelGCThreads=4",
-                                  "-XX:+AggressiveHeap",
-                                  "-XX:+UseParallelGC",
-                                  "-Xmx128M",
-                                  "-classpath",
-                                  str(jar_path),
-                                  "aggressor.headless.Start",
-                                  server.hostname,
-                                  str(server.port),
-                                  f"ssbot{int(time_ns() / 1_000_000_000)}",
-                                  server.password,
-                                  tempfile.name],
-                                 cwd=str(jar_path.parent),
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
-            aggressor_output = p.stdout.read().decode("unicode_escape")
-            os.unlink(tempfile.name)
+            try:
+                p = subprocess.Popen(["java",
+                                      "-XX:ParallelGCThreads=4",
+                                      "-XX:+AggressiveHeap",
+                                      "-XX:+UseParallelGC",
+                                      "-Xmx128M",
+                                      "-classpath",
+                                      str(jar_path),
+                                      "aggressor.headless.Start",
+                                      server.hostname,
+                                      str(server.port),
+                                      f"ssbot{int(time_ns() / 1_000_000_000)}",
+                                      server.password,
+                                      tempfile.name],
+                                     cwd=str(jar_path.parent),
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT)
+                aggressor_output = p.stdout.read().decode("unicode_escape")
+            except FileNotFoundError as e:
+                aggressor_output = f"Java Virtual Machine not found in $PATH"
+            except NotADirectoryError as e:
+                aggressor_output = f"No such JAR directory: {jar_path.parent}"
+            finally:
+                os.unlink(tempfile.name)
+
+            if "Could not find or load main class aggressor.headless.Start" in aggressor_output:
+                aggressor_output += "\nTry (re-)running Cobalt Strike's update script"
     try:
         p = subprocess.Popen(["systemctl",
                               "status",
@@ -191,12 +200,15 @@ def poll_teamserver(serverid):
 
 def _get_jar_path():
     if platform.system() == "Windows":
-        jar_path = Path(r"C:\Tools\cobaltstrike-4.8\cobaltstrike.jar")
+        jar_path = Path(r"C:\Tools\cobaltstrike\cobaltstrike.jar")
     else:
         jar_path = Path(r"/opt/cobaltstrike/cobaltstrike.jar")
-    cs46_jar_path = jar_path.with_name("cobaltstrike-client.jar")
+    cs46_jar_path = jar_path.parent / "cobaltstrike-client.jar"
     if cs46_jar_path.exists():
         jar_path = cs46_jar_path
+    cs49_jar_path = jar_path.parent / "client" / "cobaltstrike-client.jar"
+    if cs49_jar_path.exists():
+        jar_path = cs49_jar_path
     return jar_path
 
 

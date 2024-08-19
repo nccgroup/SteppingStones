@@ -136,7 +136,7 @@ Once an EventStream log has been ingested by Stepping Stones specific relevant e
 
 ## Cobalt Strike Integration Details
 
-The preferred method of integrating Cobalt Strike is via SSBot. This requires a licensed copy of Cobalt Strike in /opt/cobaltstrike or c:\tools\cobaltstrike-dist\cobaltstrike which will be used to contact any (enabled) team servers configured in the Web interface.
+The preferred method of integrating Cobalt Strike is via SSBot. This requires a licensed copy of Cobalt Strike in /opt/cobaltstrike or c:\tools\cobaltstrike which will be used to contact any (enabled) team servers configured in the Web interface.
 
 Once integrated:
 * Source/Target dropdowns will include beacons
