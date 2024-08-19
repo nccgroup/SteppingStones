@@ -13,7 +13,10 @@ from event_tracker.models import HashCatMode, Event
 
 @register.simple_tag
 def datetime_format_moment():
-    return formats.get_format("SHORT_DATE_FORMAT").upper() + " HH:mm"
+    # Converts the Django regional datetime format into a format understandable by momentjs, as used by datatables
+    return (formats.get_format("SHORT_DATE_FORMAT").upper()
+            .replace("D", "DD").replace("M", "MM").replace("Y","YYYY")
+            + " HH:mm")
 
 
 @register.filter

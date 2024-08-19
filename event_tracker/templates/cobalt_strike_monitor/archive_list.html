@@ -33,6 +33,11 @@ CS Logs
     div.dataTables_wrapper div.dataTables_info {
         padding-top: 0;
     }
+    
+    div:has(+.dt-layout-table) {
+        padding-top: 0.5em;
+        padding-bottom: 1em;
+    }
     </style>
 {% endblock head %}
 
@@ -98,16 +103,17 @@ CS Logs
             },
             {
                 text: 'Export PDF',
-                action: function (e, dt, node, config) {
+                    action: function (e, dt, node, config, cb) {
                     let outer_dt = dt;
                     let outer_config = config;
                     let orig_len = dt.page.len();
+                    let outer_cb = cb;
 
-                    doExport = function (e, _dt, node, _config) {
+                    doExport = function (e, _dt, node, _config, cb) {
                         // Deregister the event handler
                         dt.off('draw', doExport);
                         // Trigger the print action
-                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config);
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config, outer_cb);
                         // Redraw the table at the original page size
                         dt.page.len(orig_len).draw();
                     }
@@ -146,17 +152,14 @@ CS Logs
                     stripNewlines: false
                 }
             },
-          ],
-          dom: "<'row'<'col-sm-12 col-md-12'Bf>>" +
-        "<'row'<'col-sm-12'tr>>" +
-        "<'row'<'col-sm-12 col-md-4 d-flex justify-content-start align-items-center'i><'col-sm-12 col-md-4 d-flex justify-content-center align-items-center'l><'col-sm-12 col-md-4 d-flex justify-content-end align-items-center'p>>",
+          ], 
           fixedHeader: {
             header: true,
             headerOffset: $('.navbar').outerHeight()
           },
           order: [[0, 'desc']],
           columns: [
-            null,
+            { searchBuilderType: "moment-{% datetime_format_moment %}" },
             { orderable: false },
             { orderable: false },
             null,

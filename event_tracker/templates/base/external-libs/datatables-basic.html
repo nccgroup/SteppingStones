@@ -1,6 +1,23 @@
 {# use https://www.srihash.org/ for integrity if not on https://cdnjs.com/ #}
-<link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/dt-1.13.4/b-2.3.6/date-1.4.1/fh-3.3.2/sb-1.4.2/datatables.min.css" integrity="sha512-kEW8Az2EL66Lst08m47S56qupKJRycFZJ+QC0lrM/kNUVfROSXXI4hywUPoyqPWcimn4vxeJGqLmiVh5JRBgIw==" crossorigin="anonymous">
-<script src="https://cdn.datatables.net/v/bs5/dt-1.13.4/b-2.3.6/date-1.4.1/fh-3.3.2/sb-1.4.2/datatables.min.js" integrity="sha512-RkrDRwehVbBYvstGSalr8yPKbcLA2TThjnrtVXEvxWSk7PP3bDoxBcDVtbz3AKea98UzpqhBLnP6+ThdD+mIxw==" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/dt-2.1.4/b-3.1.1/date-1.5.3/fh-4.0.1/sb-1.8.0/datatables.min.css" integrity="sha384-NkgQmT2leS1PF3E0GY/HMojHV3Mv96eC9tatSiT7VgqyJjdS9eYkHqf5rVcS2flU" crossorigin="anonymous">
+<script src="https://cdn.datatables.net/v/bs5/dt-2.1.4/b-3.1.1/date-1.5.3/fh-4.0.1/sb-1.8.0/datatables.min.js" integrity="sha384-R+CZHUf1UzZxEsbywkUnsMtBgx0SoiGKM8wOACZq3sCrK2Tg+2WzcpCGZp7pZy7u" crossorigin="anonymous"></script>
 
 {% include "base/external-libs/momentjs.html" %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-plugins/1.13.4/sorting/datetime-moment.min.js" integrity="sha512-cln13IRvnKJQmByR8cXOb9NMF0BzbIQbQb29vbX6mQYKsO1uyRYlGB2jWtGRgXaCq3JWqLqDZNOJ9kHzYH+dkQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-plugins/2.0.8/sorting/datetime-moment.min.js" integrity="sha512-cln13IRvnKJQmByR8cXOb9NMF0BzbIQbQb29vbX6mQYKsO1uyRYlGB2jWtGRgXaCq3JWqLqDZNOJ9kHzYH+dkQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script nonce="{{request.csp_nonce}}">
+    DataTable.datetime("{% datetime_format_moment %}")
+    DataTable.defaults.column.orderSequence = ['asc', 'desc']; // Remove neutral column sorting as an option - it breaks the server side query string parsing and feels clunky
+    DataTable.defaults.layout = {
+        topStart: null,
+        topEnd: {
+                features: ['search', 'buttons']
+        },
+        bottom: {
+                rowClass: 'mt-2',
+                features: ['info', 'pageLength', 'paging']
+        },
+        bottomStart: null,
+        bottomEnd: null
+    }
+</script>

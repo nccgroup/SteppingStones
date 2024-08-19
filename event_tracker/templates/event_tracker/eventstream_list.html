@@ -42,16 +42,21 @@ EventStream
     .table-striped-columns th::after {
         content: ':';
     }
+    
+    div:has(+.dt-layout-table) {
+        padding-top: 0.5em;
+        padding-bottom: 1em;
+    }
     </style>
 {% endblock head %}
 
 {% block body %}
 {% block bootstrap5_content %}
 <div class="container-fluid">
-    <div class="py-4 row">
+    <div class="row">
         <div class="col-md-12">
         {% if perms.event_tracker.add_eventstream %}
-            <div class="btn-group" role="group" aria-label="Creation">
+            <div class="btn-group" role="group" id="page-controls">
                 <a href="{% url 'event_tracker:eventstream-upload' %}" class="btn btn-success"><i class="fa-solid fa-house-flood-water"></i> Upload EventStream</a>
 
                 <div class="dropdown">
@@ -124,16 +129,17 @@ EventStream
             },
             {
                 text: 'Export PDF',
-                action: function (e, dt, node, config) {
+                action: function (e, dt, node, config, cb) {
                     let outer_dt = dt;
                     let outer_config = config;
                     let orig_len = dt.page.len();
+                    let outer_cb = cb;
 
-                    doExport = function (e, _dt, node, _config) {
+                    doExport = function (e, _dt, node, _config, cb) {
                         // Deregister the event handler
                         dt.off('draw', doExport);
                         // Trigger the print action
-                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config);
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config, outer_cb);
                         // Redraw the table at the original page size
                         dt.page.len(orig_len).draw();
                     }
@@ -174,16 +180,18 @@ EventStream
                 }
             },
           ],
-          dom: "<'row'<'col-sm-12 col-md-12'Bf>>" +
-        "<'row'<'col-sm-12'tr>>" +
-        "<'row'<'col-sm-12 col-md-4 d-flex justify-content-start align-items-center'i><'col-sm-12 col-md-4 d-flex justify-content-center align-items-center'l><'col-sm-12 col-md-4 d-flex justify-content-end align-items-center'p>>",
+          layout: {
+            topStart: {
+                features: [$("#page-controls").detach()]
+            },
+          },
           fixedHeader: {
             header: true,
             headerOffset: $('.navbar').outerHeight()
           },
           order: [[0, 'desc']],
           columns: [
-            null,
+            { searchBuilderType: "moment-{% datetime_format_moment %}" },
             { orderable: false },
             { orderable: false },
             null,

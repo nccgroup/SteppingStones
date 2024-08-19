@@ -19,11 +19,7 @@ Event List
     <style nonce="{{request.csp_nonce}}">
     .fa-ul {margin-left: 30px; margin-bottom: 0px}
     .fa-li {color: lightgray}
-    div.dataTables_filter input {
-        margin-left: .5em;
-        display: inline-block;
-        width: auto;
-    }
+
     .dt-buttons {
         padding-left: .25em;
     }
@@ -44,12 +40,6 @@ Event List
         margin-bottom: 0px;
     }
 
-    #table-filter {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center
-    }
-
     td.desc, #event-to-delete-str {
         word-break: break-word
     }
@@ -68,6 +58,11 @@ Event List
         color:{{ context.colour }}80;
     }
     {% endfor %}
+
+    div:has(+.dt-layout-table) {
+        padding-top: 0.5em;
+        padding-bottom: 1em;
+    }
     </style>
 {% endblock head %}
 
@@ -79,8 +74,7 @@ Event List
 {% block bootstrap5_content %}
 
 <div class="container-fluid">
-    <div class="py-4 row">
-        <div class="col-md-8">
+        <div id="page-controls">
             {% if perms.event_tracker.add_event %}
             <a href="{% url 'event_tracker:event-add' view.kwargs.task_id %}" class="btn btn-success"><i class="fa-regular fa-calendar-plus"></i> Add event</a>
             {% endif %}
@@ -122,13 +116,9 @@ Event List
             </div>
             {% endif %}
         </div>
-        <div id="table-filter" class="col-md-4"></div>
-    </div>
     <div class="row">
       <div class="col-md-12">
-        <div class="table-responsive">
-        {{ dateformat }}
-
+        <div class="mt-2">
             <table class="table table-sm table-striped">
               <thead>
                 <tr>
@@ -353,6 +343,11 @@ $(function () {
                 }
             }
         },
+        layout: {
+            topStart: {
+                features: [$("#page-controls").detach()]
+            },
+        },
         fixedHeader: {
             header: true,
             headerOffset: $('.navbar').outerHeight()
@@ -360,7 +355,7 @@ $(function () {
         order: [[1, 'desc']],
         columns: [
             {orderable: false},
-            null,
+            { searchBuilderType: "moment-{% datetime_format_moment %}" },
             null,
             null,
             {orderable: false},
@@ -375,16 +370,17 @@ $(function () {
         buttons: [
             {
                 text: 'Export PDF',
-                action: function (e, dt, node, config) {
+                    action: function (e, dt, node, config, cb) {
                     let outer_dt = dt;
                     let outer_config = config;
                     let orig_len = dt.page.len();
+                    let outer_cb = cb;
 
-                    doExport = function (e, _dt, node, _config) {
+                    doExport = function (e, _dt, node, _config, cb) {
                         // Deregister the event handler
                         dt.off('draw', doExport);
                         // Trigger the print action
-                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config);
+                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config, outer_cb);
                         // Redraw the table at the original page size
                         dt.page.len(orig_len).draw();
                     }
@@ -428,10 +424,6 @@ $(function () {
             }
         ]
     })
-    $(".dataTables_filter").detach().appendTo('#table-filter');
-
-    var table = $('table').DataTable();
-    table.button('.dt-searchBuilder').container().appendTo( '#table-filter' );
 
     $('#pdf-export').on('click', function() {$('.table').DataTable().buttons('.buttons-pdf').trigger()})
 });
