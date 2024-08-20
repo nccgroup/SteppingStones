@@ -18,6 +18,11 @@ CS Downloads
 
     <style nonce="{{request.csp_nonce}}">
     .fa-ul {margin-left: 30px; margin-bottom: 0px}
+    div:has(>.dt-search) { padding-right: 0}
+    div:has(+.dt-layout-table) {
+        padding-top: 0.5em;
+        padding-bottom: 1em;
+    }
     </style>
 {% endblock head %}
 
@@ -27,7 +32,6 @@ CS Downloads
     <div class="row">
       <div class="col-md-12">
       {% if download_list %}
-        <div class="table-responsive mt-2">
             <table class="table table-sm table-striped">
               <thead>
                 <tr>
@@ -77,7 +81,6 @@ CS Downloads
 
               </tbody>
             </table>
-        </div>
         {% else %}
             <div class="alert alert-secondary mt-3" role="alert">
               <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No file downloads found, ensure the logs are being polled for.
@@ -103,7 +106,13 @@ CS Downloads
             null,
             null,
             { orderable: false },
-          ]
+          ],
+          language: {
+            entries: {
+                _: 'files',
+                1: 'file'
+            }
+          }
       } )
     })
     </script>

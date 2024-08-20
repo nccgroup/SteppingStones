@@ -86,7 +86,13 @@ $(function () {
         {% if perms.event_tracker.change_event %}
         { orderable: false },
         {% endif %}
-      ]
+      ],
+      language: {
+        entries: {
+            _: 'files',
+            1: 'file'
+        }
+      }
   } )
 })
 </script>

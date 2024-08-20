@@ -22,8 +22,10 @@ td.accordion-button {
     margin-left: 0.2em !important;
 }
 
-#table-filter {
-    display: flex; justify-content: flex-end; align-items: center
+div:has(>.dt-search) { padding-right: 0}
+div:has(+.dt-layout-table) {
+    padding-top: 0.5em;
+    padding-bottom: 1em;
 }
 </style>
 {% endblock %}
@@ -32,8 +34,7 @@ td.accordion-button {
 {% block bootstrap5_content %}
 <div class="container">
 <div class="container-fluid">
-    <div class="py-4 row">
-        <div class="col-md-8">
+        <div id="page-controls">
             {% if perms.cobalt_strike_monitor.add_teamserver  %}
             <a href="{% url 'event_tracker:team-server-add' %}" class="btn btn-success"><i class="fa-regular fa-calendar-plus"></i> Add Team Server</a>
             {% endif %}
@@ -43,8 +44,7 @@ td.accordion-button {
             </div>
             {% endif %}
         </div>
-        <div id="table-filter" class="col-md-4"></div>
-    </div>
+
     <div class="row">
       <div class="col-md-12">
       {% if teamserver_list %}
@@ -113,13 +113,22 @@ $(document).ready( function () {
     var table = $('.table').DataTable({
         searching: true,
         paging: false,
+        layout: {
+            topStart: {
+                features: [$("#page-controls").detach()]
+            },
+        },
         "columnDefs": [
             // hide the listener column, we'll expose it as an expanded row
             {"visible": false, "targets": 7}
-        ]
+        ],
+        language: {
+            entries: {
+                _: 'servers',
+                1: 'server'
+            }
+          }
     });
-
-    $(".dataTables_filter").detach().appendTo('#table-filter');
 
     // Add event listener for opening and closing details
     $('.table tbody').on('click', 'td.accordion-button', function () {

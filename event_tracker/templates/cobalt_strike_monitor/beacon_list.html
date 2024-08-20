@@ -17,13 +17,21 @@ CS Beacons
     {% include "base/external-libs/datatables-basic.html" %}
 
     <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
+    
+<style nonce="{{request.csp_nonce}}">
+div:has(>.dt-search) { padding-right: 0}
+div:has(+.dt-layout-table) {
+    padding-top: 0.5em;
+    padding-bottom: 1em;
+}
+</style>
 {% endblock head %}
 
 {% block body %}
 {% block bootstrap5_content %}
 <div class="container-fluid">
-    <div class="py-4 row">
-        <div class="col-md-12">
+    <div id="page-controls">
+        <div>
             {% if perms.cobalt_strike_monitor.view_beaconexclusion %}
             <a href="{% url 'event_tracker:cs-beacon-exclusion-list' %}" class="btn btn-outline-secondary"><i class="fa-solid fa-eye-low-vision"></i> View Beacon Exclusions</a>
             {% endif %}
@@ -31,8 +39,7 @@ CS Beacons
     </div>
     <div class="row">
       <div class="col-md-12">
-      {% if beacon_list %}
-        <div class="table-responsive mt-2">
+        {% if beacon_list %}
             <table class="table table-sm table-striped">
               <thead>
                 <tr>
@@ -99,7 +106,6 @@ CS Beacons
               <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No beacons found, ensure the logs are being polled for.
             </div>
         {% endif %}
-      </div>
     </div>
   </div>
 
@@ -170,6 +176,11 @@ CS Beacons
             headerOffset: $('.navbar').outerHeight()
           },
           order: [[0, 'desc']],
+          layout: {
+                topStart: {
+                    features: [$("#page-controls").detach()]
+                },
+          },
           columns: [
             null,
             null,
@@ -181,7 +192,13 @@ CS Beacons
             null,
             null,
             { orderable: false },
-          ]
+          ],
+          language: {
+            entries: {
+                _: 'beacons',
+                1: 'beacon'
+            }
+          }
       } )
     })
     
