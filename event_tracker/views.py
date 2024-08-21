@@ -2,7 +2,7 @@ import csv
 import json
 import os
 import string
-from abc import ABC
+from abc import ABC, abstractmethod
 from io import BytesIO
 from json import JSONDecodeError
 from typing import Optional
@@ -861,11 +861,88 @@ class CSLogsListView(PermissionRequiredMixin, TemplateView):
     template_name = "cobalt_strike_monitor/archive_list.html"
 
 
-class CSLogsListJSON(PermissionRequiredMixin, BaseDatatableView):
+class FilterableDatatableView(ABC, BaseDatatableView):
+    filter_column_mapping = {}
+
+    def filter_search_builder(self):
+        q = None
+
+        criteria = 0
+        while f'searchBuilder[criteria][{criteria}][data]' in self.request.GET.dict().keys():
+            prefix = f'searchBuilder[criteria][{criteria}]'
+            criteria += 1
+
+            column = self.request.GET.get(prefix + "[data]")
+            condition = self.request.GET.get(prefix + "[condition]")
+            value1 = self.request.GET.get(prefix + "[value1]")
+            value2 = self.request.GET.get(prefix + "[value2]", None)
+
+            if not column or not condition or not value1:
+                continue
+
+            if column in self.filter_column_mapping:
+                query_column = self.filter_column_mapping[column]
+                value1 = timezone.make_aware(parse_datetime(value1))
+                if value2:
+                    value2 = timezone.make_aware(parse_datetime(value2))
+            else:
+                query_column = "unknown_column"
+
+            multivalue = False
+            if condition == "<":
+                query_condition = "lte"
+            elif condition == ">":
+                query_condition = "gte"
+            elif condition == "between":
+                query_condition = "range"
+                multivalue = True
+            else:
+                query_condition = "unknown_condition"
+
+            kwarg = dict()
+            key = f'{query_column}__{query_condition}'
+
+            if multivalue:
+                kwarg[key] = [value1, value2]
+            else:
+                kwarg[key] = value1
+
+            if q is None:
+                q = Q(**kwarg)
+            else:
+                if self.request.GET.get('searchBuilder[logic]') == 'AND':
+                    q &= Q(**kwarg)
+                elif self.request.GET.get('searchBuilder[logic]') == 'OR':
+                    q |= Q(**kwarg)
+
+        return q
+
+    def filter_queryset(self, qs):
+        # Handle SearchBuilder params
+        search_builder_q = self.filter_search_builder()
+        if search_builder_q is not None:
+            qs = qs.filter(search_builder_q)
+
+        # Handle free text search params
+        search = self.request.GET.get('search[value]', None)
+        if search:
+            terms = search.split(" ")
+            for term in terms:
+                qs = self.filter_queryset_by_searchterm(qs, term)
+
+        return qs
+
+    @abstractmethod
+    def filter_queryset_by_searchterm(self, qs, terms):
+        pass
+
+
+class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
     permission_required = 'cobalt_strike_monitor.view_archive'
     model = Archive
     columns = ['when', 'source', 'target', 'data', 'tactic', '']
     order_columns = ['when', '', '', 'data', 'tactic', '']
+    filter_column_mapping = {'Timestamp': 'when'}
 
     def get_initial_queryset(self):
         return Archive.objects.filter(Q(type="input") | Q(type="task")).filter(beacon__in=Beacon.visible_beacons()).select_related(
@@ -911,78 +988,13 @@ class CSLogsListJSON(PermissionRequiredMixin, BaseDatatableView):
         else:
             return truncatechars_html((super(CSLogsListJSON, self).render_column(row, column)), 400)
 
-    def filter_queryset(self, qs):
-        # Handle SearchBuilder params
-        search_builder_q = self.filter_search_builder()
-        if search_builder_q is not None:
-            qs = qs.filter(search_builder_q)
+    def filter_queryset_by_searchterm(self, qs, term):
+        q = Q(beacon__listener__althost__icontains=term) | Q(beacon__listener__host__icontains=term) | \
+            Q(beacon__computer__icontains=term) | Q(beacon__user__icontains=term) | Q(
+            beacon__process__icontains=term) | \
+            Q(data__icontains=term) | Q(tactic__icontains=term) | Q(beacon__pid=term)
 
-        # Handle free text search params
-        search = self.request.GET.get('search[value]', None)
-        if search:
-            terms = search.split(" ")
-
-            for term in terms:
-                q = Q(beacon__listener__althost__icontains=term) | Q(beacon__listener__host__icontains=term) | \
-                    Q(beacon__computer__icontains=term) | Q(beacon__user__icontains=term) | Q(beacon__process__icontains=term) | \
-                    Q(data__icontains=term) | Q(tactic__icontains=term) | Q(beacon__pid=term)
-
-                qs = qs.filter(q)
-
-        return qs
-
-    def filter_search_builder(self):
-        q = None
-
-        criteria = 0
-        while f'searchBuilder[criteria][{criteria}][data]' in self.request.GET.dict().keys():
-            prefix = f'searchBuilder[criteria][{criteria}]'
-            criteria += 1
-
-            column = self.request.GET.get(prefix + "[data]")
-            condition = self.request.GET.get(prefix + "[condition]")
-            value1 = self.request.GET.get(prefix + "[value1]")
-            value2 = self.request.GET.get(prefix + "[value2]", None)
-
-            if not column or not condition or not value1:
-                continue
-
-            if column == "Timestamp":
-                query_column = "when"
-                value1 = timezone.make_aware(parse_datetime(value1))
-                if value2:
-                    value2 = timezone.make_aware(parse_datetime(value2))
-            else:
-                query_column = "unknown_column"
-
-            multivalue = False
-            if condition == "<":
-                query_condition = "lte"
-            elif condition == ">":
-                query_condition = "gte"
-            elif condition == "between":
-                query_condition = "range"
-                multivalue = True
-            else:
-                query_condition = "unknown_condition"
-
-            kwarg = dict()
-            key = f'{query_column}__{query_condition}'
-
-            if multivalue:
-                kwarg[key] = [value1, value2]
-            else:
-                kwarg[key] = value1
-
-            if q is None:
-                q = Q(**kwarg)
-            else:
-                if self.request.GET.get('searchBuilder[logic]') == 'AND':
-                    q &= Q(**kwarg)
-                elif self.request.GET.get('searchBuilder[logic]') == 'OR':
-                    q |= Q(**kwarg)
-
-        return q
+        return qs.filter(q)
 
 # -- EventStream List
 
@@ -991,11 +1003,12 @@ class EventStreamListView(PermissionRequiredMixin, TemplateView):
     template_name = "event_tracker/eventstream_list.html"
 
 
-class EventStreamListJSON(PermissionRequiredMixin, BaseDatatableView):
+class EventStreamListJSON(PermissionRequiredMixin, FilterableDatatableView):
     permission_required = 'event_tracker.view_eventstream'
     model = ImportedEvent
     columns = ['timestamp', 'source', 'target', 'description', 'mitre_tactic', 'additional_data', '']
     order_columns = ['timestamp', '', '', 'description', 'mitre_tactic', '', '']
+    filter_column_mapping = {'Timestamp': 'timestamp'}
 
     #TODO render & sort on MITRE technique if no tactic is provided
 
@@ -1033,79 +1046,14 @@ class EventStreamListJSON(PermissionRequiredMixin, BaseDatatableView):
         else:
             return truncatechars_html((super(EventStreamListJSON, self).render_column(row, column)), 400)
 
-    def filter_queryset(self, qs):
-        # Handle SearchBuilder params
-        search_builder_q = self.filter_search_builder()
-        if search_builder_q is not None:
-            qs = qs.filter(search_builder_q)
+    def filter_queryset_by_searchterm(self, qs, term):
+        q = Q(operator__icontains=term) | Q(description__icontains=term) | \
+            Q(source_user__icontains=term) | Q(source_host__icontains=term) | Q(source_process__icontains=term) | \
+            Q(target_user__icontains=term) | Q(target_host__icontains=term) | Q(target_process__icontains=term) | \
+            Q(mitre_tactic__icontains=term) | Q(mitre_technique__icontains=term) | Q(additional_data__icontains=term)
 
-        # Handle free text search params
-        search = self.request.GET.get('search[value]', None)
-        if search:
-            terms = search.split(" ")
+        return qs.filter(q)
 
-            for term in terms:
-                q = Q(operator__icontains=term) | Q(description__icontains=term) | \
-                    Q(source_user__icontains=term) | Q(source_host__icontains=term) | Q(source_process__icontains=term) | \
-                    Q(target_user__icontains=term) | Q(target_host__icontains=term) | Q(target_process__icontains=term) | \
-                    Q(mitre_tactic__icontains=term) | Q(mitre_technique__icontains=term) | Q(additional_data__icontains=term)
-
-                qs = qs.filter(q)
-
-        return qs
-
-    def filter_search_builder(self):
-        q = None
-
-        criteria = 0
-        while f'searchBuilder[criteria][{criteria}][data]' in self.request.GET.dict().keys():
-            prefix = f'searchBuilder[criteria][{criteria}]'
-            criteria += 1
-
-            column = self.request.GET.get(prefix + "[data]")
-            condition = self.request.GET.get(prefix + "[condition]")
-            value1 = self.request.GET.get(prefix + "[value1]")
-            value2 = self.request.GET.get(prefix + "[value2]", None)
-
-            if not column or not condition or not value1:
-                continue
-
-            if column == "Timestamp":
-                query_column = "timestamp"
-                value1 = timezone.make_aware(parse_datetime(value1))
-                if value2:
-                    value2 = timezone.make_aware(parse_datetime(value2))
-            else:
-                query_column = "unknown_column"
-
-            multivalue = False
-            if condition == "<":
-                query_condition = "lte"
-            elif condition == ">":
-                query_condition = "gte"
-            elif condition == "between":
-                query_condition = "range"
-                multivalue = True
-            else:
-                query_condition = "unknown_condition"
-
-            kwarg = dict()
-            key = f'{query_column}__{query_condition}'
-
-            if multivalue:
-                kwarg[key] = [value1, value2]
-            else:
-                kwarg[key] = value1
-
-            if q is None:
-                q = Q(**kwarg)
-            else:
-                if self.request.GET.get('searchBuilder[logic]') == 'AND':
-                    q &= Q(**kwarg)
-                elif self.request.GET.get('searchBuilder[logic]') == 'OR':
-                    q |= Q(**kwarg)
-
-        return q
 
 class EventStreamUploadForm(forms.Form):
     file = forms.FileField(help_text="A text file containing an EventStream JSON blob per line", widget=forms.FileInput(attrs={'accept':'.json,text/json'}))
