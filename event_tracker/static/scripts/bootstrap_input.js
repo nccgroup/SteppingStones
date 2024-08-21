@@ -26,8 +26,12 @@
             max: pageInfo.pages,
         }).val(pageInfo.page + 1);
 
-        if (pageInfo.pages === 1) {
+        if (pageInfo.pages <= 1) {
             $input.prop("disabled", true)
+
+            if (pageInfo.pages === 0) {
+                $input.val(0)
+            }
         }
 
         var changeHandler = function (e) {
