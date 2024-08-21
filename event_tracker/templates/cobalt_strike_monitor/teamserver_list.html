@@ -47,7 +47,6 @@ div:has(+.dt-layout-table) {
 
     <div class="row">
       <div class="col-md-12">
-      {% if teamserver_list %}
         <div>
             <table class="table table-sm table-striped">
               <thead>
@@ -98,11 +97,6 @@ div:has(+.dt-layout-table) {
               </tbody>
             </table>
         </div>
-        {% else %}
-            <div class="alert alert-secondary mt-3" role="alert">
-              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No Team Servers configured, please add one.
-            </div>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -126,7 +120,8 @@ $(document).ready( function () {
             entries: {
                 _: 'servers',
                 1: 'server'
-            }
+            },
+            emptyTable: '<i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No Team Servers configured, please add one.'
           }
     });
 
