@@ -13,8 +13,6 @@ EventStream
     {% include "base/external-libs/jquery.html" %}
     {% include "base/external-libs/datatables-pdfexport.html" %}
 
-    <script src="{% static "/scripts/bootstrap_input.js" %}"></script>
-
     <style nonce="{{request.csp_nonce}}">
     .fa-ul {
         margin-left: 30px; margin-bottom: 0px
@@ -98,7 +96,6 @@ EventStream
       $('[data-toggle="tooltip"]').tooltip();
       $.fn.dataTable.moment('{% datetime_format_moment %}');
       $('.table').DataTable({
-          "pagingType": "bootstrap_input",
           "processing": true,
           "serverSide": true,
           "ajax": "{% url 'event_tracker:eventstream-json' %}",

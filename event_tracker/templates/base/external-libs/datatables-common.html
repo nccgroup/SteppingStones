@@ -1,0 +1,26 @@
+{% load static %}
+{% include "base/external-libs/momentjs.html" %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables-plugins/2.0.8/sorting/datetime-moment.min.js" integrity="sha512-cln13IRvnKJQmByR8cXOb9NMF0BzbIQbQb29vbX6mQYKsO1uyRYlGB2jWtGRgXaCq3JWqLqDZNOJ9kHzYH+dkQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script src="{% static "/scripts/bootstrap_input.js" %}"></script>
+
+<script nonce="{{request.csp_nonce}}">
+    DataTable.datetime("{% datetime_format_moment %}")
+    DataTable.defaults.column.orderSequence = ['asc', 'desc']; // Remove neutral column sorting as an option - it breaks the server side query string parsing and feels clunky
+    DataTable.defaults.layout = {
+        topStart: null,
+        topEnd: {
+                features: ['search', 'buttons']
+        },
+        bottom: {
+                rowClass: 'mt-2',
+                features: ['info', 'pageLength', 'paging']
+        },
+        bottomStart: null,
+        bottomEnd: null
+    }
+    DataTable.defaults.language = {
+        infoEmpty: "No _ENTRIES_ to show"
+    }
+    DataTable.defaults.pagingType= "bootstrap_input"
+</script>
