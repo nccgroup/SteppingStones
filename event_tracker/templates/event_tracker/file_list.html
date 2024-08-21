@@ -21,7 +21,6 @@ File List
     <div class="row">
       <div class="col-md-12">
         <div class="table-responsive">
-            {% if object_list %}
             <table class="table table-sm table-striped">
               <thead>
                 <tr>
@@ -53,11 +52,6 @@ File List
                 {% endfor %}
               </tbody>
             </table>
-            {% else %}
-                <div class="alert alert-secondary mt-3" role="alert">
-                  <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No files logged against any events.{% if perms.event_tracker.change_event %} You can associate files with an event via the "Add File" button when editing an event.{% endif %}
-                </div>
-            {% endif %}
         </div>
       </div>
     </div>
@@ -91,7 +85,8 @@ $(function () {
         entries: {
             _: 'files',
             1: 'file'
-        }
+        },
+        emptyTable: '<i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No files logged against any events.{% if perms.event_tracker.change_event %} You can associate files with an event via the "Add File" button when editing an event.{% endif %}'
       }
   } )
 })

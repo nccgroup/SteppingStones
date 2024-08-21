@@ -109,7 +109,7 @@ Event List
                   </ul>
                 </div>
             </div>
-        {% if event_list and perms.event_tracker.view_event %}
+
             {% if perms.event_tracker.change_event %}
             <div class="btn-group" role="group">
                 <a id="bulk_update" href="{% url 'event_tracker:event-bulk-edit' view.kwargs.task_id %}" class="btn btn-outline-primary"><i class="fa-solid fa-fill-drip"></i> Edit All Starred</a>
@@ -212,28 +212,6 @@ Event List
                 {% endfor %}
               </tbody>
             </table>
-            {% else %}
-            </div>
-            <div class="row">
-                <div class="md-12">
-                    <div class="alert alert-secondary mt-3" role="alert">
-                        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
-                        No events found.
-                        {% if perms.event_tracker.add_event %}
-                            Either <i class="fa-solid fa-arrow-turn-up fa-flip-horizontal"></i> <b>add a new event</b> or
-                        {% else %}
-                            You may need to 
-                        {% endif %}
-                        <b><a href="#" id="clear-filter">clear the filter</a></b> <i class="fa-solid fa-arrow-turn-up"></i>.
-                        <script nonce="{{request.csp_nonce}}">
-                            $("#clear-filter").on("click", function() {
-                                $('#eventfilter select').val('');
-                                $('#eventfilter').submit();
-                            })
-                        </script>
-                    </div>
-                </div>
-            {% endif %}
             </div>
           </div>
         </div>
@@ -345,7 +323,14 @@ $(function () {
             entries: {
                 _: 'events',
                 1: 'event'
-            }
+            },
+            emptyTable: "<i class='fa fa-exclamation-triangle' aria-hidden='true'></i> No events found. " +
+                        {% if perms.event_tracker.add_event %}
+                            "Either <i class='fa-solid fa-arrow-turn-up fa-flip-horizontal'></i> <b>add a new event</b> or " +
+                        {% else %}
+                            "You may need to " +
+                        {% endif %}
+                        "<b>clear the filter</b> <i class='fa-solid fa-arrow-turn-up'></i>."
         },
         layout: {
             topStart: {
@@ -431,7 +416,6 @@ $(function () {
 
     $('#pdf-export').on('click', function() {$('.table').DataTable().buttons('.buttons-pdf').trigger()})
 });
-
 </script>
 
 {% endblock bootstrap5_content %}

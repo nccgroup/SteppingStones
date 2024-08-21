@@ -23,7 +23,6 @@ CS Beacon Exclusions
 <div class="container-fluid">
     <div class="row">
       <div class="col-md-12">
-      {% if object_list %}
         <div class="table-responsive mt-2">
             <table class="table table-sm table-striped">
               <thead>
@@ -66,11 +65,6 @@ CS Beacon Exclusions
               </tbody>
             </table>
         </div>
-        {% else %}
-            <div class="alert alert-secondary mt-3" role="alert">
-              <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No exclusion rules defined. Find a sample beacon you wish to hide on the <a href="{% url 'event_tracker:cs-beacons-list' %}">beacons page</a> and click <i class="fa-solid fa-eye-slash"></i>
-            </div>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -114,7 +108,8 @@ CS Beacon Exclusions
             entries: {
                 _: 'exclusions',
                 1: 'exclusion'
-            }
+            },
+            emptyTable: '<i class="fa fa-exclamation-triangle" aria-hidden="true"></i> No exclusion rules defined. Find a sample beacon you wish to hide on the <a href="{% url 'event_tracker:cs-beacons-list' %}">beacons page</a> and click <i class="fa-solid fa-eye-slash"></i>'  
           }
       } )
     })
