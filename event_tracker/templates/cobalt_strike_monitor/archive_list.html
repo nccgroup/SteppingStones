@@ -77,7 +77,7 @@ CS Logs
           "serverSide": true,
           "ajax": "{% url 'event_tracker:cs-logs-json' %}",
           language: {
-            emptyTable: "No logs found, ensure they are being polled for.",
+            emptyTable: "<i class='fa fa-exclamation-triangle' aria-hidden='true'></i> No logs found, ensure they are being polled for or remove <a href='{% url 'event_tracker:cs-beacon-exclusion-list' %}'>beacon exclusions</a>.",
             searchBuilder: {
                 button: {
                     0: 'Timebox',
