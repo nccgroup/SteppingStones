@@ -1241,7 +1241,8 @@ class CSUploadsListView(PermissionRequiredMixin, ListView):
     template_name = "cobalt_strike_monitor/uploads_list.html"
 
     def get_queryset(self):
-        return Archive.objects.filter(type="indicator", data__startswith="file:").order_by("-when")
+        return (Archive.objects.filter(beacon__in=Beacon.visible_beacons())
+                .filter(type="indicator", data__startswith="file:").order_by("-when"))
 
 
 class CSDownloadsListView(PermissionRequiredMixin, ListView):
@@ -1249,7 +1250,7 @@ class CSDownloadsListView(PermissionRequiredMixin, ListView):
     template_name = "cobalt_strike_monitor/downloads_list.html"
 
     def get_queryset(self):
-        return Download.objects.order_by("-date")
+        return Download.objects.filter(beacon__in=Beacon.visible_beacons()).order_by("-date")
 
 
 class CSBeaconsListView(PermissionRequiredMixin, ListView):
