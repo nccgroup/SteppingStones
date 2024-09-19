@@ -337,7 +337,7 @@ class EventMapping(models.Model):
 
 
 class Webhook(models.Model):
-    url = models.URLField()
+    url = models.URLField(max_length=500)
 
 
 class BeaconReconnectionWatcher(models.Model):
