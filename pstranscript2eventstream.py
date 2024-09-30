@@ -13,7 +13,7 @@ def dump_to_json(eventstream_file, timestamp, user, host, command, output):
     eventstream_file.write("\n")
 
 def main(transcript_file, eventstream_file):
-    local_timezone = datetime.datetime.utcnow().astimezone().tzinfo
+    local_timezone = datetime.UTC
     in_section = True
     command = ""
     output = ""

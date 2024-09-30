@@ -1,9 +1,0 @@
-npm install -g bootprint
-npm install -g bootprint-json-schema
-cd \temp
-' Copy eventstream.schema.json into \temp
-bootprint json-schema eventstream.schema.json .
-
-Open index.html in browser
-Save as webpage
-Paste source over the top of schema-doc.html

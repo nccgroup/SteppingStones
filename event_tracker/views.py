@@ -1112,10 +1112,14 @@ class EventStreamUpload(PermissionRequiredMixin, TemplateView):
                         "target_host": "",
                         "mitre_tactic": None,
                         "mitre_technique": None,
-                        "outcome": None
+                        "outcome": None,
+                        "description": "",
+                        "raw_evidence": None
                     }
                     imported_event_dict["timestamp"] = parse_datetime(eventstream_dict.pop("ts"))
-                    imported_event_dict["description"] = eventstream_dict.pop("d")
+
+                    if "d" in eventstream_dict:
+                        imported_event_dict["description"] = eventstream_dict.pop("d")
 
                     if "e" in eventstream_dict:
                         imported_event_dict["raw_evidence"] = eventstream_dict.pop("e")

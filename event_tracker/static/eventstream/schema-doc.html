@@ -11,120 +11,120 @@
                     <h3 class="panel-title">Stepping Stones Event Stream</h3>
             </div>
         <div class="panel-body">
-
+                
                         <section class="json-schema-properties">
                             <dl>
                                     <dt data-property-name="ts">
                                         <span class="json-property-name">ts:</span>
-
+                                        
                                         <span class="json-property-type">string</span>    <span class="json-property-format">(date-time)</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                             <span class="json-property-pattern" title="String pattern">, must match <span class="json-schema--regex">[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?([+-][0-9]{2}:[0-9]{2})?</span></span>
                                             <span class="json-property-required"></span>
                                     </dt>
                                     <dd>
                                         <p>ISO 8601 Timestamp of the event, or start of the event if event was long running.</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                         </div>
                                     </dd>
                                     <dt data-property-name="te">
                                         <span class="json-property-name">te:</span>
-
+                                        
                                         <span class="json-property-type">string</span>    <span class="json-property-format">(date-time)</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                             <span class="json-property-pattern" title="String pattern">, must match <span class="json-schema--regex">[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?([+-][0-9]{2}:[0-9]{2})?</span></span>
                                     </dt>
                                     <dd>
                                         <p>The time the event ended.</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                         </div>
                                     </dd>
                                     <dt data-property-name="op">
                                         <span class="json-property-name">op:</span>
-
+                                        
                                         <span class="json-property-type">string</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                             <span class="json-property-range" title="String length limits">
                                                     (1 to 256 chars)
                                             </span>
                                     </dt>
                                     <dd>
                                         <p>The operators name or unique identifier</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                         </div>
                                     </dd>
                                     <dt data-property-name="s">
                                         <span class="json-property-name">s:</span>
-
+                                        
                                         <span class="json-property-type">object</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                     </dt>
                                     <dd>
                                         <p>Source object</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                                     <section class="json-schema-properties">
                                                         <dl>
                                                                 <dt data-property-name="h">
                                                                     <span class="json-property-name">h:</span>
-
+                                                                    
                                                                     <span class="json-property-type">string</span>
                                                                     <span class="json-property-range" title="Value limits"></span>
-
+                                                                    
                                                                         <span class="json-property-range" title="String length limits">
                                                                                 (1 to 100 chars)
                                                                         </span>
                                                                 </dt>
                                                                 <dd>
                                                                     <p>The host the event occurred from.</p>
-
+                                                    
                                                                     <div class="json-inner-schema">
-
+                                                                        
                                                                     </div>
                                                                 </dd>
                                                                 <dt data-property-name="u">
                                                                     <span class="json-property-name">u:</span>
-
+                                                                    
                                                                     <span class="json-property-type">string</span>
                                                                     <span class="json-property-range" title="Value limits"></span>
-
+                                                                    
                                                                         <span class="json-property-range" title="String length limits">
                                                                                 (1 to 100 chars)
                                                                         </span>
                                                                 </dt>
                                                                 <dd>
                                                                     <p>The user the event occurred from.</p>
-
+                                                    
                                                                     <div class="json-inner-schema">
-
+                                                                        
                                                                     </div>
                                                                 </dd>
                                                                 <dt data-property-name="p">
                                                                     <span class="json-property-name">p:</span>
-
+                                                                    
                                                                     <span class="json-property-type">string</span>
                                                                     <span class="json-property-range" title="Value limits"></span>
-
+                                                                    
                                                                         <span class="json-property-range" title="String length limits">
                                                                                 (1 to 100 chars)
                                                                         </span>
                                                                 </dt>
                                                                 <dd>
                                                                     <p>The process the event occurred from.</p>
-
+                                                    
                                                                     <div class="json-inner-schema">
-
+                                                                        
                                                                     </div>
                                                                 </dd>
                                                         </dl>
@@ -133,67 +133,67 @@
                                     </dd>
                                     <dt data-property-name="t">
                                         <span class="json-property-name">t:</span>
-
+                                        
                                         <span class="json-property-type">object</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                     </dt>
                                     <dd>
                                         <p>Target object</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                                     <section class="json-schema-properties">
                                                         <dl>
                                                                 <dt data-property-name="h">
                                                                     <span class="json-property-name">h:</span>
-
+                                                                    
                                                                     <span class="json-property-type">string</span>
                                                                     <span class="json-property-range" title="Value limits"></span>
-
+                                                                    
                                                                         <span class="json-property-range" title="String length limits">
                                                                                 (1 to 100 chars)
                                                                         </span>
                                                                 </dt>
                                                                 <dd>
                                                                     <p>The host the event occurred to.</p>
-
+                                                    
                                                                     <div class="json-inner-schema">
-
+                                                                        
                                                                     </div>
                                                                 </dd>
                                                                 <dt data-property-name="u">
                                                                     <span class="json-property-name">u:</span>
-
+                                                                    
                                                                     <span class="json-property-type">string</span>
                                                                     <span class="json-property-range" title="Value limits"></span>
-
+                                                                    
                                                                         <span class="json-property-range" title="String length limits">
                                                                                 (1 to 100 chars)
                                                                         </span>
                                                                 </dt>
                                                                 <dd>
                                                                     <p>The user the event occurred to.</p>
-
+                                                    
                                                                     <div class="json-inner-schema">
-
+                                                                        
                                                                     </div>
                                                                 </dd>
                                                                 <dt data-property-name="p">
                                                                     <span class="json-property-name">p:</span>
-
+                                                                    
                                                                     <span class="json-property-type">string</span>
                                                                     <span class="json-property-range" title="Value limits"></span>
-
+                                                                    
                                                                         <span class="json-property-range" title="String length limits">
                                                                                 (1 to 100 chars)
                                                                         </span>
                                                                 </dt>
                                                                 <dd>
                                                                     <p>The process the event occurred to.</p>
-
+                                                    
                                                                     <div class="json-inner-schema">
-
+                                                                        
                                                                     </div>
                                                                 </dd>
                                                         </dl>
@@ -202,98 +202,97 @@
                                     </dd>
                                     <dt data-property-name="d">
                                         <span class="json-property-name">d:</span>
-
+                                        
                                         <span class="json-property-type">string</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                             <span class="json-property-range" title="String length limits">
                                                     (1 to 1000 chars)
                                             </span>
-                                            <span class="json-property-required"></span>
                                     </dt>
                                     <dd>
                                         <p>Description of the event in human-readable terms.</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                         </div>
                                     </dd>
                                     <dt data-property-name="e">
                                         <span class="json-property-name">e:</span>
-
+                                        
                                         <span class="json-property-type">string</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                             <span class="json-property-range" title="String length limits">
                                                     (1 to 5000 chars)
                                             </span>
                                     </dt>
                                     <dd>
                                         <p>Evidence captured for the event in its rawest form, e.g. command I/O or HTTP request/response.</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                         </div>
                                     </dd>
                                     <dt data-property-name="o">
                                         <span class="json-property-name">o:</span>
-
+                                        
                                         <span class="json-property-type">string</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                             <span class="json-property-range" title="String length limits">
                                                     (1 to 1000 chars)
                                             </span>
                                     </dt>
                                     <dd>
                                         <p>Outcome of the event in human-readable terms.</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                         </div>
                                     </dd>
                                     <dt data-property-name="ma">
                                         <span class="json-property-name">ma:</span>
-
+                                        
                                         <span class="json-property-type">object</span>
                                         <span class="json-property-range" title="Value limits"></span>
-
+                                        
                                     </dt>
                                     <dd>
                                         <p>MITRE ATT&amp;CK Classification</p>
-
+                        
                                         <div class="json-inner-schema">
-
+                                            
                                                     <section class="json-schema-properties">
                                                         <dl>
                                                                 <dt data-property-name="ta">
                                                                     <span class="json-property-name">ta:</span>
-
+                                                                    
                                                                     <span class="json-property-type">string</span>
                                                                     <span class="json-property-range" title="Value limits"></span>
-
+                                                                    
                                                                         <span class="json-property-pattern" title="String pattern">, must match <span class="json-schema--regex">TA[0-9]{4}</span></span>
                                                                 </dt>
                                                                 <dd>
                                                                     <p>The MITRE ATT&amp;CK Tactic code</p>
-
+                                                    
                                                                     <div class="json-inner-schema">
-
+                                                                        
                                                                     </div>
                                                                 </dd>
                                                                 <dt data-property-name="t">
                                                                     <span class="json-property-name">t:</span>
-
+                                                                    
                                                                     <span class="json-property-type">string</span>
                                                                     <span class="json-property-range" title="Value limits"></span>
-
+                                                                    
                                                                         <span class="json-property-pattern" title="String pattern">, must match <span class="json-schema--regex">T[0-9]{4}(.[0-9]{3})?</span></span>
                                                                 </dt>
                                                                 <dd>
                                                                     <p>The MITRE ATT&amp;CK Technique or Sub-technique code</p>
-
+                                                    
                                                                     <div class="json-inner-schema">
-
+                                                                        
                                                                     </div>
                                                                 </dd>
                                                         </dl>
