@@ -243,7 +243,7 @@ def extract_creds(input_text: str, default_system: str):
         elif hash_str.startswith("$krb5tgs$17$"):
             hash_type = 19600
 
-        hashes_to_add_in_bulk.append(Credential(hash=hash_str, account=match.groupdict()["account"],
+        hashes_to_add_in_bulk.append(Credential(hash=hash_str.rstrip(), account=match.groupdict()["account"],
                                        hash_type=hash_type, system=match.groupdict()["system"] or default_system,
                                        purpose=f"Windows Login (used by SPN: {match.groupdict()['purpose']})",
                                        source="Kerberoasting"))
