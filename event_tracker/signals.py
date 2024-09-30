@@ -101,6 +101,7 @@ rubeus_kerberoast_regex = re.compile(r'\[\*] SamAccountName {9}: (?P<account>.+)
 plain_kerberoast_regex = re.compile(r"(?P<hash>\$krb5tgs\$\d\d\$\*?(?P<account>.+?)\$(?P<system>.+?)\$(?P<purpose>.+?)\*\$.{1000,})")
 
 rubeus_asrep_regex = re.compile(r'(?P<hash>\$krb5asrep\$(?P<account>.+?)@(?P<system>.+?):[A-F0-9$\s]{500,})')
+rubeus_u2u_ntlm_regex = re.compile(r'^  UserName                 :  (?P<account>\S+).*^  UserRealm                :  (?P<system>\S+).+\[*] Getting credentials using U2U.*NTLM              : (?P<hash>\S+)', flags=re.DOTALL + re.MULTILINE)
 
 valid_windows_domain = r'[^,~:!@#$%^&\')(}{_ ]{2,155}'
 valid_windows_username = r'[^"/\\[\]\:;|=,+*?<>]+'
@@ -173,6 +174,9 @@ def extract_creds(input_text: str, default_system: str):
     for match in credphisher_regex.finditer(input_text):
         credential, created = Credential.objects.get_or_create(**match.groupdict(),
                                                                purpose="Windows Login", source="CredPhisher")
+    for match in rubeus_u2u_ntlm_regex.finditer(input_text):
+        credential, created = Credential.objects.get_or_create(**match.groupdict(), hash_type=HashCatMode.NTLM,
+                                                               purpose="Windows Login", source="Rubeus U2U")
 
     for match in credenum_regex.finditer(input_text):
         # Teams stores creds hex encoded in the cred store, so decode
