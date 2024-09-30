@@ -11,14 +11,22 @@ from cobalt_strike_monitor.models import Beacon, TeamServer, Listener, Download,
 
 
 def get_pseudo_ctime(root, tarinfo):
-    if tarinfo.isfile():
-        buffer = root.extractfile(tarinfo)
-        first_line = buffer.readlines()[0].decode("utf-8")
-        if match := re.search(r"^(?P<date>\d{2}/\d{2}) (?P<time>.+? .+?)\s", first_line):
-            line_time_str = match["time"]
+    if tarinfo.isfile() and tarinfo.name.endswith('.log'):
+        if match := re.search(r"\d{6}", tarinfo.name):
+            file_date = datetime.strptime(match[0], "%y%m%d")
+        else:
+            file_date = None
 
-            line_time = dateparser.parse(line_time_str)
-            line_datetime = datetime.combine(datetime.fromtimestamp(tarinfo.mtime), line_time.timetz())
+        buffer = root.extractfile(tarinfo)
+        try:
+            lines = buffer.readlines()
+            first_line = lines[0].decode("utf-8")
+        except UnicodeError:
+            print(f"[E] Could not decode {lines[0]} in {tarinfo.name}")
+
+        if match := re.search(r"^(?P<date>\d{2}/\d{2}) (?P<time>.+? .+?)\s", first_line):
+            line_datetime = dateparser.parse(match[0])
+            line_datetime.replace(day=file_date.day, month=file_date.month, year=file_date.year)
 
             ctime = line_datetime.timestamp()
 
@@ -27,14 +35,17 @@ def get_pseudo_ctime(root, tarinfo):
             elif "[metadata]" not in first_line:
                 ctime += 1 # Add a second onto beacon logs that lack metadata to cover the case of 2 logs in the same instant, we want to process the metadata one first
 
+            print(f"Treating {tarinfo.name} as starting on {line_datetime}")
             return ctime
+        else:
+            print(f"Can't determine ctime for {tarinfo.name}")
 
     # default case:
     return 0
 
 
 class Command(BaseCommand):
-    help = 'Parse a tar file of CS logs'
+    help = 'Parse a tar file of CS logs, created with `tar cvf cslogs.tar /opt/cobaltstrike/logs`'
 
     def add_arguments(self, parser):
         parser.add_argument('tar_file', type=pathlib.Path)
@@ -67,7 +78,7 @@ class Command(BaseCommand):
         beacon = None
         logevent = None
 
-        for logevent in re.finditer(r"((?:^\d{2}/\d{2}).+?)(?=\n\d{2}/\d{2})", buffer_str, re.DOTALL):
+        for logevent in re.finditer(r"(^\d{2}/\d{2}.+?)(?=\n\d{2}/\d{2})", buffer_str, re.MULTILINE + re.DOTALL):
             beacon = self.parse_cslog_generic_event(logevent[0].strip(), file_date, filename_parts, beacon, listener, team_server)
 
         if logevent:
@@ -79,8 +90,13 @@ class Command(BaseCommand):
 
 
     def parse_cslog_generic_event(self, line, file_date, filename_parts, beacon, listener, team_server):
-        open_bracket = line.index("[")
-        close_bracket = line.index("]", open_bracket)
+        try:
+            open_bracket = line.index("[")
+            close_bracket = line.index("]", open_bracket)
+        except ValueError:
+            # We are trying to process a line which does not have a type defined, likely an overflow from an earlier log
+            # drop this line
+            return beacon
         line_type = line[open_bracket + 1:close_bracket]
 
         time = re.search(r"^\d{2}/\d{2} (?P<time>.+?) \[", line)["time"]
@@ -213,4 +229,3 @@ class Command(BaseCommand):
                     size=match["size"],
                     path=match["path"].strip(),
                     name=match["name"].strip())
-
