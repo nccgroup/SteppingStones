@@ -103,6 +103,10 @@ plain_kerberoast_regex = re.compile(r"(?P<hash>\$krb5tgs\$\d\d\$\*?(?P<account>.
 rubeus_asrep_regex = re.compile(r'(?P<hash>\$krb5asrep\$(?P<account>.+?)@(?P<system>.+?):[A-F0-9$\s]{500,})')
 rubeus_u2u_ntlm_regex = re.compile(r'^  UserName                 :  (?P<account>\S+).*^  UserRealm                :  (?P<system>\S+).+\[*] Getting credentials using U2U.*NTLM              : (?P<hash>\S+)', flags=re.DOTALL + re.MULTILINE)
 
+snaffler_finding = re.compile(r'\[.+] \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z \[(File|Share)\] \{(Red|Yellow|Green)\}<(?P<ainfo>.+?)>\((?P<binfo>.+?)\) (?P<cinfo>.*)')
+net_user_add_command = re.compile(r'net user /add (?P<account>\S+) (?P<secret>\S+)')
+net_use_command = re.compile(r'net use (?:\S+) (?P<purpose>\\\S+)(?=.*/user)(?: /user:(?P<account>\S+)| (?P<secret>[^/]\S+)| /\S+){2,}', re.IGNORECASE + re.MULTILINE)
+
 valid_windows_domain = r'[^,~:!@#$%^&\')(}{_ ]{2,155}'
 valid_windows_username = r'[^"/\\[\]\:;|=,+*?<>]+'
 secretsdump_dcsync_regex = re.compile(rf'^(?:(?P<system>{valid_windows_domain}?)\\)?(?P<account>{valid_windows_username}):\d+:(?P<lmhash>[a-f0-9]{{32}}):(?P<ntlmhash>[a-f0-9]{{32}}):::', flags=re.MULTILINE)
@@ -134,6 +138,14 @@ def cs_beaconlog_parser(sender, instance: BeaconLog, **kwargs):
 
 def convert_tgs_to_hashcat_format(hash):
     return re.sub(r"\$\*.*?\*\$", "$", hash)
+
+
+def remove_quotes(input_dict):
+    result = input_dict.copy()
+    for key, value in input_dict.items():
+        if (value.startswith('"') and value.endswith('"')) or value.startswith("'") and value.endswith("'"):
+            result[key] = value[1:-1]
+    return result
 
 
 @transaction.atomic
@@ -177,6 +189,24 @@ def extract_creds(input_text: str, default_system: str):
     for match in rubeus_u2u_ntlm_regex.finditer(input_text):
         credential, created = Credential.objects.get_or_create(**match.groupdict(), hash_type=HashCatMode.NTLM,
                                                                purpose="Windows Login", source="Rubeus U2U")
+
+    for match in snaffler_finding.finditer(input_text):
+        if match["ainfo"].startswith("KeepCmdCredentials|"):
+            content = (bytes(match["cinfo"], "utf-8")
+                       .replace(br'\\', br'\\\\')  # Fix snaffler not escaping the escape char
+                       .decode("unicode_escape"))
+            for innermatch in net_user_add_command.finditer(content):
+                credential, created = Credential.objects.get_or_create(**innermatch.groupdict(),
+                                                                       purpose="Automated user creation",
+                                                                       source=match['binfo'],
+                                                                       source_time=match['ainfo'].split('|')[-1])
+            for innermatch in net_use_command.finditer(content):
+                innermatch_dict = remove_quotes(innermatch.groupdict())
+                credential, created = Credential.objects.get_or_create(**innermatch_dict,
+                                                                       source=match['binfo'],
+                                                                       source_time=match['ainfo'].split('|')[-1])
+
+
 
     for match in credenum_regex.finditer(input_text):
         # Teams stores creds hex encoded in the cred store, so decode
