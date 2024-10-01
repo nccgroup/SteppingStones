@@ -45,7 +45,7 @@ def get_pseudo_ctime(root, tarinfo):
 
 
 class Command(BaseCommand):
-    help = 'Parse a tar file of CS logs, created with `tar cvf cslogs.tar /opt/cobaltstrike/logs`'
+    help = 'Parse a tar file of CS logs, created with `tar cvfz cslogs.tar.gz /opt/cobaltstrike/logs`'
 
     def add_arguments(self, parser):
         parser.add_argument('tar_file', type=pathlib.Path)
@@ -54,7 +54,7 @@ class Command(BaseCommand):
         filename = options["tar_file"]
 
         team_server, _ = TeamServer.objects.get_or_create(hostname="n/a", description=filename, active=False)
-        listener, _ = Listener.objects.get_or_create(team_server=team_server, name="Dummy Listener")
+        listener, _ = Listener.objects.get_or_create(team_server=team_server, name=f"Listener for {filename}", payload="Dummy")
 
         with tarfile.open(filename) as root:
             for file in sorted(root.getmembers(), key=partial(get_pseudo_ctime, root)):
