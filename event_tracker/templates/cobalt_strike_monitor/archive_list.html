@@ -12,6 +12,7 @@ CS Logs
 {% block head %}
     {% include "base/external-libs/jquery.html" %}
     {% include "base/external-libs/datatables-pdfexport.html" %}
+    <script src="https://cdn.jsdelivr.net/npm/jquery-expander@2.0.2/jquery.expander.min.js" integrity="sha256-BsvwB7vfZSW/iWEZ7qtnb6RRILiSZ5ij8X+XoxCsPXk=" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <style nonce="{{request.csp_nonce}}">
     .fa-ul {
@@ -40,6 +41,10 @@ CS Logs
     .description ~ pre {
         margin-top: 1rem;
         margin-bottom: 0;
+    }
+    
+    .output {
+        font-style: italic;
     }
     </style>
 {% endblock head %}
@@ -171,7 +176,8 @@ CS Logs
             null,
             null,
             { orderable: false },
-          ]
+          ],
+          drawCallback: function(settings) { $('.output').expander({slicePoint: 200}); }
       } )
     })
   </script>

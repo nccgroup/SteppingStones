@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
+from django.db.models import Q
 from django.utils.html import format_html, escape
 from django.utils.timezone import now
 
@@ -249,6 +250,20 @@ class Archive(models.Model):
     def associated_beaconlog_input(self):
         return BeaconLog.objects.filter(type="input", when__lte=self.when, beacon=self.beacon) \
             .order_by("-when").first()
+
+    @property
+    def associated_beaconlog_output(self):
+        next_output_generator = BeaconLog.objects.filter(Q(type="input") | Q(type="task")) \
+                                 .filter(when__gt=timedelta(seconds=1) + self.when, beacon=self.beacon) \
+                                 .order_by("when")
+
+        outputs_between = BeaconLog.objects.filter(Q(type="output") | Q(type="error")) \
+                .filter(id__gte=self.id, beacon=self.beacon)
+
+        if next_output_generator.exists():
+            outputs_between = outputs_between.filter(id__lt=next_output_generator.first().id)
+
+        return outputs_between
 
     @property
     def associated_archive_tasks(self):

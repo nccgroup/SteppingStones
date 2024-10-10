@@ -27,7 +27,7 @@ from django.forms import inlineformset_factory
 from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.defaultfilters import truncatechars_html
-from django.utils import timezone
+from django.utils import timezone, html
 from django.utils.dateparse import parse_datetime
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -945,12 +945,10 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
     filter_column_mapping = {'Timestamp': 'when'}
 
     def apply_row_filter(self, qs):
-        # Removed hidden beacons, prefetches beacon data, and dedupes data
-        return (qs.filter(beacon__in=Beacon.visible_beacons())  # Hide filtered beacons
-                .select_related("beacon").select_related("beacon__listener")  # Prefetch beacon data
-                .exclude(data="")  # Remove empty rows
-                .annotate(prev_data=Window(expression=Lag('data', default=Value('')), partition_by=F("beacon")),
-                    ).exclude(data=F("prev_data")))  # Deduplicate data
+        # Removed hidden beacons, prefetches beacon data, remove empty rows
+        return qs.filter(beacon__in=Beacon.visible_beacons()) \
+                .select_related("beacon").select_related("beacon__listener") \
+                .exclude(data="")
 
     def get_initial_queryset(self):
         # Rows with type task where there is no input at the same time nor 1 second earlier
@@ -1000,6 +998,8 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
 
             if row.type == "input":
                 result += f"<pre><code>{row.data}</code></pre>"
+
+            result += f"<pre class='output'><code>{html.escape("\n".join(row.associated_beaconlog_output.values_list('data', flat=True)))}</code><pre>"
 
             return result
         elif column == '':  # The column with button in
@@ -1395,6 +1395,9 @@ class CSLogToEventView(EventCreateView):
         else:
             operator = None
 
+        input_evidence = cs_archive.data
+        output_evidence = "\n".join(cs_archive.associated_beaconlog_output.values_list('data', flat=True))
+
         return {
             "task": task,
             "timestamp": timezone.localtime(cs_archive.when).strftime("%Y-%m-%dT%H:%M"),
@@ -1405,7 +1408,7 @@ class CSLogToEventView(EventCreateView):
             "mitre_attack_technique": technique,
             "mitre_attack_subtechnique": subtechnique,
             "description": cs_archive.associated_archive_tasks_description,
-            "raw_evidence": cs_archive.data if cs_archive.type == "input" else None
+            "raw_evidence": f"{input_evidence}{'\n\n' + output_evidence if output_evidence else ''}" if cs_archive.type == "input" else None
         }
 
     def get_context_data(self, **kwargs):
