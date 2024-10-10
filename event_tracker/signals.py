@@ -107,6 +107,8 @@ snaffler_finding = re.compile(r'\[.+] \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z \[(Fi
 net_user_add_command = re.compile(r'net user /add (?P<account>\S+) (?P<secret>\S+)')
 net_use_command = re.compile(r'net use (?:\S+) (?P<purpose>\\\S+)(?=.*/user)(?: /user:(?P<account>\S+)| (?P<secret>[^/]\S+)| /\S+){2,}', re.IGNORECASE + re.MULTILINE)
 
+sprayad = re.compile(r'\[\+] Password correct for useraccount\(s\):\n(?P<allaccounts>.*?)\n-{68}.*?Domain tested: (?P<system>\S+).*?Password tested: (?P<secret>\S+)', re.DOTALL)
+
 valid_windows_domain = r'[^,~:!@#$%^&\')(}{_ ]{2,155}'
 valid_windows_username = r'[^"/\\[\]\:;|=,+*?<>]+'
 secretsdump_dcsync_regex = re.compile(rf'^(?:(?P<system>{valid_windows_domain}?)\\)?(?P<account>{valid_windows_username}):\d+:(?P<lmhash>[a-f0-9]{{32}}):(?P<ntlmhash>[a-f0-9]{{32}}):::', flags=re.MULTILINE)
@@ -206,7 +208,13 @@ def extract_creds(input_text: str, default_system: str):
                                                                        source=match['binfo'],
                                                                        source_time=match['ainfo'].split('|')[-1])
 
-
+    for match in sprayad.finditer(input_text):
+        match_dict = match.groupdict()
+        for account in match_dict.pop("allaccounts").split('\n'):
+            credential, created = Credential.objects.get_or_create(**match_dict,
+                                                                   account=account.strip(),
+                                                                   purpose="Kerberos Login",
+                                                                   source="Outflank Spray-AD BOF")
 
     for match in credenum_regex.finditer(input_text):
         # Teams stores creds hex encoded in the cred store, so decode
