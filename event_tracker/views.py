@@ -21,7 +21,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin, PermissionRequiredMi
 from django.contrib.auth.models import User
 from django.contrib.staticfiles import finders
 from django.db import transaction, connection
-from django.db.models import Max, Window, F, Q, Value
+from django.db.models import Max, Window, F, Q, Value, DateTimeField
 from django.db.models.functions import Greatest, Coalesce, Lag
 from django.forms import inlineformset_factory
 from django.http import JsonResponse, HttpResponse, HttpRequest
@@ -50,7 +50,7 @@ from .models import Task, Event, AttackTactic, AttackTechnique, Context, AttackS
     ImportedEvent, HashCatMode
 from django.urls import reverse_lazy, reverse
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from dal import autocomplete
 
@@ -944,11 +944,26 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
     order_columns = ['when', '', '', 'data', 'tactic', '']
     filter_column_mapping = {'Timestamp': 'when'}
 
+    def apply_row_filter(self, qs):
+        # Removed hidden beacons, prefetches beacon data, and dedupes data
+        return (qs.filter(beacon__in=Beacon.visible_beacons())  # Hide filtered beacons
+                .select_related("beacon").select_related("beacon__listener")  # Prefetch beacon data
+                .exclude(data="")  # Remove empty rows
+                .annotate(prev_data=Window(expression=Lag('data', default=Value('')), partition_by=F("beacon")),
+                    ).exclude(data=F("prev_data")))  # Deduplicate data
+
     def get_initial_queryset(self):
-        return Archive.objects.filter(Q(type="input") | Q(type="task")).filter(beacon__in=Beacon.visible_beacons()).select_related(
-            "beacon").select_related("beacon__listener").exclude(data="").annotate(
-            prev_data=Window(expression=Lag('data', default=Value('')), partition_by=F("beacon")),
-        ).exclude(data=F("prev_data"))
+        # Rows with type task where there is no input at the same time nor 1 second earlier
+        task_rows_without_input = (Archive.objects.filter(type="task")
+            # Exclude task rows whose timestamp is the same as an existing input row
+            .exclude(when__in=Archive.objects.filter(type="input").values("when"))
+            # Exclude task rows whose timestamp is one second later than an existing input row
+            .exclude(when__in=Archive.objects.filter(type="input").annotate(
+                    one_sec_later=timedelta(seconds=1) + F("when")).values("one_sec_later")))
+
+        input_rows = Archive.objects.filter(type="input")
+
+        return self.apply_row_filter(input_rows | task_rows_without_input)
 
     def render_column(self, row, column):
         # We want to render some columns in a special way
@@ -977,6 +992,15 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
                 result += "-"
 
             result += '</ul>'
+            return result
+        elif column == 'data':
+            result = ""
+            if row.associated_archive_tasks_description:
+                result += f"<span class='description'>{row.associated_archive_tasks_description}</span>"
+
+            if row.type == "input":
+                result += f"<pre><code>{row.data}</code></pre>"
+
             return result
         elif column == '':  # The column with button in
             if row.event_mappings.exists() and self.request.user.has_perm('event_tracker.change_event'):
@@ -1327,19 +1351,22 @@ def previous_hop_to_context(beacon):
 class CSLogToEventView(EventCreateView):
     def get_initial(self):
         task = Task.objects.order_by("-id").first()
-        cslog = get_object_or_404(Archive, pk=self.kwargs.get('pk'))
+        cs_archive = get_object_or_404(Archive, pk=self.kwargs.get('pk'))
 
         tactic = None
         technique = None
         subtechnique = None
 
-        if cslog.data.startswith("file: "):
+        if cs_archive.data.startswith("file: "):
             description = "Uploaded file to target"
         else:
-            description = cslog.data
+            description = cs_archive.data
 
-        if cslog.tactic:
-            cs_mitre_refs = cslog.tactic.split(",")  # These are typically techniques, not tactics, but CS names them wrong
+        # Find associated MITRE tactic:
+        tactic_record = cs_archive.associated_archive_tasks.filter(tactic__isnull=False).exclude(tactic='').first()
+
+        if tactic_record:
+            cs_mitre_refs = tactic_record.tactic.split(",")  # These are typically techniques, not tactics, but CS names them wrong
             for cs_mitre_ref in cs_mitre_refs:
                 try:
                     if "." in cs_mitre_ref:
@@ -1358,8 +1385,7 @@ class CSLogToEventView(EventCreateView):
                     pass
 
         # Operator determined by the last user to provide input to that beacon
-        associated_input_command = BeaconLog.objects.filter(type="input", when__lte=cslog.when, beacon=cslog.beacon)\
-            .order_by("-when").first()
+        associated_input_command = cs_archive.associated_beaconlog_input
 
         if associated_input_command:
             # Do a "fuzzy" match to find a user with the same case insensitive username as the operator,
@@ -1371,15 +1397,15 @@ class CSLogToEventView(EventCreateView):
 
         return {
             "task": task,
-            "timestamp": timezone.localtime(cslog.when).strftime("%Y-%m-%dT%H:%M"),
-            "source": previous_hop_to_context(cslog.beacon),
-            "target": cs_beacon_to_context(None, cslog.beacon),
+            "timestamp": timezone.localtime(cs_archive.when).strftime("%Y-%m-%dT%H:%M"),
+            "source": previous_hop_to_context(cs_archive.beacon),
+            "target": cs_beacon_to_context(None, cs_archive.beacon),
             "operator": operator,
             "mitre_attack_tactic": tactic,
             "mitre_attack_technique": technique,
             "mitre_attack_subtechnique": subtechnique,
-
-            "raw_evidence": description,
+            "description": cs_archive.associated_archive_tasks_description,
+            "raw_evidence": cs_archive.data if cs_archive.type == "input" else None
         }
 
     def get_context_data(self, **kwargs):

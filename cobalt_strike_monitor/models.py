@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.utils.html import format_html, escape
@@ -243,6 +244,20 @@ class Archive(models.Model):
             return self.data.split(" ", 4)[4]
         else:
             return None
+
+    @property
+    def associated_beaconlog_input(self):
+        return BeaconLog.objects.filter(type="input", when__lte=self.when, beacon=self.beacon) \
+            .order_by("-when").first()
+
+    @property
+    def associated_archive_tasks(self):
+        return Archive.objects.filter(type="task", when__gte=self.when, when__lt=self.when + timedelta(seconds=2), beacon=self.beacon) \
+            .order_by("-when")
+
+    @property
+    def associated_archive_tasks_description(self):
+        return " ".join(self.associated_archive_tasks.values_list('data', flat=True))
 
 class BeaconLog(models.Model):
     team_server = models.ForeignKey(TeamServer, on_delete=models.CASCADE)
