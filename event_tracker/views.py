@@ -999,7 +999,7 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
             if row.type == "input":
                 result += f"<pre><code>{row.data}</code></pre>"
 
-            result += f"<pre class='output'><code>{html.escape("\n".join(row.associated_beaconlog_output.values_list('data', flat=True)))}</code><pre>"
+            result += f"<pre class='output'><code>{html.escape(chr(13).join(row.associated_beaconlog_output.values_list('data', flat=True)))}</code><pre>"
 
             return result
         elif column == '':  # The column with button in
@@ -1408,7 +1408,7 @@ class CSLogToEventView(EventCreateView):
             "mitre_attack_technique": technique,
             "mitre_attack_subtechnique": subtechnique,
             "description": cs_archive.associated_archive_tasks_description,
-            "raw_evidence": f"{input_evidence}{'\n\n' + output_evidence if output_evidence else ''}" if cs_archive.type == "input" else None
+            "raw_evidence": f"{input_evidence}{chr(13)+chr(13) + output_evidence if output_evidence else ''}" if cs_archive.type == "input" else None
         }
 
     def get_context_data(self, **kwargs):
