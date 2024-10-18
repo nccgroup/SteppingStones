@@ -98,7 +98,7 @@ credenum_regex = re.compile(r"  Target {14}: (?P<system>.+)\n  UserName {12}: (?
 
 outflank_kerberoast_regex = re.compile(r'<TICKET>\s+(?P<ticket>sAMAccountName = (?P<account>\S+\n)[^<]*)</TICKET>')
 rubeus_kerberoast_regex = re.compile(r'\[\*] SamAccountName {9}: (?P<account>.+)\r?\n.*\n\[\*] ServicePrincipalName   : (?P<purpose>.+)\r?\n(?:\[\*].*\n)*?\[\*] Hash {19}: (?P<hash>\$krb5tgs\$.+\$(?P<system>.*?)(?<!\*)\$[^$]+\$.+\n(?:.{29}.+\n)+)')
-plain_kerberoast_regex = re.compile(r"(?P<hash>\$krb5tgs\$\d\d\$\*?(?P<account>.+?)\$(?P<system>.+?)\$(?P<purpose>.+?)\*\$.{1000,})")
+plain_kerberoast_regex = re.compile(r"(?P<hash>\$krb5tgs\$\d\d?\$\*?(?P<account>.+?)\$(?P<system>.+?)\$(?P<purpose>.+?)\*\$.{1000,})")
 
 rubeus_asrep_regex = re.compile(r'(?P<hash>\$krb5asrep\$(?!\d\d?\$)(?P<account>.+?)@(?P<system>.+?):[A-F0-9$\s]{400,})')
 rubeus_u2u_ntlm_regex = re.compile(r'^  UserName                 :  (?P<account>\S+).*^  UserRealm                :  (?P<system>\S+).+\[*] Getting credentials using U2U.*NTLM              : (?P<hash>\S+)', flags=re.DOTALL + re.MULTILINE)
@@ -287,6 +287,9 @@ def extract_creds(input_text: str, default_system: str):
             hash_str = convert_tgs_to_hashcat_format(hash_str)
         elif hash_str.startswith("$krb5tgs$17$"):
             hash_type = 19600
+        elif hash_str.startswith("$krb5tgs$3$"):
+            print("Encountered a DES TGS(!) skipping because hashcat doesn't support")
+            continue
 
         hashes_to_add_in_bulk.append(Credential(hash=hash_str.rstrip(), account=match.groupdict()["account"],
                                        hash_type=hash_type, system=match.groupdict()["system"] or default_system,
