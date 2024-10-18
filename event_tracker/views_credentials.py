@@ -975,7 +975,7 @@ class UploadHashes(PermissionRequiredMixin, TemplateView):
             previous_chunk = ""
 
             for chunk in request.FILES['file'].chunks():
-                chunk_txt = chunk.decode("UTF-8")
+                chunk_txt = chunk.decode("UTF-8", errors="ignore")
                 last_newline = chunk_txt.rfind("\n")
 
                 chunk_main = previous_chunk + chunk_txt[:last_newline]

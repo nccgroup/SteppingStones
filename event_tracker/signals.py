@@ -146,7 +146,7 @@ def convert_tgs_to_hashcat_format(hash):
 def remove_quotes(input_dict):
     result = input_dict.copy()
     for key, value in input_dict.items():
-        if (value.startswith('"') and value.endswith('"')) or value.startswith("'") and value.endswith("'"):
+        if value and ((value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'"))):
             result[key] = value[1:-1]
     return result
 
