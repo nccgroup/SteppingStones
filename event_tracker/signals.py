@@ -100,8 +100,9 @@ outflank_kerberoast_regex = re.compile(r'<TICKET>\s+(?P<ticket>sAMAccountName = 
 rubeus_kerberoast_regex = re.compile(r'\[\*] SamAccountName {9}: (?P<account>.+)\r?\n.*\n\[\*] ServicePrincipalName   : (?P<purpose>.+)\r?\n(?:\[\*].*\n)*?\[\*] Hash {19}: (?P<hash>\$krb5tgs\$.+\$(?P<system>.*?)(?<!\*)\$[^$]+\$.+\n(?:.{29}.+\n)+)')
 plain_kerberoast_regex = re.compile(r"(?P<hash>\$krb5tgs\$\d\d\$\*?(?P<account>.+?)\$(?P<system>.+?)\$(?P<purpose>.+?)\*\$.{1000,})")
 
-rubeus_asrep_regex = re.compile(r'(?P<hash>\$krb5asrep\$(?P<account>.+?)@(?P<system>.+?):[A-F0-9$\s]{500,})')
+rubeus_asrep_regex = re.compile(r'(?P<hash>\$krb5asrep\$(?!\d\d?\$)(?P<account>.+?)@(?P<system>.+?):[A-F0-9$\s]{400,})')
 rubeus_u2u_ntlm_regex = re.compile(r'^  UserName                 :  (?P<account>\S+).*^  UserRealm                :  (?P<system>\S+).+\[*] Getting credentials using U2U.*NTLM              : (?P<hash>\S+)', flags=re.DOTALL + re.MULTILINE)
+plain_asrep_regex = re.compile(r'(?P<hash>\$krb5asrep\$\d\d?\$(?P<account>.+?)@(?P<system>.+?):.{400,})')
 
 snaffler_finding = re.compile(r'\[.+] \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z \[(File|Share)\] \{(Red|Yellow|Green)\}<(?P<ainfo>.+?)>\((?P<binfo>.+?)\) (?P<cinfo>.*)')
 net_user_add_command = re.compile(r'net user /add (?P<account>\S+) (?P<secret>\S+)')
@@ -268,6 +269,12 @@ def extract_creds(input_text: str, default_system: str):
                                        hash_type=18200, system=match.groupdict()["system"] or default_system,
                                        purpose="Windows Login",
                                        source="Rubeus ASREPRoasting"))
+
+    for match in plain_asrep_regex.finditer(input_text):
+        hashes_to_add_in_bulk.append(Credential(**match.groupdict(),
+                                       hash_type=18200,
+                                       purpose="Windows Login",
+                                       source="ASREPRoasting"))
 
     for match in plain_kerberoast_regex.finditer(input_text):
         hash_str = match.groupdict()["hash"]

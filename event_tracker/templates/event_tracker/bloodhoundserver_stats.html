@@ -95,6 +95,44 @@ BloodHound Servers
                             </div>
                         </div>
                     </div>
+                    <div class="col-6">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    ASREProastable Users
+                                    <button class="markdown-table-copy btn btn-sm btn-light float-sm-end" title="Copy table as markdown"><i class="fa-solid fa-code"></i></button>
+                                </h5>
+                                <div class="card-text>">
+                                    <p>
+                                        {% if asreproastable_users %}
+                                            <table class="table table-sm table-striped">
+                                              <thead>
+                                                <tr>
+                                                  <th scope="col">Username</th>
+                                                  <th scope="col">Ticket Type</th>
+                                                  <th scope="col">Cracked?</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                 {% for name, value in asreproastable_users.items %}
+                                                    <tr>
+                                                        <td>{{ name }}</td>
+                                                        <td>{{ value.hash_type_obj.name|cut:"Kerberos_5_ASREP_"|default:"No Ticket Obtained" }}</td>
+                                                        <td>{% if value.secret %}Yes{% elif not value %}N/A{% else %}No{% endif %}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                              </tbody>
+                                            </table>
+                                        {% else %}
+                                            <div class="alert alert-secondary mt-3" role="alert">
+                                              <i class="fa-solid fa-circle-info" aria-hidden="true"></i> No ASREProastable users found
+                                            </div>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
       </div>
     </div>

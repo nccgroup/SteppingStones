@@ -1652,6 +1652,28 @@ def _get_kerberoastables(tx, system: Optional[str]):
             return 
                 toLower(n.name) 
             order by n.name""").values()
+
+
+def _get_asreproastables(tx, system: Optional[str]):
+    if system:
+        return tx.run("""
+            match (n:User) where 
+                n.domain = $system and 
+                n.dontreqpreauth=true and
+                n.enabled=true
+            return 
+                toLower(n.name) 
+            order by n.name""", system=system.upper()).values()
+    else:
+        return tx.run("""
+           match (n:User) where 
+                n.dontreqpreauth=true and
+                n.enabled=true
+            return 
+                toLower(n.name) 
+            order by n.name""").values()
+
+
 def _get_recent_os_distribution(tx, system: Optional[str], most_recent_machine_login):
     if system:
         return tx.run("match (n:Computer) where n.domain = $system and n.lastlogontimestamp > $most_recent_machine_login - 2628000 return n.operatingsystem as os, count(n.operatingsystem) as freq order by os",
@@ -1787,8 +1809,11 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                                      HashCatMode.Kerberos_5_TGSREP_AES128,
                                      HashCatMode.Kerberos_5_TGSREP_AES256]
 
+        asreproastable_hashtypes = [HashCatMode.Kerberos_5_ASREP_RC4]
+
         os_distribution = {}
         kerberoastable_users = {}
+        asreproastable_users = {}
         for server in BloodhoundServer.objects.filter(active=True).all():
             if driver := get_driver_for(server):
                 with driver.session() as session:
@@ -1815,11 +1840,24 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
                             kerberoastable_users[username] = credential_obj
+                        # ASREP roastable users
+                        results = session.execute_read(_get_asreproastables, system)
+                        for result in results:
+                            username = result[0].split('@')[0].lower()
+
+                            credential_obj_query = Credential.objects.filter(account=username,
+                                                                             hash_type__in=asreproastable_hashtypes)
+                            if system:
+                                credential_obj_query = credential_obj_query.filter(system=system)
+
+                            credential_obj = credential_obj_query.order_by("hash_type").first()
+                            asreproastable_users[username] = credential_obj
                     except Exception as e:
                         print(f"Skipping {server} due to {e}")
 
         context["os_distribution"] = os_distribution
         context["kerberoastable_users"] = kerberoastable_users
+        context["asreproastable_users"] = asreproastable_users
         return context
 
 
