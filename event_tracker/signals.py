@@ -195,9 +195,10 @@ def extract_creds(input_text: str, default_system: str):
 
     for match in snaffler_finding.finditer(input_text):
         if match["ainfo"].startswith("KeepCmdCredentials|"):
-            content = (bytes(match["cinfo"], "utf-8")
-                       .replace(br'\\', br'\\\\')  # Fix snaffler not escaping the escape char
-                       .decode("unicode_escape"))
+            content = re.sub(r'\\r', r'\r', match["cinfo"])
+            content = re.sub(r'\\n', r'\n', content)
+            content = re.sub(r'\\([*+?|{\[()^$.# \t])', r'\1', content)
+
             for innermatch in net_user_add_command.finditer(content):
                 credential, created = Credential.objects.get_or_create(**innermatch.groupdict(),
                                                                        purpose="Automated user creation",
