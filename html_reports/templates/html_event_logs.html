@@ -97,7 +97,7 @@ prevention and detection mechanisms in place to defend against similar actions i
         {% elif event.mitre_attack_tactic %}<b>{{ event.mitre_attack_tactic.mitre_id }}</b>
 {{ event.mitre_attack_tactic.name }}
 {% else %}-{% endif %}</td>
-      <td>{% for tag in event.tags.names|exclude:eventfilter.get_tag_string %}{% if forloop.first %}<span style='color:#4472C4'>{% else %} {% endif %}[{{ tag|title }}]{% if forloop.last %}</span><br/>{% endif %}{% endfor %}
+      <td>{% for tag in event.tags.names|exclude:eventfilter.get_tag_string %}{% if forloop.first %}<span>{% else %} {% endif %}[{{ tag|title }}]{% if forloop.last %}</span><br/>{% endif %}{% endfor %}
 <b>{{ event.description|firstsentence }}</b>
 
 {{ event.description|afterfirstsentence|linebreaksword }}
