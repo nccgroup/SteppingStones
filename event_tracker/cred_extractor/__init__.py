@@ -34,3 +34,7 @@ class CredentialExtractorGenerator(CredentialExtractor, ABC):
         Generator method that yields Credential objects from the input_text
         """
         pass
+
+
+valid_windows_domain = r'[^,~:!@#$%^&\')(}{_ \n]{2,155}'
+valid_windows_username = r'[^"/\\[\]\:;|=,+*?<>\n]{1,64}'
