@@ -36,7 +36,6 @@ def extract_and_save(input_text: str, default_system: str):
 
     creds_to_add_in_bulk = []
     for cred in credentials:
-        print(f"{cred.account}@{cred.system} : {cred.secret} from {cred.source}")
         if cred.secret:
             # post-save action should be called, as we have a secret
             Credential.objects.get_or_create(**model_to_dict(cred))
