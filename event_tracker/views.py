@@ -1831,6 +1831,8 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                                 os_distribution[result[0]] += result[1]
                         # Kerberoastables
                         results = session.execute_read(_get_kerberoastables, system)
+                        kerberoastable_ticket_count = 0
+                        kerberoastable_cracked_count = 0
                         for result in results:
                             username = result[0].split('@')[0].lower()
 
@@ -1840,8 +1842,16 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
                             kerberoastable_users[username] = credential_obj
+
+                            if credential_obj:
+                                kerberoastable_ticket_count += 1
+                                if credential_obj.secret:
+                                    kerberoastable_cracked_count += 1
+
                         # ASREP roastable users
                         results = session.execute_read(_get_asreproastables, system)
+                        asreproastable_ticket_count = 0
+                        asreproastable_cracked_count = 0
                         for result in results:
                             username = result[0].split('@')[0].lower()
 
@@ -1852,12 +1862,20 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
                             asreproastable_users[username] = credential_obj
+                            if credential_obj:
+                                asreproastable_ticket_count += 1
+                                if credential_obj.secret:
+                                    asreproastable_cracked_count += 1
                     except Exception as e:
                         print(f"Skipping {server} due to {e}")
 
         context["os_distribution"] = os_distribution
         context["kerberoastable_users"] = kerberoastable_users
+        context["kerberoastable_ticket_count"] = kerberoastable_ticket_count
+        context["kerberoastable_cracked_count"] = kerberoastable_cracked_count
         context["asreproastable_users"] = asreproastable_users
+        context["asreproastable_ticket_count"] = asreproastable_ticket_count
+        context["asreproastable_cracked_count"] = asreproastable_cracked_count
         return context
 
 

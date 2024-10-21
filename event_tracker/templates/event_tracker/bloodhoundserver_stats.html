@@ -76,6 +76,9 @@ BloodHound Servers
                                                 </tr>
                                               </thead>
                                               <tbody>
+                                                 {% if kerberoastable_ticket_count %}
+                                                    <p>Obtained {{ kerberoastable_ticket_count }} tickets from {{ kerberoastable_users|length }} affected accounts, with {{ kerberoastable_cracked_count }} cracked.</p>
+                                                 {% endif %}
                                                  {% for name, value in kerberoastable_users.items %}
                                                     <tr>
                                                         <td>{{ name }}</td>
@@ -105,6 +108,9 @@ BloodHound Servers
                                 <div class="card-text>">
                                     <p>
                                         {% if asreproastable_users %}
+                                            {%  if asreproastable_ticket_count %}
+                                                <p>Obtained {{ asreproastable_ticket_count }} tickets from {{ asreproastable_users|length }} affected accounts, with {{ asreproastable_cracked_count }} cracked.</p>
+                                            {% endif %}
                                             <table class="table table-sm table-striped">
                                               <thead>
                                                 <tr>
