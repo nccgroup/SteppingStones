@@ -894,8 +894,12 @@ class FilterableDatatableView(ABC, BaseDatatableView):
             elif condition == ">":
                 query_condition = "gte"
             elif condition == "between":
-                query_condition = "range"
-                multivalue = True
+                if value1 and value2:
+                    query_condition = "range"
+                    multivalue = True
+                elif not value2:
+                    # Handle the case that user has only partially completed the between form
+                    query_condition = "gte"
             else:
                 query_condition = "unknown_condition"
 
