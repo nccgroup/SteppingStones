@@ -105,7 +105,7 @@ class Command(BaseCommand):
 
         if line_type == "metadata":
             beacon = self.parse_cslog_metadata_event(line[close_bracket + 2:], line_datetime, filename_parts, listener, team_server)
-        elif line_type in ["input", "output", "task", "error"]:
+        elif line_type in ["input", "output", "task", "error", "indicator"]:
             if not beacon:
                 try:
                     beacon = Beacon.objects.get(id=filename_parts["id"], team_server=team_server)
