@@ -2,9 +2,8 @@
 
 from django.db import migrations
 
+from event_tracker.cred_extractor.kerberoast_extractor import convert_tgs_to_hashcat_format
 from event_tracker.models import HashCatMode
-from event_tracker.signals import convert_tgs_to_hashcat_format
-
 
 def convert_AES256_TGS_to_hashcat(apps, schema_editor):
     Credential = apps.get_model("event_tracker", "Credential")
