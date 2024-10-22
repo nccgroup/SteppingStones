@@ -4,7 +4,7 @@ from event_tracker.cred_extractor.extractor import extract
 from event_tracker.models import HashCatMode
 
 
-class MyTestCase(django.test.TestCase):
+class ExtractorTestCase(django.test.SimpleTestCase):
     def test_netntlmv1(self):
         # Hash from hashcat sample hashes
         result = extract(
@@ -41,4 +41,33 @@ DOMAIN.COMPANY.COM/tom:$DCC2$10240#tom#e4e938d12fe5974dc42a90120bd9c90f: (2024-1
         self.assertEqual("DOMAIN.COMPANY.COM", result[0].system)
         self.assertEqual("tom", result[0].account)
         self.assertEqual(result[0].hash_type, HashCatMode.Domain_Cached_Credentials_2)
+
+    def test_secretsdump_local_users_datestamped(self):
+        # Hash from hashcat sample hashes, embedded in secrets dump output
+        result = extract(
+            """
+[2024-10-16 16:12:05] [*] Administrator:500:aad3b435b51404eeaad3b435b51404ee:0123456789abcdef0123456789abcdef:::
+[2024-10-16 16:12:07] [*] Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+[2024-10-16 16:12:09] [*] DefaultAccount:503:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+[2024-10-16 16:12:12] [*] WDAGUtilityAccount:504:aad3b435b51404eeaad3b435b51404ee:0123456789abcdef0123456789abcdef:::
+""",
+            "DUMMY")
+
+        self.assertEqual(2, len(result))
+        self.assertEqual("DUMMY", result[0].system)
+        self.assertEqual("Administrator", result[0].account)
+        self.assertEqual("WDAGUtilityAccount", result[1].account)
+        self.assertEqual(result[0].hash_type, HashCatMode.NTLM)
+        self.assertEqual(result[1].hash_type, HashCatMode.NTLM)
+
+    def test_secretsdump_machine_account(self):
+        # Hash from hashcat sample hashes, embedded in secrets dump output
+        result = extract("""
+[2024-10-16 16:12:23] [*] DOMAIN\HOST$:aad3b435b51404eeaad3b435b51404ee:0123456789abcdef0123456789abcdef:::
+""", "DUMMY")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("DOMAIN", result[0].system)
+        self.assertEqual("HOST$", result[0].account)
+        self.assertEqual(result[0].hash_type, HashCatMode.NTLM)
 
