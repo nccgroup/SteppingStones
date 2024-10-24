@@ -946,6 +946,11 @@ class UploadCrackedHashesDone(PermissionRequiredMixin, TemplateView):
     template_name = "event_tracker/credential_cracked_upload_done.html"
 
 
+class UploadDumpDone(PermissionRequiredMixin, TemplateView):
+    permission_required = 'event_tracker.change_credential'
+    template_name = "event_tracker/credential_dump_upload_done.html"
+
+
 class HashesForm(forms.Form):
     TYPE_CHOICES = [('grep', 'Text file, e.g. tool output (Hashes extracted via regex)'),
                     ('keepass', 'Keepass v1 .csv export'),
@@ -973,6 +978,8 @@ class UploadHashes(PermissionRequiredMixin, TemplateView):
             # There's a risk that a hash spans two chunks and therefore won't get captured by regex, so split on
             # newlines
             previous_chunk = ""
+            total_saved_hashes = 0
+            total_saved_secrets = 0
 
             for chunk in request.FILES['file'].chunks():
                 chunk_txt = chunk.decode("UTF-8", errors="ignore")
@@ -980,31 +987,45 @@ class UploadHashes(PermissionRequiredMixin, TemplateView):
 
                 chunk_main = previous_chunk + chunk_txt[:last_newline]
                 if form.cleaned_data['type'] == 'grep':
-                    extract_creds(chunk_main, default_system=form.cleaned_data['system'])
+                    saved_hashes, saved_secrets = extract_creds(chunk_main, default_system=form.cleaned_data['system'])
                 elif form.cleaned_data['type'] == 'keepass':
-                    self.parse_keepass_csv(chunk_main, form.cleaned_data['file'].name)
+                    saved_hashes, saved_secrets = self.parse_keepass_csv(chunk_main, form.cleaned_data['file'].name)
                 elif form.cleaned_data['type'] == 'user:hash':
-                    self.parse_user_hash(chunk_main, form.cleaned_data['system'], form.cleaned_data['hash_type'])
+                    saved_hashes, saved_secrets = self.parse_user_hash(chunk_main, form.cleaned_data['system'], form.cleaned_data['hash_type'])
                 elif form.cleaned_data['type'] == 'pwdump':
-                    self.parse_pwdump(chunk_main, form.cleaned_data['system'])
+                    saved_hashes, saved_secrets = self.parse_pwdump(chunk_main, form.cleaned_data['system'])
+                else:
+                    raise forms.ValidationError("Invalid upload type")
+
                 previous_chunk = chunk_txt[last_newline:]
+                total_saved_hashes += saved_hashes
+                total_saved_secrets += saved_secrets
 
             # Handle final part of upload between last newline and EOF
             if previous_chunk:
                 if form.cleaned_data['type'] == 'grep':
-                    extract_creds(previous_chunk, default_system=form.cleaned_data['system'])
+                    saved_hashes, saved_secrets = extract_creds(previous_chunk, default_system=form.cleaned_data['system'])
                 elif form.cleaned_data['type'] == 'keepass':
-                    self.parse_keepass_csv(previous_chunk, form.cleaned_data['file'].name)
+                    saved_hashes, saved_secrets = self.parse_keepass_csv(previous_chunk, form.cleaned_data['file'].name)
                 elif form.cleaned_data['type'] == 'user:hash':
-                    self.parse_user_hash(previous_chunk, form.cleaned_data['system'], form.cleaned_data['hash_type'])
+                    saved_hashes, saved_secrets = self.parse_user_hash(previous_chunk, form.cleaned_data['system'], form.cleaned_data['hash_type'])
                 elif form.cleaned_data['type'] == 'pwdump':
-                    self.parse_pwdump(previous_chunk, form.cleaned_data['system'])
+                    saved_hashes, saved_secrets = self.parse_pwdump(previous_chunk, form.cleaned_data['system'])
+                else:
+                    raise forms.ValidationError("Invalid upload type")
 
-            return redirect(reverse_lazy('event_tracker:credential-list',  kwargs={'task_id': kwargs['task_id']}))
+            total_saved_hashes += saved_hashes
+            total_saved_secrets += saved_secrets
 
-    def parse_keepass_csv(self, chunk_main, filename):
+            return redirect(reverse_lazy('event_tracker:credential-dump-upload-done',
+                                         kwargs={'task_id': kwargs['task_id'],
+                                                 'saved_hashes': total_saved_hashes,
+                                                 'saved_secrets': total_saved_secrets}))
+
+    def parse_keepass_csv(self, chunk_main, filename) -> tuple[int, int]:
         buffer = io.StringIO(chunk_main.encode('latin-1', 'backslashreplace').decode('unicode-escape'))
         reader = csv.DictReader(buffer, ['Account', 'Login Name', 'Password', 'Web Site', 'Comments'])
+        saved_secrets = 0
 
         for row in reader:
             if row['Login Name'] == 'Login Name':
@@ -1024,11 +1045,15 @@ class UploadHashes(PermissionRequiredMixin, TemplateView):
                     system = None
                     account = parts[0]
 
-                Credential.objects.get_or_create(source=f"KeePass import ({filename})",
+                saved_cred, created = Credential.objects.get_or_create(source=f"KeePass import ({filename})",
                                                  system=system, account=account, secret=row["Password"],
                                                  purpose=f"{row['Account']}{' : ' if row['Comments'] else ''}{row['Comments']}{' : ' if row['Web Site'] else ''}{row['Web Site']}")
+                if created:
+                    saved_secrets += 1
 
-    def parse_user_hash(self, chunk, system, hash_type):
+            return 0, saved_secrets
+
+    def parse_user_hash(self, chunk, system, hash_type) -> tuple[int, int]:
         creds_to_add = []
 
         for line in chunk.split("\n"):
@@ -1043,9 +1068,13 @@ class UploadHashes(PermissionRequiredMixin, TemplateView):
                 if line:
                     print(f"Skipping: {line}")
 
+        # A before and after count may be incorrect if other users are concurrently modifying the table,
+        # but it's the best we have given the bulk operations don't return meaningful objects.
+        pre_insert_count = Credential.objects.count()
         Credential.objects.bulk_create(creds_to_add, ignore_conflicts=True)
+        return Credential.objects.count() - pre_insert_count, 0
 
-    def parse_pwdump(self, chunk, default_system):
+    def parse_pwdump(self, chunk, default_system) -> tuple[int, int]:
         creds_to_add = []
 
         for line in chunk.split("\n"):
@@ -1069,4 +1098,8 @@ class UploadHashes(PermissionRequiredMixin, TemplateView):
                 if line:
                     print(f"Skipping: {line}")
 
+        # A before and after count may be incorrect if other users are concurrently modifying the table,
+        # but it's the best we have given the bulk operations don't return meaningful objects.
+        pre_insert_count = Credential.objects.count()
         Credential.objects.bulk_create(creds_to_add, ignore_conflicts=True)
+        return Credential.objects.count() - pre_insert_count, 0

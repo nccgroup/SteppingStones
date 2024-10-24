@@ -110,7 +110,7 @@ def extract_creds(input_text: str, default_system: str):
     # Remove inline execute assembly output noise
     input_text = re.sub(r'received output:\r?\n', '', input_text)
 
-    extract_and_save(input_text, default_system)
+    return extract_and_save(input_text, default_system)
 
 
 @receiver(post_save, sender=Beacon)

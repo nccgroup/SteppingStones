@@ -31,8 +31,9 @@ extractor_classes = [SnafflerExtractor, BrowserExtractor, NetNTLMv1Extractor, Ne
 
 
 @transaction.atomic
-def extract_and_save(input_text: str, default_system: str):
+def extract_and_save(input_text: str, default_system: str) -> tuple[int, int]:
     credentials = extract(input_text, default_system)
+    saved_secrets = 0
 
     creds_to_add_in_bulk = []
     for cred in credentials:
@@ -40,12 +41,19 @@ def extract_and_save(input_text: str, default_system: str):
             # post-save action should be called, as we have a secret
             # use keys_to_save as a pseudo-uniqueness constraint for this write operation
             keys_to_save = ['source', 'source_time', 'system', 'account', 'secret', 'hash', 'hash_type', 'purpose', 'enabled']
-            Credential.objects.get_or_create(**{key: model_to_dict(cred)[key] for key in keys_to_save})
+            saved_credential, created = Credential.objects.get_or_create(**{key: model_to_dict(cred)[key] for key in keys_to_save})
+            if created:
+                saved_secrets += 1
         else:
             creds_to_add_in_bulk.append(cred)
 
+    # A before and after count may be incorrect if other users are concurrently modifying the table,
+    # but it's the best we have given the bulk operations don't return meaningful objects.
+    pre_insert_count = Credential.objects.count()
     Credential.objects.bulk_create(creds_to_add_in_bulk, ignore_conflicts=True,
                                    unique_fields=["hash", "hash_type", "account", "system"])
+
+    return Credential.objects.count() - pre_insert_count, saved_secrets
 
 
 def extract(input_text: str, default_system: str) -> [Credential]:

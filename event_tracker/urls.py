@@ -49,6 +49,7 @@ urlpatterns = [
     path('<int:task_id>/creds/hashes/cracked', event_tracker.views_credentials.UploadCrackedHashes.as_view(), name='credential-cracked-hashes-upload'),
     path('<int:task_id>/creds/hashes/cracked-done/<int:cracked_hashes>/<int:cracked_accounts>/', event_tracker.views_credentials.UploadCrackedHashesDone.as_view(), name='credential-cracked-hashes-upload-done'),
     path('<int:task_id>/creds/hashes', event_tracker.views_credentials.UploadHashes.as_view(), name='credential-hashes-upload'),
+    path('<int:task_id>/creds/hashes/dump-done/<int:saved_hashes>/<int:saved_secrets>/', event_tracker.views_credentials.UploadDumpDone.as_view(), name='credential-dump-upload-done'),
     path('<int:task_id>/creds/stats', event_tracker.views_credentials.CredentialStatsView.as_view(), name='credential-stats'),
     path('<int:task_id>/creds/stats/password-complexity-piechart.png', event_tracker.views_credentials.password_complexity_piechart, name='password-complexity-piechart'),
     path('<int:task_id>/creds/stats/password-structure-piechart.png', event_tracker.views_credentials.password_structure_piechart, name='password-structure-piechart'),
