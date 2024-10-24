@@ -38,7 +38,9 @@ def extract_and_save(input_text: str, default_system: str):
     for cred in credentials:
         if cred.secret:
             # post-save action should be called, as we have a secret
-            Credential.objects.get_or_create(**model_to_dict(cred))
+            # use keys_to_save as a pseudo-uniqueness constraint for this write operation
+            keys_to_save = ['source', 'source_time', 'system', 'account', 'secret', 'hash', 'hash_type', 'purpose', 'enabled']
+            Credential.objects.get_or_create(**{key: model_to_dict(cred)[key] for key in keys_to_save})
         else:
             creds_to_add_in_bulk.append(cred)
 
