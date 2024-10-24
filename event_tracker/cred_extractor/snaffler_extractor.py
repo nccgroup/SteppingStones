@@ -26,6 +26,10 @@ class SnafflerExtractor(CredentialExtractor):
                 for innermatch in net_use_command.finditer(content):
                     if innermatch.group("secret"):
                         innermatch_dict = remove_quotes(innermatch.groupdict())
+                        if 'purpose' in innermatch_dict:
+                            innermatch_dict['purpose'] = f"SMB login for: {innermatch_dict['purpose']}"
+                        else:
+                            innermatch_dict['purpose'] = "SMB login"
                         result.append(Credential(**innermatch_dict,
                                                source=match['binfo'],
                                                source_time=match['ainfo'].split('|')[-1]))
@@ -37,7 +41,8 @@ class SnafflerExtractor(CredentialExtractor):
                         innermatch_dict = remove_quotes(innermatch.groupdict())
                         result.append(Credential(**innermatch_dict,
                                                source=match['binfo'],
-                                               source_time=match['ainfo'].split('|')[-1]))
+                                               source_time=match['ainfo'].split('|')[-1],
+                                               purpose='DB Credentials'))
 
         return result
 
