@@ -62,7 +62,7 @@ DOMAIN.COMPANY.COM/tom:$DCC2$10240#tom#e4e938d12fe5974dc42a90120bd9c90f: (2024-1
 
     def test_secretsdump_machine_account(self):
         # Hash from hashcat sample hashes, embedded in secrets dump output
-        result = extract("""
+        result = extract(r"""
 [2024-10-16 16:12:23] [*] DOMAIN\HOST$:aad3b435b51404eeaad3b435b51404ee:0123456789abcdef0123456789abcdef:::
 """, "DUMMY")
 
