@@ -290,6 +290,50 @@ Edit Event
     {{ form.media }}
 
     <script nonce="{{request.csp_nonce}}">
+    
+    // Define a custom language with the lang code "ss" to override some of the Select2 default strings.
+    // This language is assigned via the `data-language` attribute on the form fields
+    var dalLoadLanguage = function (e) {
+		var n;
+		(n = e && e.fn && e.fn.select2 && e.fn.select2.amd ? e.fn.select2.amd : n).define('select2/i18n/ss', [], function () {
+			return {
+				errorLoading: function () {
+					return 'The results could not be loaded.';
+				},
+				inputTooLong: function (e) {
+					var n = e.input.length - e.maximum, e = 'Please delete ' + n + ' character';
+					return 1 != n && (e += 's'), e;
+				},
+				inputTooShort: function (e) {
+					return 'Please enter ' + (e.minimum - e.input.length) + ' or more characters';
+				},
+				loadingMore: function () {
+					return 'Loading more results\u2026';
+				},
+				maximumSelected: function (e) {
+					var n = 'You can only select ' + e.maximum + ' item';
+					return 1 != e.maximum && (n += 's'), n;
+				},
+				noResults: function () {
+					return 'No results found';
+				},
+				searching: function () {
+					return 'Searching\u2026';
+				},
+				removeAllItems: function () {
+					return 'Clear';
+				},
+				removeItem: function () {
+					return 'Remove item';
+				},
+				search: function () {
+					return 'Search';
+				}
+			};
+		}), n.define, n.require;
+	}, event = new CustomEvent('dal-language-loaded', { lang: 'ss' });
+    document.dispatchEvent(event);
+    
     $(function() {
         $(".back-button").on("click", function() {history.back()})
 
@@ -447,12 +491,53 @@ Edit Event
        });
     });
 
-    // Rename the tooltip on the Select2 clear buttons (Default is "Remove all items" which sounds scary)
-    $(document).on("DOMNodeInserted", ".select2-selection__clear", function (e) {
-        $(e.target).attr("title", "Clear");
+    function addMiniButtonsToClonableDropdowns() {
+        var eventTargets = $(".clonable-dropdown span.select2-selection__clear")
+        for (var eventTarget of eventTargets) {
+            if (eventTarget.textContent === "×") {
+                var select = $(eventTarget.closest(".select2-container")).prev()
+
+                // Add a clone widget to the start
+                select.next().find(".select2-selection__rendered")
+                    .append($("<i class='far fa-copy link-secondary inline-select2-button' title='Clone Selection...'></i>")
+                        // React to clone widget click
+                        .on("mousedown", function (e) {
+                            editEventHandler(e); // Do the edit logic to populate the form
+                            clearEventHandler(e); // And also clear the selection to indicate something new is being created
+                        }));
+
+                // Add an edit widget to the start
+                select.next().find(".select2-selection__rendered")
+                    .append($("<i class='far fa-edit link-secondary inline-select2-button' title='Edit Selection...'></i>")
+                        // React to edit widget click
+                        .on("mousedown", editEventHandler));
+
+                // Change the cross to a plus to better convey new, and override behaviour
+                select.next().find(".select2-selection__rendered")
+                    .append($("<i class='far fa-plus-square link-secondary inline-select2-button' title='New Entry...'></i>")
+                        // React to new widget click
+                        .on("mousedown", clearEventHandler));
+
+                // Remove the default clear button from the UI
+                select.next().find(".select2-selection__clear").remove()
+            }
+        }
+    }
+
+    
+    $(".clonable-dropdown").on('select2:select', function(e) {
+        // Use setTimeout with no delay to run the inner code in the next event cycle (once select2 is "done" with its refresh)
+        setTimeout(() => {
+            addMiniButtonsToClonableDropdowns();
+        });
     });
 
-    // Add decorations to the drop downs
+    // ---- Add decorations to the drop downs ----
+
+    // Add the mini buttons the first time the clonable-dropdown changes in the DOM
+    const observer = new MutationObserver(addMiniButtonsToClonableDropdowns);
+    observer.observe($(".clonable-dropdown")[0], {attributes: true});
+
     $("select.user-field").wrap("<div class='input-group flex-nowrap'></div>");
     let userFieldInputGroups = $(".input-group .user-field ");
     userFieldInputGroups.parent().prepend('<span class="input-group-text"><i class="fas fa-user"></i></span>')
@@ -484,38 +569,6 @@ Edit Event
           }
         );
     });
-    
-    // Customise look and actions of every dropdown widgets' buttons
-    $(document).on("DOMNodeInserted", ".clonable-dropdown span.select2-selection__clear", function(e){
-        if (e.target.textContent === "×") {
-            var eventTarget = $(e.target)
-            var select = eventTarget.closest(".select2-container").prev()
-
-            // Add a clone widget to the start
-            select.next().find(".select2-selection__rendered")
-                .append($("<i class='far fa-copy link-secondary inline-select2-button' title='Clone Selection...'></i>")
-                    // React to clone widget click
-                    .on("mousedown", function(e) {
-                        editEventHandler(e); // Do the edit logic to populate the form
-                        clearEventHandler(e); // And also clear the selection to indicate something new is being created
-                    }));
-
-            // Add an edit widget to the start
-            select.next().find(".select2-selection__rendered")
-                .append($("<i class='far fa-edit link-secondary inline-select2-button' title='Edit Selection...'></i>")
-                    // React to edit widget click
-                    .on("mousedown", editEventHandler));
-
-            // Change the cross to a plus to better convey new, and override behaviour
-            select.next().find(".select2-selection__rendered")
-                .append($("<i class='far fa-plus-square link-secondary inline-select2-button' title='New Entry...'></i>")
-                 // React to new widget click
-                .on("mousedown", clearEventHandler));
-
-            // Remove the default clear button from the UI
-            select.next().find(".select2-selection__clear").remove()
-        }
-    })
 
     // Ensure the fields are shown for select-forms in formsets
     function customiseNewFileDropdown(row)
