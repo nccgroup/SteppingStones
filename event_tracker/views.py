@@ -1817,7 +1817,13 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
 
         os_distribution = {}
         kerberoastable_users = {}
+        kerberoastable_ticket_count = 0
+        kerberoastable_cracked_count = 0
+
         asreproastable_users = {}
+        asreproastable_ticket_count = 0
+        asreproastable_cracked_count = 0
+
         for server in BloodhoundServer.objects.filter(active=True).all():
             if driver := get_driver_for(server):
                 with driver.session() as session:
@@ -1835,8 +1841,6 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                                 os_distribution[result[0]] += result[1]
                         # Kerberoastables
                         results = session.execute_read(_get_kerberoastables, system)
-                        kerberoastable_ticket_count = 0
-                        kerberoastable_cracked_count = 0
                         for result in results:
                             username = result[0].split('@')[0].lower()
 
@@ -1854,8 +1858,6 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
 
                         # ASREP roastable users
                         results = session.execute_read(_get_asreproastables, system)
-                        asreproastable_ticket_count = 0
-                        asreproastable_cracked_count = 0
                         for result in results:
                             username = result[0].split('@')[0].lower()
 
