@@ -8,7 +8,7 @@ from event_tracker.cred_extractor.kerberoast_extractor import convert_tgs_to_has
 from event_tracker.models import Credential, HashCatMode
 
 rubeus_kerberoast_regex = re.compile(
-    r'\[\*] SamAccountName {9}: (?P<account>.+)\r?\n.*\n\[\*] ServicePrincipalName   : (?P<purpose>.+)\r?\n(?:\[\*].*\n)*?\[\*] Hash {19}: (?P<hash>\$krb5tgs\$.+\$(?P<system>.*?)(?<!\*)\$[^$]+\$.+\n(?:.{29}.+\n)+)')
+    r'\[\*] SamAccountName {9}: (?P<account>\S+)\r?\n.*\n\[\*] ServicePrincipalName   : (?P<purpose>\S+)\r?\n(?:\[\*].*\n)*?\[\*] Hash {19}: (?P<hash>\$krb5tgs\$.+\$(?P<system>.*?)(?<!\*)\$[^$]+\$.+\n(?:.{29}.+\n)+)')
 rubeus_asrep_regex = re.compile(r'(?P<hash>\$krb5asrep\$(?!\d\d?\$)(?P<account>.+?)@(?P<system>.+?):[A-F0-9$\s]{400,})')
 rubeus_u2u_ntlm_regex = re.compile(
     r'^  UserName                 :  (?P<account>\S+).*^  UserRealm                :  (?P<system>\S+).+\[*] Getting credentials using U2U.*NTLM              : (?P<hash>\S+)',
