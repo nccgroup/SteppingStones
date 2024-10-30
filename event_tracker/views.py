@@ -1844,7 +1844,7 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                         for result in results:
                             username = result[0].split('@')[0].lower()
 
-                            credential_obj_query = Credential.objects.filter(account=username, hash_type__in=kerberosoatable_hashtypes)
+                            credential_obj_query = Credential.objects.filter(account__iexact=username, hash_type__in=kerberosoatable_hashtypes)
                             if system:
                                 credential_obj_query = credential_obj_query.filter(system=system)
 
@@ -1861,7 +1861,7 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                         for result in results:
                             username = result[0].split('@')[0].lower()
 
-                            credential_obj_query = Credential.objects.filter(account=username,
+                            credential_obj_query = Credential.objects.filter(account__iexact=username,
                                                                              hash_type__in=asreproastable_hashtypes)
                             if system:
                                 credential_obj_query = credential_obj_query.filter(system=system)
