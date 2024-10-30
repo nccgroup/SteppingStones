@@ -71,3 +71,17 @@ DOMAIN.COMPANY.COM/tom:$DCC2$10240#tom#e4e938d12fe5974dc42a90120bd9c90f: (2024-1
         self.assertEqual("HOST$", result[0].account)
         self.assertEqual(result[0].hash_type, HashCatMode.NTLM)
 
+    def test_sharpsccm_naa(self):
+        # Hash from hashcat sample hashes, embedded in secrets dump output
+        result = extract(r"""
+[+] Decrypting network access account credentials
+
+    NetworkAccessUsername: DOMAIN\USER
+    NetworkAccessPassword: Password123
+""", "DUMMY")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("DOMAIN", result[0].system)
+        self.assertEqual("USER", result[0].account)
+        self.assertEqual("Password123", result[0].secret)
+
