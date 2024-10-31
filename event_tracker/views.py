@@ -1711,9 +1711,10 @@ def _get_dn_children(tx, parent):
     return distinct reverse(split(n.distinguishedname, ','))[$parent_len] as nodetext, 
            reverse(split(n.distinguishedname, ','))[0..$node_len] as nodepath,
            count(*) as childcount,
+           not max(size(split(n.distinguishedname, ',')) > $node_len) as isleaf,
            collect(distinct labels(n)) as labs,
            true in collect(n.owned) as owned
-    order by childcount <= 1, toLower(split(nodetext, '=')[-1])""", parent=parent, parent_len=len(parent), node_len=len(parent) + 1)
+    order by left(nodetext, 3) <> "DC=", isleaf, toLower(split(nodetext, '=')[-1])""", parent=parent, parent_len=len(parent), node_len=len(parent) + 1)
 
     return children.fetch(100_000)
 
@@ -1729,9 +1730,14 @@ class BloodhoundServerOUAPI(PermissionRequiredMixin, View):
                 with driver.session() as session:
                     children = session.execute_read(_get_dn_children, request.GET["id"].split(","))
 
-                    for nodetext, nodepath, childcount, types, owned in children:
+                    for nodetext, nodepath, childcount, isleaf, types, owned in children:
                         try:
-                            nodetype = "folder" if childcount > 1 else types[0][0].lower()
+                            if nodetext[:2] == "DC":
+                                nodetype = "globe"
+                            elif not isleaf:
+                                nodetype = "folder"
+                            else:
+                                nodetype = types[0][0].lower()
                         except:
                             nodetype = "unknown"
 
@@ -1740,8 +1746,8 @@ class BloodhoundServerOUAPI(PermissionRequiredMixin, View):
 
                         result.append({'id': nodepath,
                                        'parent': request.GET["id"],
-                                       'text': f"{nodetext}{' (' + str(childcount) + ')' if childcount > 1 or type == 'ou' else ''}",
-                                       'children': bool(childcount > 1),
+                                       'text': f"{nodetext}{' (' + str(childcount) + ')' if not isleaf else ''}",
+                                       'children': not isleaf,
                                        'type': nodetype,
                                        })
 
