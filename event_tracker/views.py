@@ -22,7 +22,7 @@ from django.contrib.auth.models import User
 from django.contrib.staticfiles import finders
 from django.db import transaction, connection
 from django.db.models import Max, Window, F, Q, Value, DateTimeField
-from django.db.models.functions import Greatest, Coalesce, Lag
+from django.db.models.functions import Greatest, Coalesce, Lag, Trunc
 from django.forms import inlineformset_factory
 from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404, redirect
@@ -955,13 +955,13 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
                 .exclude(data="")
 
     def get_initial_queryset(self):
-        # Rows with type task where there is no input at the same time nor 1 second earlier
-        task_rows_without_input = (Archive.objects.filter(type="task")
+        # Rows with type task where there is no input in the same second nor 1 second earlier
+        task_rows_without_input = (Archive.objects.filter(type="task").annotate(when_trunc=Trunc("when", "second", output_field=DateTimeField()))
             # Exclude task rows whose timestamp is the same as an existing input row
-            .exclude(when__in=Archive.objects.filter(type="input").values("when"))
+            .exclude(when_trunc__in=Archive.objects.filter(type="input").annotate(when_trunc=Trunc("when", "second", output_field=DateTimeField())).values("when_trunc"))
             # Exclude task rows whose timestamp is one second later than an existing input row
-            .exclude(when__in=Archive.objects.filter(type="input").annotate(
-                    one_sec_later=timedelta(seconds=1) + F("when")).values("one_sec_later")))
+            .exclude(when_trunc__in=Archive.objects.filter(type="input").annotate(
+                    one_sec_later=timedelta(seconds=1) + Trunc("when", "second", output_field=DateTimeField())).values("one_sec_later")))
 
         input_rows = Archive.objects.filter(type="input")
 
