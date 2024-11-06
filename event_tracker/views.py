@@ -1645,16 +1645,18 @@ def _get_kerberoastables(tx, system: Optional[str]):
                 n.domain = $system and 
                 n.hasspn=true  and
                 n.enabled=true
+            OPTIONAL MATCH shortestPath((n:User)-[:MemberOf]->(g:Group)) WHERE g.highvalue=true 
             return 
-                toLower(n.name) 
+                toLower(n.name), toLower(g.name)
             order by n.name""", system=system.upper()).values()
     else:
         return tx.run("""
-           match (n:User) where 
+            match (n:User) where 
                 n.hasspn=true and
                 n.enabled=true
+            OPTIONAL MATCH shortestPath((n:User)-[:MemberOf]->(g:Group)) WHERE g.highvalue=true 
             return 
-                toLower(n.name) 
+                toLower(n.name), toLower(g.name)
             order by n.name""").values()
 
 
@@ -1665,16 +1667,18 @@ def _get_asreproastables(tx, system: Optional[str]):
                 n.domain = $system and 
                 n.dontreqpreauth=true and
                 n.enabled=true
+            OPTIONAL MATCH shortestPath((n:User)-[:MemberOf]->(g:Group)) WHERE g.highvalue=true 
             return 
-                toLower(n.name) 
+                toLower(n.name), toLower(g.name)
             order by n.name""", system=system.upper()).values()
     else:
         return tx.run("""
            match (n:User) where 
                 n.dontreqpreauth=true and
                 n.enabled=true
+            OPTIONAL MATCH shortestPath((n:User)-[:MemberOf]->(g:Group)) WHERE g.highvalue=true 
             return 
-                toLower(n.name) 
+                toLower(n.name), toLower(g.name)
             order by n.name""").values()
 
 
@@ -1825,10 +1829,12 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
         kerberoastable_users = {}
         kerberoastable_ticket_count = 0
         kerberoastable_cracked_count = 0
+        kerberoastable_domains = set()
 
         asreproastable_users = {}
         asreproastable_ticket_count = 0
         asreproastable_cracked_count = 0
+        asreproastable_domains = set()
 
         for server in BloodhoundServer.objects.filter(active=True).all():
             if driver := get_driver_for(server):
@@ -1848,14 +1854,19 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                         # Kerberoastables
                         results = session.execute_read(_get_kerberoastables, system)
                         for result in results:
-                            username = result[0].split('@')[0].lower()
+                            user_parts = result[0].split('@')
+                            username = user_parts[0].lower()
+                            domain = user_parts[1].lower()
+                            kerberoastable_domains.add(domain)
 
                             credential_obj_query = Credential.objects.filter(account__iexact=username, hash_type__in=kerberosoatable_hashtypes)
                             if system:
                                 credential_obj_query = credential_obj_query.filter(system=system)
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
-                            kerberoastable_users[username] = credential_obj
+                            kerberoastable_users[username] = {"credential": credential_obj,
+                                                              "high_value_group": result[1],
+                                                              "domain": domain}
 
                             if credential_obj:
                                 kerberoastable_ticket_count += 1
@@ -1865,7 +1876,10 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                         # ASREP roastable users
                         results = session.execute_read(_get_asreproastables, system)
                         for result in results:
-                            username = result[0].split('@')[0].lower()
+                            user_parts = result[0].split('@')
+                            username = user_parts[0].lower()
+                            domain = user_parts[1].lower()
+                            asreproastable_domains.add(domain)
 
                             credential_obj_query = Credential.objects.filter(account__iexact=username,
                                                                              hash_type__in=asreproastable_hashtypes)
@@ -1873,7 +1887,9 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                                 credential_obj_query = credential_obj_query.filter(system=system)
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
-                            asreproastable_users[username] = credential_obj
+                            asreproastable_users[username] = {"credential": credential_obj,
+                                                              "high_value_group": result[1],
+                                                              "domain": domain}
                             if credential_obj:
                                 asreproastable_ticket_count += 1
                                 if credential_obj.secret:
@@ -1885,9 +1901,11 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
         context["kerberoastable_users"] = kerberoastable_users
         context["kerberoastable_ticket_count"] = kerberoastable_ticket_count
         context["kerberoastable_cracked_count"] = kerberoastable_cracked_count
+        context["kerberoastable_domain_count"] = len(kerberoastable_domains)
         context["asreproastable_users"] = asreproastable_users
         context["asreproastable_ticket_count"] = asreproastable_ticket_count
         context["asreproastable_cracked_count"] = asreproastable_cracked_count
+        context["asreproastable_domain_count"] = len(asreproastable_domains)
         return context
 
 

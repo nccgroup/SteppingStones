@@ -70,20 +70,30 @@ BloodHound Servers
                                             <table class="table table-sm table-striped">
                                               <thead>
                                                 <tr>
+                                                  {% if kerberoastable_domain_count > 1 %}
+                                                    <th scope="col">Domain</th>
+                                                  {% endif %}
                                                   <th scope="col">Username</th>
+                                                  <th scope="col">Member of High Value Group</th>
                                                   <th scope="col">Ticket Type</th>
                                                   <th scope="col">Cracked?</th>
                                                 </tr>
                                               </thead>
                                               <tbody>
                                                  {% if kerberoastable_ticket_count %}
-                                                    <p>Obtained {{ kerberoastable_ticket_count }} tickets from {{ kerberoastable_users|length }} affected accounts, with {{ kerberoastable_cracked_count }} cracked.</p>
+                                                    <p>Obtained {{ kerberoastable_ticket_count }} ticket{{ kerberoastable_ticket_count|pluralize }} from {{ kerberoastable_users|length }} affected account{{ kerberoastable_users|length|pluralize }}
+                                                        {% if kerberoastable_domain_count > 1 %}across {{ kerberoastable_domain_count }} domains{% else %}on the {{ kerberoastable_users.copy.popitem.1 | getdictentry:"domain" }} domain{% endif %},
+                                                        with {{ kerberoastable_cracked_count }} cracked.</p>
                                                  {% endif %}
                                                  {% for name, value in kerberoastable_users.items %}
                                                     <tr>
+                                                      {% if kerberoastable_domain_count > 1 %}
+                                                        <td>{{ value.domain }}</td>
+                                                      {% endif %}
                                                         <td>{{ name }}</td>
-                                                        <td>{{ value.hash_type_obj.name|cut:"Kerberos_5_TGSREP_"|default:"No Ticket Obtained" }}</td>
-                                                        <td>{% if value.secret %}Yes{% elif not value %}N/A{% else %}No{% endif %}</td>
+                                                        <td>{{ value.high_value_group | default:"-"}}</td>
+                                                        <td>{{ value.credential.hash_type_obj.name|cut:"Kerberos_5_TGSREP_"|default:"No Ticket Obtained" }}</td>
+                                                        <td>{% if value.credential.secret %}Yes{% elif not value.credential %}N/A{% else %}No{% endif %}</td>
                                                     </tr>
                                                 {% endfor %}
                                               </tbody>
@@ -109,12 +119,18 @@ BloodHound Servers
                                     <p>
                                         {% if asreproastable_users %}
                                             {%  if asreproastable_ticket_count %}
-                                                <p>Obtained {{ asreproastable_ticket_count }} tickets from {{ asreproastable_users|length }} affected accounts, with {{ asreproastable_cracked_count }} cracked.</p>
+                                                <p>Obtained {{ asreproastable_ticket_count }} ticket{{ asreproastable_ticket_count|pluralize }} from {{ asreproastable_users|length }} affected account{{ asreproastable_users|length|pluralize }}
+                                                    {% if asreproastable_domain_count > 1 %}across {{ asreproastable_domain_count }} domains{% else %}on the {{ asreproastable_users.copy.popitem.1 | getdictentry:"domain" }} domain{% endif %},
+                                                    with {{ asreproastable_cracked_count }} cracked.</p>
                                             {% endif %}
                                             <table class="table table-sm table-striped">
                                               <thead>
                                                 <tr>
+                                                  {% if asreproastable_domain_count > 1 %}
+                                                    <th scope="col">Domain</th>
+                                                  {% endif %}
                                                   <th scope="col">Username</th>
+                                                  <th scope="col">Member of High Value Group</th>
                                                   <th scope="col">Ticket Type</th>
                                                   <th scope="col">Cracked?</th>
                                                 </tr>
@@ -122,9 +138,13 @@ BloodHound Servers
                                               <tbody>
                                                  {% for name, value in asreproastable_users.items %}
                                                     <tr>
+                                                      {% if asreproastable_domain_count > 1 %}
+                                                        <td>{{ value.domain }}</td>
+                                                      {% endif %}
                                                         <td>{{ name }}</td>
-                                                        <td>{{ value.hash_type_obj.name|cut:"Kerberos_5_ASREP_"|default:"No Ticket Obtained" }}</td>
-                                                        <td>{% if value.secret %}Yes{% elif not value %}N/A{% else %}No{% endif %}</td>
+                                                        <td>{{ value.high_value_group | default:"-"}}</td>
+                                                        <td>{{ value.credential.hash_type_obj.name|cut:"Kerberos_5_ASREP_"|default:"No Ticket Obtained" }}</td>
+                                                        <td>{% if value.credential.secret %}Yes{% elif not value.credential %}N/A{% else %}No{% endif %}</td>
                                                     </tr>
                                                 {% endfor %}
                                               </tbody>
