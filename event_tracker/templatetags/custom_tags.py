@@ -227,7 +227,10 @@ def linebreaksword(value):
 
 @register.filter
 def epoch_to_ts(epoch_time):
-    return datetime.datetime.fromtimestamp(epoch_time, tz=datetime.timezone.utc)
+    try:
+        return datetime.datetime.fromtimestamp(epoch_time, tz=datetime.timezone.utc)
+    except:
+        return f"Could not convert: {epoch_time}"
 
 
 @register.filter
@@ -245,7 +248,10 @@ def render_ts_to_ts_utc(value, until):
 
 @register.filter
 def render_ts_local(value):
-    return f"{date_format(value, 'SHORT_DATE_FORMAT')} {localtime(value).strftime('%H:%M')}"
+    if isinstance(value, datetime.datetime):
+        return f"{date_format(value, 'SHORT_DATE_FORMAT')} {localtime(value).strftime('%H:%M')}"
+    else:
+        return f"Not a datetime: {value}"
 
 
 @register.filter
