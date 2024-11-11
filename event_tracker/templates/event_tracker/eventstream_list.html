@@ -13,6 +13,20 @@ EventStream
     {% include "base/external-libs/jquery.html" %}
     {% include "base/external-libs/datatables-pdfexport.html" %}
 
+    <script src="{% static "/scripts/jquery.expander.js" %}"></script>
+
+    <link rel="stylesheet" href="{% static "css/event_table.css"%}">
+    <script src="{% static "scripts/event_table.js" %}"></script>
+    <script nonce="{{request.csp_nonce}}">
+    let eventTableConfig = {
+        monospaceFontURL: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
+        brandingSVG: '{{REPORT_FOOTER_IMAGE}}',
+        brandingText: '{{REPORT_FOOTER_TEXT}}',
+        totalColumns: 7,
+        descriptionColumn: 3,
+    }
+    </script>
+    
     <style nonce="{{request.csp_nonce}}">
     .fa-ul {
         margin-left: 30px; margin-bottom: 0px
@@ -130,54 +144,15 @@ EventStream
             },
             {
                 text: 'Export PDF',
-                action: function (e, dt, node, config, cb) {
-                    let outer_dt = dt;
-                    let outer_config = config;
-                    let orig_len = dt.page.len();
-                    let outer_cb = cb;
-
-                    doExport = function (e, _dt, node, _config, cb) {
-                        // Deregister the event handler
-                        dt.off('draw', doExport);
-                        // Trigger the print action
-                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config, outer_cb);
-                        // Redraw the table at the original page size
-                        dt.page.len(orig_len).draw();
-                    }
-
-                    // Register an event handler to print the table once all the data is loaded
-                    dt.on( 'draw', doExport )
-                    // Trigger a non-paginated table draw
-                    dt.page.len(-1).draw();
-                },
+                action: pdfExportAction,
                 extend: 'pdfHtml5',  // Required to pull in default config
                 orientation: "landscape",
-                customize: function (doc, config, dt) {
-                    // Ensure the main text column doesn't stretch when given long content
-                    doc.content[1].table.widths=['auto','auto','auto',400,'auto','auto','auto'];
-                    // Sprinkle in some corporate branding
-                    doc.footer = function (currentPage, pageCount) {
-                        return [
-                            {
-                                canvas: [
-                                    { type: 'line', x1: 40, y1: 0, x2: 800, y2: 0, lineWidth: 0.5, lineColor: '#242C7A'}
-                                ]
-                            },
-                            {
-                                columns: [
-                                    currentPage.toString() + ' / ' + pageCount,
-                                    {svg: '{{REPORT_FOOTER_IMAGE}}', alignment: 'center'},
-                                    {text: '{{REPORT_FOOTER_TEXT}}', alignment: 'right'},
-                                ],
-                                margin: [40, 10],
-                            },
-                        ]
-                    }
-                },
+                customize: pdfExportCustomize,
                 title: "EventStream Logs",
                 exportOptions: {
                     columns: [0,1,2,3,4,5,6],
-                    stripNewlines: false
+                    stripNewlines: false,
+                    orthogonal: 'export'  // Force a fresh call to the render function below passing in "export" as the type
                 }
             },
           ],
@@ -195,11 +170,12 @@ EventStream
             { searchBuilderType: "moment-{% datetime_format_moment %}" },
             { orderable: false },
             { orderable: false },
-            null,
+            { render: descriptionRender },
             null,
             { orderable: false },
             { orderable: false },
-          ]
+          ],
+          drawCallback: tableDrawCallback
       } )
     })
     </script>

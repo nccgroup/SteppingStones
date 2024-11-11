@@ -1054,10 +1054,14 @@ class EventStreamListJSON(PermissionRequiredMixin, FilterableDatatableView):
             dummy_context = Context(host=row.target_host, user=row.target_user, process=row.target_process)
             return dummy_context.get_visible_html()
         elif column == 'description':
-            description = row.description
+            result = ""
+            if row.description:
+                result = f"<div class='description'>{row.description}</div>"
+
             if row.raw_evidence:
-                description += f'<pre class="mt-3 mb-0"><code>{ breakonpunctuation(escape(row.raw_evidence)) }</code></pre>'
-            return description
+                result += f"<div class='output'>{escape(row.raw_evidence)}</div>"
+
+            return result
         elif column == 'additional_data' and row.additional_data:
             additional_data_dict = json.loads(row.additional_data)
             escaped_dict = {}

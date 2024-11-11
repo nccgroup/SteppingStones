@@ -8,22 +8,20 @@ import re
 #
 # Or always log with a registry mod: https://adamtheautomator.com/powershell-logging-2/#How_to_Turn_on_Transcripts_with_the_Registry
 
-def dump_to_json(eventstream_file, timestamp, user, host, command, output):
-    eventstream_file.write(json.dumps({"ts": timestamp.isoformat(), "s": {"u": user, "h": host}, "e": command, "output": output.lstrip("\n")}))
+def dump_to_json(eventstream_file, timestamp, user, host, evidence):
+    eventstream_file.write(json.dumps({"ts": timestamp.isoformat(), "s": {"u": user, "h": host}, "e": evidence}))
     eventstream_file.write("\n")
 
 def main(transcript_file, eventstream_file):
     local_timezone = datetime.UTC
     in_section = True
-    command = ""
-    output = ""
+    evidence = ""
     for line in transcript_file:
         if line == "**********************\n":
             in_section = not in_section
             if in_section:
-                dump_to_json(eventstream_file, timestamp, user, host, command, output)
-                command = ""
-                output = ""
+                dump_to_json(eventstream_file, timestamp, user, host, evidence)
+                evidence = ""
 
         elif in_section:
             if line.startswith("Command start time: "):
@@ -37,12 +35,9 @@ def main(transcript_file, eventstream_file):
             elif line.startswith("RunAs User: "):
                 user = re.match(r"RunAs User: .+\\(.+)$", line)[1]
         else:
-            if not command:
-                command = line.rstrip("\n")
-            else:
-                output += line
+            evidence += line
 
-    dump_to_json(eventstream_file, timestamp, user, host, command, output)
+    dump_to_json(eventstream_file, timestamp, user, host, evidence)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

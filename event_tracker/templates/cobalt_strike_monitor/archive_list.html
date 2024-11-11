@@ -15,6 +15,18 @@ CS Logs
 
     <script src="{% static "/scripts/jquery.expander.js" %}"></script>
 
+    <link rel="stylesheet" href="{% static "css/event_table.css"%}">
+    <script src="{% static "scripts/event_table.js" %}"></script>
+    <script nonce="{{request.csp_nonce}}">
+    let eventTableConfig = {
+        monospaceFontURL: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
+        brandingSVG: '{{REPORT_FOOTER_IMAGE}}',
+        brandingText: '{{REPORT_FOOTER_TEXT}}',
+        totalColumns: 6,
+        descriptionColumn: 3,
+    }
+    </script>
+    
     <style nonce="{{request.csp_nonce}}">
     .fa-ul {
         margin-left: 30px; margin-bottom: 0px
@@ -37,25 +49,6 @@ CS Logs
     div:has(+.dt-layout-table) {
         padding-top: 0.5em;
         padding-bottom: 1em;
-    }
-
-    .description ~ div, .input ~ div {
-        margin-top: 0.5rem;
-        margin-bottom: 0;
-    }
-
-    .input::before {
-        content: "\00BB  ";
-    }
-
-    .input, .output {
-        display: block;
-        font-family: monospace;
-        white-space: pre-wrap;
-    }
-
-    .output {
-        font-style: italic;
     }
     </style>
 {% endblock head %}
@@ -125,78 +118,10 @@ CS Logs
             },
             {
                 text: 'Export PDF',
-                    action: function (e, dt, node, config, cb) {
-                    let outer_dt = dt;
-                    let outer_config = config;
-                    let orig_len = dt.page.len();
-                    let outer_cb = cb;
-
-                    doExport = function (e, _dt, node, _config, cb) {
-                        // Deregister the event handler
-                        dt.off('draw', doExport);
-                        // Trigger the print action
-                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config, outer_cb);
-                        // Redraw the table at the original page size
-                        dt.page.len(orig_len).draw();
-                    }
-
-                    // Register an event handler to print the table once all the data is loaded
-                    dt.on( 'draw', doExport )
-                    // Trigger a non-paginated table draw
-                    dt.page.len(-1).draw();
-                },
+                action: pdfExportAction,
                 extend: 'pdfHtml5',  // Required to pull in default config
                 orientation: "landscape",
-                customize: function (doc, config, dt) {
-                    pdfMake.fonts = {
-                        RobotoMono: {
-                            normal: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
-                        },
-                        Roboto: {
-                            normal: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf',
-                            bold: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf',
-                        },
-                    }
-
-                    doc.styles['terminal'] = {
-                        font: 'RobotoMono',
-                        bold: false
-                    }
-
-                    for (const row of doc.content[1].table.body) {
-                        let description = row[3]  // the 4th (i.e. [3]) column of each row should be "Description"
-                        const parts = description.text.split("\n\n")
-                        if (parts.length > 1) {
-                            // Attach 'terminal' style to everything after the first "\n\n" 
-                            description.text = [parts[0], "\n\n", {
-                                text: parts.slice(1).join("\n\n"),
-                                style: 'terminal',
-                                preserveLeadingSpaces: true
-                            }]
-                        }
-                    }
-
-                    // Ensure the main text column doesn't stretch when given long content
-                    doc.content[1].table.widths=['auto','auto','auto',400,'auto','auto'];
-                    // Sprinkle in some corporate branding
-                    doc.footer = function (currentPage, pageCount) {
-                        return [
-                            {
-                                canvas: [
-                                    { type: 'line', x1: 40, y1: 0, x2: 800, y2: 0, lineWidth: 0.5, lineColor: '#242C7A'}
-                                ]
-                            },
-                            {
-                                columns: [
-                                    currentPage.toString() + ' / ' + pageCount,
-                                    {svg: '{{REPORT_FOOTER_IMAGE}}', alignment: 'center'},
-                                    {text: '{{REPORT_FOOTER_TEXT}}', alignment: 'right'},
-                                ],
-                                margin: [40, 10],
-                            },
-                        ]
-                    }
-                },
+                customize: pdfExportCustomize,
                 title: "Cobalt Strike Logs",
                 exportOptions: {
                     stripNewlines: false,
@@ -213,23 +138,11 @@ CS Logs
             { searchBuilderType: "moment-{% datetime_format_moment %}" },
             { orderable: false },
             { orderable: false },
-            {
-                render: function (data, type, row) {
-                    if (type === "export") {
-                        // When exporting to PDF, before the HTML is stripped and passed to pdfMake, 
-                        // add a double new line to show where the <div>s end. Used by customize function above.
-                        return data.split("</div>").join("</div>\n\n")
-                    } else {
-                        return data;
-                    }
-                }
-            },
+            { render: descriptionRender },
             null,
             { orderable: false },
           ],
-          drawCallback: function (settings) {
-              $('.output').expander({slicePoint: 200, normalizeWhitespace: false, detailPrefix: '',});
-          }
+          drawCallback: tableDrawCallback
       } )
     })
   </script>
