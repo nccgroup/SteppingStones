@@ -29,9 +29,23 @@ function pdfExportCustomize(doc, config, dt) {
         }
     }
 
-    // Ensure the main text column doesn't stretch when given long content
-    doc.content[1].table.widths = Array(eventTableConfig.totalColumns).fill("auto")
-    doc.content[1].table.widths[eventTableConfig.descriptionColumn] = 400
+    if (eventTableConfig.columnWidths === null) {
+        // Ensure the main text column doesn't stretch when given long content
+        doc.content[1].table.widths = Array(eventTableConfig.totalColumns).fill("auto");
+        doc.content[1].table.widths[eventTableConfig.descriptionColumn] = 400;
+    }
+    else {
+        doc.content[1].table.widths = eventTableConfig.columnWidths;
+    }
+
+    if (eventTableConfig.columnHeadings !== null) {
+        for (const i in eventTableConfig.columnHeadings) {
+            if (eventTableConfig.columnHeadings[i] !== null) {
+                doc.content[1].table.body[0][i].text = eventTableConfig.columnHeadings[i];
+            }
+        }
+    }
+
     // Sprinkle in some corporate branding
     doc.footer = function (currentPage, pageCount) {
         return [

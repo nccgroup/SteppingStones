@@ -16,6 +16,22 @@ Event List
 
     <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
 
+    <script src="{% static "/scripts/jquery.expander.js" %}"></script>
+    
+    <link rel="stylesheet" href="{% static "css/event_table.css"%}">
+    <script src="{% static "scripts/event_table.js" %}"></script>
+    <script nonce="{{request.csp_nonce}}">
+    let eventTableConfig = {
+        monospaceFontURL: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
+        brandingSVG: '{{REPORT_FOOTER_IMAGE}}',
+        brandingText: '{{REPORT_FOOTER_TEXT}}',
+        totalColumns: 7,
+        descriptionColumn: 3,
+        columnWidths: ['auto', 75, 75, 350, 40, 40, 'auto'],
+        columnHeadings: [null, null, null, null, "Detect", "Prevent", null],
+    }
+    </script>
+    
     <style nonce="{{request.csp_nonce}}">
     .fa-ul {margin-left: 30px; margin-bottom: 0px}
     .fa-li {color: lightgray}
@@ -170,12 +186,10 @@ Event List
                       </td>
                       <td class="desc">
                           {% if event.filedistribution_set.exists %}<i class="text-muted fa-solid fa-paperclip"></i>&ensp;{% endif %}
-                          {% for tag in event.tags.all %}<span class="badge bg-info"><span class="pdf-export-only">[</span>{{ tag }}<span class="pdf-export-only">]</span></span>&nbsp;{% endfor %}
-                          <span class="description">{{ event.description|linebreaksbr|breakonpunctuation }}</span>
-                          {% if event.raw_evidence %}
-                              <pre class="mt-3 mb-0"><code>{{ event.raw_evidence | breakonpunctuation }}</code></pre>
-                          {% endif %}
-                          {% if event.outcome %}<div class="mt-3">Outcome: {{ event.outcome }}</div>{% endif %}
+                          {% for tag in event.tags.all %}<span class="badge bg-info"><span class="pdf-export-only">[</span>{{ tag }}<span class="pdf-export-only">]</span></span>&nbsp;{% endfor %}{# Weird spacing for the next bit because of PDF honouring newlines #}
+                          <span class="description">{{ event.description|linebreaksbr|breakonpunctuation }}</span>{% if event.outcome %}
+                          
+                              <div class="mt-3">Outcome: {{ event.outcome }}</div>{% endif %}{% if event.raw_evidence %}<div class='output'>{{ event.raw_evidence | breakonpunctuation }}</div>{% endif %}
                       </td>
                       <td class="{{ event.detected|status_to_class }} bg-opacity-25">{{ event.get_detected_display }}</td>
                       <td class="{{ event.prevented|status_to_class }} bg-opacity-25">{{ event.get_prevented_display }}</td>
@@ -347,68 +361,28 @@ $(function () {
             { searchBuilderType: "moment-{% datetime_format_moment %}" },
             null,
             null,
-            {orderable: false},
+            {orderable: false, render: descriptionRender},
             null,
             null,
             null,
             {orderable: false},
-        ]
+        ],
+        drawCallback: tableDrawCallback
     });
     // Add buttons for DataTables functionality we don't want to expose in the datatables button bar
     new $.fn.dataTable.Buttons($('.table'), {
         buttons: [
             {
                 text: 'Export PDF',
-                    action: function (e, dt, node, config, cb) {
-                    let outer_dt = dt;
-                    let outer_config = config;
-                    let orig_len = dt.page.len();
-                    let outer_cb = cb;
-
-                    doExport = function (e, _dt, node, _config, cb) {
-                        // Deregister the event handler
-                        dt.off('draw', doExport);
-                        // Trigger the print action
-                        $.fn.dataTable.ext.buttons.pdfHtml5.action.call(outer_dt.button(), e, outer_dt, node, outer_config, outer_cb);
-                        // Redraw the table at the original page size
-                        dt.page.len(orig_len).draw();
-                    }
-
-                    // Register an event handler to print the table once all the data is loaded
-                    dt.on( 'draw', doExport )
-                    // Trigger a non-paginated table draw
-                    dt.page.len(-1).draw();
-                },
+                action: pdfExportAction,
                 extend: 'pdfHtml5',  // Required to pull in default config
                 orientation: "landscape",
-                customize: function (doc, config, dt) {
-                    // Ensure the main text column doesn't stretch when given long content
-                    doc.content[1].table.widths = ['auto', 75, 75, 350, 40, 40, 'auto'];
-                    doc.content[1].table.body[0][4].text = "Detect"
-                    doc.content[1].table.body[0][5].text = "Prevent"
-                    // Sprinkle in some corporate branding
-                    doc.footer = function (currentPage, pageCount) {
-                        return [
-                            {
-                                canvas: [
-                                    { type: 'line', x1: 40, y1: 0, x2: 800, y2: 0, lineWidth: 0.5, lineColor: '#242C7A'}
-                                ]
-                            },
-                            {
-                                columns: [
-                                    currentPage.toString() + ' / ' + pageCount,
-                                    {svg: '{{REPORT_FOOTER_IMAGE}}', alignment: 'center'},
-                                    {text: '{{REPORT_FOOTER_TEXT}}', alignment: 'right'},
-                                ],
-                                margin: [40, 10],
-                            },
-                        ]
-                    }
-                },
+                customize: pdfExportCustomize,
                 title: "Event Logs",
                 exportOptions: {
-                    columns: [1,2,3,4,5,6,7],
-                    stripNewlines: false
+                    columns: [1,2,3,4,5,6,7],  // Do not export the 0th "star" column
+                    stripNewlines: false,
+                    orthogonal: 'export'  // Force a fresh call to the render function below passing in "export" as the type
                 }
             }
         ]
