@@ -38,12 +38,22 @@ CS Logs
         padding-top: 0.5em;
         padding-bottom: 1em;
     }
-    
-    .description ~ pre {
-        margin-top: 1rem;
+
+    .description ~ div, .input ~ div {
+        margin-top: 0.5rem;
         margin-bottom: 0;
     }
-    
+
+    .input::before {
+        content: "\00BB  ";
+    }
+
+    .input, .output {
+        display: block;
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+
     .output {
         font-style: italic;
     }
@@ -138,6 +148,34 @@ CS Logs
                 extend: 'pdfHtml5',  // Required to pull in default config
                 orientation: "landscape",
                 customize: function (doc, config, dt) {
+                    pdfMake.fonts = {
+                        RobotoMono: {
+                            normal: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
+                        },
+                        Roboto: {
+                            normal: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf',
+                            bold: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf',
+                        },
+                    }
+
+                    doc.styles['terminal'] = {
+                        font: 'RobotoMono',
+                        bold: false
+                    }
+
+                    for (const row of doc.content[1].table.body) {
+                        let description = row[3]  // the 4th (i.e. [3]) column of each row should be "Description"
+                        const parts = description.text.split("\n\n")
+                        if (parts.length > 1) {
+                            // Attach 'terminal' style to everything after the first "\n\n" 
+                            description.text = [parts[0], "\n\n", {
+                                text: parts.slice(1).join("\n\n"),
+                                style: 'terminal',
+                                preserveLeadingSpaces: true
+                            }]
+                        }
+                    }
+
                     // Ensure the main text column doesn't stretch when given long content
                     doc.content[1].table.widths=['auto','auto','auto',400,'auto','auto'];
                     // Sprinkle in some corporate branding
@@ -161,7 +199,8 @@ CS Logs
                 },
                 title: "Cobalt Strike Logs",
                 exportOptions: {
-                    stripNewlines: false
+                    stripNewlines: false,
+                    orthogonal: 'export'  // Force a fresh call to the render function below passing in "export" as the type
                 }
             },
           ], 
@@ -174,11 +213,23 @@ CS Logs
             { searchBuilderType: "moment-{% datetime_format_moment %}" },
             { orderable: false },
             { orderable: false },
-            null,
+            {
+                render: function (data, type, row) {
+                    if (type === "export") {
+                        // When exporting to PDF, before the HTML is stripped and passed to pdfMake, 
+                        // add a double new line to show where the <div>s end. Used by customize function above.
+                        return data.split("</div>").join("</div>\n\n")
+                    } else {
+                        return data;
+                    }
+                }
+            },
             null,
             { orderable: false },
           ],
-          drawCallback: function(settings) { $('.output').expander({slicePoint: 200}); }
+          drawCallback: function (settings) {
+              $('.output').expander({slicePoint: 200, normalizeWhitespace: false, detailPrefix: '',});
+          }
       } )
     })
   </script>

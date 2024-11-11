@@ -997,13 +997,13 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
             return result
         elif column == 'data':
             result = ""
-            if row.associated_archive_tasks_description:
-                result += f"<span class='description'>{row.associated_archive_tasks_description}</span>"
+            if row.associated_archive_task_description:
+                result += f"<div class='description'>{row.associated_archive_task_description}</div>"
 
             if row.type == "input":
-                result += f"<pre><code>{row.data}</code></pre>"
+                result += f"<div class='input'>{row.data}</div>"
 
-            result += f"<pre class='output'><code>{html.escape(chr(13).join(row.associated_beaconlog_output.values_list('data', flat=True)))}</code><pre>"
+            result += f"<div class='output'>{html.escape('\n'.join(row.associated_beaconlog_output.values_list('data', flat=True)))}</div>"
 
             return result
         elif column == '':  # The column with button in
