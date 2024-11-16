@@ -49,13 +49,13 @@ class Context(models.Model):
     def get_visible_html(self):
         html = ""
         if self.host:
-            html += f"<span class='ctx{self.id}'><i class='fas fa-network-wired'></i>&nbsp;{escape(self.host)}&emsp;</span>"
+            html += f"<span class='ctx{self.id if self.id else ''}'><i class='fas fa-network-wired'></i>&nbsp;{escape(self.host)}&emsp;</span>"
 
         if self.user:
-            html += f"<span class='ctx{self.id}'><i class='fas fa-user'></i>&nbsp;{escape(self.user)}&emsp;</span>"
+            html += f"<span class='ctx{self.id if self.id else ''}'><i class='fas fa-user'></i>&nbsp;{escape(self.user)}&emsp;</span>"
 
         if self.process:
-            html += f"<span class='ctx{self.id}'><i class='far fa-window-maximize'></i>&nbsp;{escape(self.process)}</span>"
+            html += f"<span class='ctx{self.id if self.id else ''}'><i class='far fa-window-maximize'></i>&nbsp;{escape(self.process)}</span>"
 
         return html
 
