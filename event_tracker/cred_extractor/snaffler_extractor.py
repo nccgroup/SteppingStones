@@ -7,6 +7,8 @@ snaffler_finding = re.compile(r'\[.+] \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z \[(Fi
 net_user_add_command = re.compile(r'net user (/add )?((?P<system>\S+)\\)?(?P<account>\S+) (?P<secret>\S+)$', re.IGNORECASE + re.MULTILINE)
 net_use_command = re.compile(r'net use (?:\S+ )?(?P<purpose>\\\S+)(?=.*/user)(?: /user:((?P<system>\S+)\\)?(?P<account>\S+)| (?P<secret>[^/]\S+)| /\S+){2,}?', re.IGNORECASE + re.MULTILINE)
 dotnet_connection_string = re.compile(r'\"(;?\s*User ID=(?P<account>[^;\"]+)|;?\s*Password=(?P<secret>[^;\"]+)|;?\s*(Data Source|Server)=(?P<system>[^;\"]+)|;?[^\";]+)+', re.IGNORECASE)
+db_connection_string = re.compile(r'(?=.*Password=)(;?\s*User ID=(?P<account>[^;<>\"]+)|;?\s*Password=(?P<secret>[^;<>\"]+)|;?\s*(Data Source|Server)=(?P<system>[^;<>\"]+)|;?[^;<>\"]+)+', re.IGNORECASE)  # Similar to above, but embedded in XML, so switch quotes to angle brackets
+websense_client_password = re.compile(r'WDEUtil[^\n]+-password +(?P<secret>\S+)', re.IGNORECASE)
 
 class SnafflerExtractor(CredentialExtractor):
     def extract(self, input_text: str, default_system: str) -> [Credential]:
@@ -43,6 +45,26 @@ class SnafflerExtractor(CredentialExtractor):
                                                source=match['binfo'],
                                                source_time=match['ainfo'].split('|')[-1],
                                                purpose='DB Credentials'))
+
+            if match["ainfo"].startswith("KeepDbConnStringPw|"):
+                content = self.unescape_content(match)
+                for innermatch in db_connection_string.finditer(content):
+                    if innermatch.group("secret"):
+                        innermatch_dict = remove_quotes(innermatch.groupdict())
+                        result.append(Credential(**innermatch_dict,
+                                               source=match['binfo'],
+                                               source_time=match['ainfo'].split('|')[-1],
+                                               purpose='DB Credentials'))
+
+            if match["ainfo"].startswith("KeepPassOrKeyInCode|"):
+                content = self.unescape_content(match)
+                for innermatch in websense_client_password.finditer(content):
+                    if innermatch.group("secret"):
+                        innermatch_dict = remove_quotes(innermatch.groupdict())
+                        result.append(Credential(**innermatch_dict,
+                                               source=match['binfo'],
+                                               source_time=match['ainfo'].split('|')[-1],
+                                               purpose='Websense Client Password'))
 
         return result
 
