@@ -1,5 +1,6 @@
 from django.urls import path
 
+import event_tracker.views_bloodhound
 import event_tracker.views_credentials
 from . import views
 from .views import EventCreateView, EventUpdateView, EventDeleteView, EventListView, EventCloneView, ContextAutocomplete, CSVEventListView, TeamServerCreateView, \
@@ -8,11 +9,12 @@ from .views import EventCreateView, EventUpdateView, EventDeleteView, EventListV
     BeaconExclusionDeleteView, WebhookListView, WebhookCreateView, WebhookUpdateView, WebhookDeleteView, \
     CSBeaconsTimelineView, beaconwatch_add, beaconwatch_remove, CSDownloadsListView, CSDownloadToEventView, \
     EventLatMoveCloneView, CSLogsListJSON, \
-    BloodhoundServerListView, BloodhoundServerCreateView, BloodhoundServerUpdateView, BloodhoundServerDeleteView, \
     UserListAutocomplete, HostListAutocomplete, ProcessListAutocomplete, InitialConfigTask, InitialConfigAdmin, \
     toggle_event_star, EventTagAutocomplete, TeamServerConfigView, EventStreamListView, EventStreamListJSON, EventStreamUpload, \
     EventStreamToEventView, toggle_qs_stars, LimitedEventUpdateView, EventBulkEdit, \
     TeamServerHealthCheckView
+from .views_bloodhound import BloodhoundServerListView, BloodhoundServerCreateView, BloodhoundServerUpdateView, \
+    BloodhoundServerDeleteView
 from .views_credentials import CredentialListView, CredentialListJson, CredentialCreateView, CredentialUpdateView, \
     CredentialDeleteView, credential_wordlist, prefix_wordlist, suffix_wordlist, credential_uncracked_hashes, credential_masklist, prefix_masklist, suffix_masklist
 
@@ -104,11 +106,12 @@ urlpatterns = [
     path('bloodhound-server/add/', BloodhoundServerCreateView.as_view(), name='bloodhound-server-add'),
     path('bloodhound-server/<int:pk>/', BloodhoundServerUpdateView.as_view(), name='bloodhound-server-update'),
     path('bloodhound-server/<int:pk>/delete/', BloodhoundServerDeleteView.as_view(), name='bloodhound-server-delete'),
-    path('bloodhound-server/stats', views.BloodhoundServerStatsView.as_view(), name='bloodhound-stats'),
-    path('bloodhound-server/ou', views.BloodhoundServerOUView.as_view(), name='bloodhound-ou'),
-    path('bloodhound-server/node/<str:dn>', views.BloodhoundServerNode.as_view(), name='bloodhound-node'),
-    path('bloodhound-server/toggle-high-value/<str:dn>', views.toggle_bloodhound_node_highvalue, name='bloodhound-node-toggle-highvalue'),
-    path('bloodhound-server/ou-api', views.BloodhoundServerOUAPI.as_view(), name='bloodhound-ou-api'),
+    path('bloodhound-server/stats', event_tracker.views_bloodhound.BloodhoundServerStatsView.as_view(), name='bloodhound-stats'),
+    path('bloodhound-server/ou', event_tracker.views_bloodhound.BloodhoundServerOUView.as_view(), name='bloodhound-ou'),
+    path('bloodhound-server/node/<str:dn>', event_tracker.views_bloodhound.BloodhoundServerNode.as_view(), name='bloodhound-node'),
+    path('bloodhound-server/toggle-high-value/<str:dn>',
+         event_tracker.views_bloodhound.toggle_bloodhound_node_highvalue, name='bloodhound-node-toggle-highvalue'),
+    path('bloodhound-server/ou-api', event_tracker.views_bloodhound.BloodhoundServerOUAPI.as_view(), name='bloodhound-ou-api'),
 
     path('host-list-autocomplete/', HostListAutocomplete.as_view(), name='host-list-autocomplete'),
     path('user-list-autocomplete/', UserListAutocomplete.as_view(), name='user-list-autocomplete'),
