@@ -32,3 +32,10 @@ class CredentialReportingPluginPoint(PluginPoint):
             return user.has_perms(perms)
         else:
             return False
+
+
+class BackgroundTaskPluginPoint(PluginPoint):
+    delay_seconds = 30
+    repeat_seconds = 0
+    replace_existing_tasks = True
+    schedule_function = None

@@ -158,10 +158,4 @@ Neo4j servers configured via the web UI will be used to:
 
 ## Reporting Plugins
 
-It is possible to create your own reports for events and credentials by extended existing reporting plugin points.
-Plugins are built with [django-plugins](https://pypi.org/project/django-plugins-bihealth/) 
-(Docs: https://django-plugins.readthedocs.io/en/latest/). Examples can be found within the various `*-reports` apps 
-included with the Stepping Stones project.
-
-Place your own reporting plugins in a Django App which should then be extracted into the deployed Stepping Stones 
-Django Project and the new app included in the `INSTALLED_APPS` list within `stepping_stones\settings.py`.
+It's possible to extend Stepping Stone's functionality via plugins. Additional docs are available [here](docs/plugins.md)
