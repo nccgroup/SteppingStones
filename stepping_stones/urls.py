@@ -19,7 +19,8 @@ from django.views.generic import RedirectView
 from djangoplugins.utils import include_plugins
 
 from event_tracker.models import Task
-from event_tracker.plugins import EventReportingPluginPoint, CredentialReportingPluginPoint
+from event_tracker.plugins import EventReportingPluginPoint, CredentialReportingPluginPoint, \
+    EventStreamSourcePluginPoint
 
 
 def root_view(request):
@@ -38,4 +39,5 @@ urlpatterns = [
     path('taggit/', include('taggit_bulk.urls')),
     path('plugins/events-reports/', include_plugins(EventReportingPluginPoint)),
     path('plugins/cred-reports/', include_plugins(CredentialReportingPluginPoint)),
+    path('plugins/eventstream-sources/', include_plugins(EventStreamSourcePluginPoint)),
 ]

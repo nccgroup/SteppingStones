@@ -51,7 +51,7 @@ from datetime import datetime, timedelta
 
 from dal import autocomplete
 
-from .plugins import EventReportingPluginPoint
+from .plugins import EventReportingPluginPoint, EventStreamSourcePluginPoint
 from .signals import cs_beacon_to_context, cs_beaconlog_to_file, notify_webhook_new_beacon, cs_listener_to_context, \
     get_driver_for
 from .templatetags.custom_tags import render_ts_local
@@ -1006,6 +1006,16 @@ class EventStreamListView(PermissionRequiredMixin, TemplateView):
     permission_required = 'event_tracker.view_eventstream'
     template_name = "event_tracker/eventstream_list.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        if EventStreamSourcePluginPoint.get_plugins_qs().filter(status=ENABLED).exists():
+            context['source_plugins'] = []
+            for plugin in EventStreamSourcePluginPoint.get_plugins():
+                if plugin.is_access_permitted(self.request.user):
+                    context['source_plugins'].append(plugin)
+
+        return context
 
 class EventStreamListJSON(PermissionRequiredMixin, FilterableDatatableView):
     permission_required = 'event_tracker.view_eventstream'

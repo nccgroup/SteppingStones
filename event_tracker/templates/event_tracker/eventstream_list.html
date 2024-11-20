@@ -78,45 +78,65 @@ EventStream
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-        {% if perms.event_tracker.add_eventstream %}
-            <div class="btn-group" role="group" id="page-controls">
-                <a href="{% url 'event_tracker:eventstream-upload' %}" class="btn btn-success"><i class="fa-solid fa-house-flood-water"></i> Upload EventStream</a>
-
-                <div class="dropdown">
-                  <button class="btn btn-outline-info dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-info-circle"></i> EventStream Spec.
-                  </button>
-                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                    <li><a class="dropdown-item" href="{% static 'eventstream/eventstream-example.json' %}">Example File</a></li>
-                    <li><a class="dropdown-item" href="{% static 'eventstream/eventstream.schema.json' %}">Schema</a></li>
-                    <li><a class="dropdown-item" href="{% static 'eventstream/schema-doc.html' %}">Schema Doc</a></li>
-                  </ul>
+            <div id="page-controls">
+            {% if perms.event_tracker.add_eventstream %}
+                <div class="btn-group" role="group">
+                    <a href="{% url 'event_tracker:eventstream-upload' %}" class="btn btn-success"><i class="fa-solid fa-house-flood-water"></i> Upload EventStream</a>
+    
+                    <div class="dropdown">
+                      <button class="btn btn-outline-info dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-info-circle"></i> EventStream Spec.
+                      </button>
+                      <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                        <li><a class="dropdown-item" href="{% static 'eventstream/eventstream-example.json' %}">Example File</a></li>
+                        <li><a class="dropdown-item" href="{% static 'eventstream/eventstream.schema.json' %}">Schema</a></li>
+                        <li><a class="dropdown-item" href="{% static 'eventstream/schema-doc.html' %}">Schema Doc</a></li>
+                      </ul>
+                    </div>
                 </div>
-            </div>
             {% endif %}
-        <div class="mt-2">
-            <table class="table table-sm table-striped">
-              <thead>
-                <tr>
-                  <th scope="col">Timestamp</th>
-                  <th scope="col">Source</th>
-                  <th scope="col">Target</th>
-                  <th scope="col">Description</th>
-                  <th scope="col">MITRE</th>
-                  <th scope="col">Additional Data</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-
-              </tbody>
-            </table>
+            {% if source_plugins %}
+                <div class="btn-group" role="group">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-file-signature"></i> Sources
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                        {% for plugin in source_plugins %}
+                            {% ifchanged plugin.category %}
+                                {% if not forloop.first %}<li><hr class="dropdown-divider"></li>{% endif %}
+                                <li><h6 class="dropdown-header">{{ plugin.category }}</h6></li>
+                            {% endifchanged %}
+                            <li><a href="{% url plugin.entry_point_name %}" class="dropdown-item"><i class="{{ plugin.icon_class }}"></i> {{ plugin.title }}</a></li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+            </div>
+            <div class="mt-2">
+                <table class="table table-sm table-striped">
+                  <thead>
+                    <tr>
+                      <th scope="col">Timestamp</th>
+                      <th scope="col">Source</th>
+                      <th scope="col">Target</th>
+                      <th scope="col">Description</th>
+                      <th scope="col">MITRE</th>
+                      <th scope="col">Additional Data</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+    
+                  </tbody>
+                </table>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+</div>
 
-    <script nonce="{{request.csp_nonce}}">
+<script nonce="{{request.csp_nonce}}">
     $(function () {
       $('[data-toggle="tooltip"]').tooltip();
       $.fn.dataTable.moment('{% datetime_format_moment %}');
@@ -188,6 +208,6 @@ EventStream
           drawCallback: tableDrawCallback
       } )
     })
-    </script>
+</script>
 {%  endblock bootstrap5_content %}
 {% endblock body %}

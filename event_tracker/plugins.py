@@ -8,7 +8,7 @@ class EventReportingPluginPoint(PluginPoint):
     view_class = None
 
     def entry_point_name(self):
-        return f'{self.name}-entry-point'
+        return self.urls[0].name
 
     def is_access_permitted(self, user):
         if self.view_class:
@@ -24,7 +24,7 @@ class CredentialReportingPluginPoint(PluginPoint):
     view_class = None
 
     def entry_point_name(self):
-        return f'{self.name}-entry-point'
+        return self.urls[0].name
 
     def is_access_permitted(self, user):
         if self.view_class:
@@ -39,3 +39,19 @@ class BackgroundTaskPluginPoint(PluginPoint):
     repeat_seconds = 0
     replace_existing_tasks = True
     schedule_function = None
+
+
+class EventStreamSourcePluginPoint(PluginPoint):
+    category = "Undefined Category"
+    icon_class = "fa-solid fa-notdef"
+    view_class = None
+
+    def entry_point_name(self):
+        return self.urls[0].name
+
+    def is_access_permitted(self, user):
+        if self.view_class:
+            perms = self.view_class().get_permission_required()
+            return user.has_perms(perms)
+        else:
+            return False
