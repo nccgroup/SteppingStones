@@ -692,6 +692,15 @@ Edit Event
 
         var reader = new FileReader();
 
+        function arrayBufferToWordArray(ab) {
+          var i8a = new Uint8Array(ab);
+          var a = [];
+          for (var i = 0; i < i8a.length; i += 4) {
+            a.push(i8a[i] << 24 | i8a[i + 1] << 16 | i8a[i + 2] << 8 | i8a[i + 3]);
+          }
+          return CryptoJS.lib.WordArray.create(a, i8a.length);
+        }
+        
         reader.onloadend = (function() {
             var event_target = $(e.target);
             return function(evt) {
@@ -699,7 +708,7 @@ Edit Event
                     var container =  $(e.target).closest(".select-form-container");
                     container.find("input[name$=filename]").val(file.name);
                     container.find("input[name$=size]").val(file.size);
-                    var data = CryptoJS.enc.Latin1.parse(evt.target.result)
+                    var data = arrayBufferToWordArray(evt.target.result)
                     container.find("input[name$=md5_hash]").val(CryptoJS.MD5(data));
                     container.find("input[name$=sha1_hash]").val(CryptoJS.SHA1(data));
                     container.find("input[name$=sha256_hash]").val(CryptoJS.SHA256(data));
@@ -707,7 +716,7 @@ Edit Event
             }
           })();
 
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
     }
     </script>
 {% endblock body %}
