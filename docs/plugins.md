@@ -30,22 +30,24 @@ python manage.py syncplugins
 Adds menu options to pages in Stepping Stones to tie the plugin into the existing functionality. Useful for
 bespoke reporting formats or plugin config pages.
 
-#### EventReportingPluginPoint
+#### Classes
+
+##### EventReportingPluginPoint
 
 A plugin point which will add a link under the "Reporting" button on the Events page. Useful for a class which 
 generates reports based on events in the main SteppingStones event database.
 
-#### CredentialReportingPluginPoint
+##### CredentialReportingPluginPoint
 
 A plugin point which will add a link under a "Reporting" button on the Credentials page. Useful for a class which
 generates reports based on credentials in the main Stepping Stones credential database.
 
-#### EventStreamSourcePluginPoint
+##### EventStreamSourcePluginPoint
 
 A plugin point which will add a link under a "Sources" button on the EventStream page. Useful for allowing users to 
 graphically configuring services that can populate the EventStream database.
 
-##### Member Variables
+#### Member Variables
 
 title
 : Required : a human-readable, short name for the plugin displayed on the plugin management pages. 
@@ -71,11 +73,13 @@ plugins.
 
 ### Background Tasks
 
-#### BackgroundTaskPluginPoint
+#### Classes
+
+##### BackgroundTaskPluginPoint
 
 Used to start a background thread when SteppingStones starts. Task runs under the "ssbot" process / service.
 
-##### Member Variables
+#### Member Variables
 
 title
 : Required : a human-readable, short name for the plugin displayed on the plugin management pages. 
