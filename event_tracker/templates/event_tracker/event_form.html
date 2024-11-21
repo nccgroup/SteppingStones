@@ -84,6 +84,10 @@ Edit Event
             filter: brightness(80%);
         }
 
+        label[for="id_source_host"] + div .input-group-text {
+            cursor: alias;
+        }
+
     {% for context in contexts %}
         li:has(.ctx{{ context.id }}) {
             background-color: {{ context.colour }}20;
