@@ -45,7 +45,7 @@ generates reports based on credentials in the main Stepping Stones credential da
 A plugin point which will add a link under a "Sources" button on the EventStream page. Useful for allowing users to 
 graphically configuring services that can populate the EventStream database.
 
-##### Member Variables:
+##### Member Variables
 
 title
 : Required : a human-readable, short name for the plugin displayed on the plugin management pages. 
@@ -75,7 +75,7 @@ plugins.
 
 Used to start a background thread when SteppingStones starts. Task runs under the "ssbot" process / service.
 
-##### Member Variables:
+##### Member Variables
 
 title
 : Required : a human-readable, short name for the plugin displayed on the plugin management pages. 
