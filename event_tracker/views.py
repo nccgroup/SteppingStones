@@ -455,9 +455,9 @@ class EventForm(forms.ModelForm):
     timestamp = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
     timestamp_end = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}), required=False)
     operator = forms.ModelChoiceField(User.objects)
-    mitre_attack_tactic = forms.ModelChoiceField(AttackTactic.objects, required=False, label="Tactic")
-    mitre_attack_technique = forms.ModelChoiceField(AttackTechnique.objects, required=False, label="Technique")
-    mitre_attack_subtechnique = forms.ModelChoiceField(AttackSubTechnique.objects, required=False, label="Subtechnique")
+    mitre_attack_tactic = forms.ModelChoiceField(AttackTactic.objects, required=False, label="Tactic", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:suggestions-mitre-attack"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
+    mitre_attack_technique = forms.ModelChoiceField(AttackTechnique.objects, required=False, label="Technique", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:suggestions-mitre-attack"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
+    mitre_attack_subtechnique = forms.ModelChoiceField(AttackSubTechnique.objects, required=False, label="Subtechnique", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:suggestions-mitre-attack"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
     source = forms.ModelChoiceField(get_context_queryset(), required=False, empty_label="New Source...", widget=autocomplete.ModelSelect2(url='event_tracker:context-autocomplete', attrs={"data-placeholder": "New Source...", "data-html": True, "data-theme":"bootstrap-5", "class": "clonable-dropdown"}))
     target = forms.ModelChoiceField(get_context_queryset(), required=False, empty_label="New Target...", widget=autocomplete.ModelSelect2(url='event_tracker:context-autocomplete', attrs={"data-placeholder": "New Target...", "data-html": True, "data-theme":"bootstrap-5", "class": "clonable-dropdown"}))
     description = forms.CharField(widget=forms.Textarea())
@@ -1713,6 +1713,6 @@ class MitreAttackSuggestion(View):
         context["mitre_suggestions"] = generate_suggestions(event_form)
 
         if not context["mitre_suggestions"]:
-            return HttpResponse(status=204)
+            return HttpResponse(status=200)  # Send 200 with no content to clear the suggestion box. HTMX treats 204 as "no change"
 
         return render(request, "suggestions/mitre_attack.html", context)
