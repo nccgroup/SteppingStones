@@ -2,11 +2,11 @@
 {% for suggestion in mitre_suggestions %}
     <a class="btn btn-secondary btn-sm mitre-attack-suggestion d-inline-block my-1" href="#" data-tactic="{{ suggestion.mitre_attack_tactic.pk }}" {% if suggestion.mitre_attack_technique %}data-technique="{{ suggestion.mitre_attack_technique.pk }}"{% endif %} {% if suggestion.mitre_attack_subtechnique %}data-subtechnique="{{ suggestion.mitre_attack_subtechnique.pk }}"{% endif %}>
 {% if suggestion.mitre_attack_subtechnique %}
-  {{ suggestion.mitre_attack_subtechnique.mitre_id }} {{ suggestion.mitre_attack_technique.name }} - {{ suggestion.mitre_attack_subtechnique.name }}
+  {{ suggestion.mitre_attack_tactic.name }} &ndash; {{ suggestion.mitre_attack_subtechnique.name }}
 {% elif suggestion.mitre_attack_technique %}
-  {{ suggestion.mitre_attack_technique }}
+  {{ suggestion.mitre_attack_tactic.name }} &ndash; {{ suggestion.mitre_attack_technique.name }}
 {% elif suggestion.mitre_attack_tactic %}
-  {{ suggestion.mitre_attack_tactic }}
+  {{ suggestion.mitre_attack_tactic.name }}
 {% else %}
   -
 {% endif %}

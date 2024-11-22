@@ -17,10 +17,12 @@ autoreload_started.connect(watch_yara_files)
 compiler = yara_x.Compiler(relaxed_re_syntax=True)
 
 # Iterate over files in directory
-for name in os.listdir(directory):
-    # Open file
-    with open(os.path.join(directory, name)) as f:
-        compiler.add_source(f.read(), os.path.join(directory, name))
+with os.scandir(directory) as entries:
+    for entry in entries:
+        if entry.name.endswith('.yar') and entry.is_file():
+            with open(os.path.join(directory, entry.name)) as f:
+                compiler.add_source(f.read(), entry.path)
+
 
 rules = compiler.build()
 
