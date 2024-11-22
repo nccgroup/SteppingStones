@@ -12,7 +12,7 @@ from .views import EventCreateView, EventUpdateView, EventDeleteView, EventListV
     UserListAutocomplete, HostListAutocomplete, ProcessListAutocomplete, InitialConfigTask, InitialConfigAdmin, \
     toggle_event_star, EventTagAutocomplete, TeamServerConfigView, EventStreamListView, EventStreamListJSON, EventStreamUpload, \
     EventStreamToEventView, toggle_qs_stars, LimitedEventUpdateView, EventBulkEdit, \
-    TeamServerHealthCheckView
+    TeamServerHealthCheckView, MitreAttackSuggestion
 from .views_bloodhound import BloodhoundServerListView, BloodhoundServerCreateView, BloodhoundServerUpdateView, \
     BloodhoundServerDeleteView
 from .views_credentials import CredentialListView, CredentialListJson, CredentialCreateView, CredentialUpdateView, \
@@ -116,6 +116,8 @@ urlpatterns = [
     path('host-list-autocomplete/', HostListAutocomplete.as_view(), name='host-list-autocomplete'),
     path('user-list-autocomplete/', UserListAutocomplete.as_view(), name='user-list-autocomplete'),
     path('process-list-autocomplete/', ProcessListAutocomplete.as_view(), name='process-list-autocomplete'),
+
+    path('suggestions/mitre-attack', MitreAttackSuggestion.as_view(), name='suggestions-mitre-attack'),
 
     path('initial-config/task', InitialConfigTask.as_view(), name='initial-config-task'),
     path('initial-config/admin', InitialConfigAdmin.as_view(), name='initial-config-admin'),

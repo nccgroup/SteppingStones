@@ -51,7 +51,7 @@
         {% block head %}{% endblock head %}
   </head>
 
-  <body>
+  <body hx-ext="safe-nonce" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <script nonce="{{request.csp_nonce}}">
         // Set theme to the user's preferred color scheme
         function updateTheme() {

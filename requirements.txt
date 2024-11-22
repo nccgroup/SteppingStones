@@ -27,3 +27,4 @@ django_csp==3.8
 django-permissions-policy==4.21.0
 ansi2html==1.9.2
 django-plugins-bihealth==0.5.2
+yara-x==0.10.0

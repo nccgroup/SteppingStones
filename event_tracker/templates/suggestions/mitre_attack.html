@@ -1,0 +1,20 @@
+<div class="alert alert-light py-2" role="alert">Suggestion{{ mitre_suggestions | pluralize }}:
+{% for suggestion in mitre_suggestions %}
+    <a class="btn btn-secondary btn-sm mitre-attack-suggestion d-inline-block my-1" href="#" data-tactic="{{ suggestion.mitre_attack_tactic.pk }}" {% if suggestion.mitre_attack_technique %}data-technique="{{ suggestion.mitre_attack_technique.pk }}"{% endif %} {% if suggestion.mitre_attack_subtechnique %}data-subtechnique="{{ suggestion.mitre_attack_subtechnique.pk }}"{% endif %}>
+{% if suggestion.mitre_attack_subtechnique %}
+  {{ suggestion.mitre_attack_subtechnique.mitre_id }} {{ suggestion.mitre_attack_technique.name }} - {{ suggestion.mitre_attack_subtechnique.name }}
+{% elif suggestion.mitre_attack_technique %}
+  {{ suggestion.mitre_attack_technique }}
+{% elif suggestion.mitre_attack_tactic %}
+  {{ suggestion.mitre_attack_tactic }}
+{% else %}
+  -
+{% endif %}
+   </a>{% endfor %}</div>
+
+<script nonce="{{request.csp_nonce}}">
+    $(".mitre-attack-suggestion").on("click", function() {
+        setMitre($(this).data("tactic"), $(this).data("technique"), $(this).data("subtechnique"));
+        return false;
+    })
+</script>

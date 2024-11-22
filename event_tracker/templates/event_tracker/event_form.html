@@ -12,7 +12,11 @@ Edit Event
 
 {% block head %}
     {% include "base/external-libs/jquery.html" %}
-
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.3/htmx.min.js" integrity="sha512-dQu3OKLMpRu85mW24LA1CUZG67BgLPR8Px3mcxmpdyijgl1UpCM1RtJoQP6h8UkufSnaHVRTUx98EQT9fcKohw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <meta name="htmx-config" content='{"inlineScriptNonce":"{{request.csp_nonce}}","inlineStyleNonce":"{{request.csp_nonce}}","allowEval":false}'>
+    <script src="{% static "scripts/safe-nonce.min.js" %}"></script>
+    
     <script src="{% static "scripts/jquery.formset.js" %}"></script>
     <style nonce="{{request.csp_nonce}}">
         .form-select { height: 2.5em !important;}
@@ -86,6 +90,11 @@ Edit Event
 
         label[for="id_source_host"] + div .input-group-text {
             cursor: alias;
+        }
+        
+        #mitre-attack-suggestions {
+            margin: 0;
+            padding-top: 0.5em;
         }
 
     {% for context in contexts %}
@@ -258,6 +267,7 @@ Edit Event
                     {% bootstrap_field form.mitre_attack_technique    wrapper_class="col" %}
                     {% bootstrap_field form.mitre_attack_subtechnique wrapper_class="col" %}
                 </div>
+                <div id="mitre-attack-suggestions" class="row"></div>
             </div>
         </div>
 
@@ -582,6 +592,9 @@ Edit Event
 
     // ---- MITRE ATT&CK ----
     function tacticChanged(idToSelect) {
+        // Make this function usable as a promise
+        var defer = $.Deferred(); 
+        
         // Populate the techniques
         var techniqueList = $('#id_mitre_attack_technique')
         techniqueList.empty()
@@ -609,6 +622,7 @@ Edit Event
                        techniqueList.prop('disabled', false);
 
                        techniqueChanged(prevSubTechniqueSelection);
+                       defer.resolve();
                    }
             })
         } else {
@@ -618,7 +632,10 @@ Edit Event
 
             // Clear sub techniques if there's no technique selected
             techniqueChanged(-1)
+            defer.resolve();
         }
+        
+        return defer.promise();
     }
 
     function techniqueChanged(idToSelect) {
@@ -718,6 +735,13 @@ Edit Event
 
         reader.readAsArrayBuffer(file);
     }
+    
+    function setMitre(tactic, technique, subtechnique) {
+        $.when($("#id_mitre_attack_tactic").val(tactic))
+            .then(tacticChanged(technique).then(function() {techniqueChanged(subtechnique)}))
+            .done();
+    }
+    
     </script>
 {% endblock body %}
 
