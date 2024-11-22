@@ -3,9 +3,9 @@ rule net_view {
         mitre_att_tactic = "TA0007"
         mitre_att_technique = "T1135"
     strings:
-        $net_view = "net view"
+        $ = "net view"
     condition:
-        $net_view
+        any of them
 }
 
 rule portscan {
@@ -13,7 +13,17 @@ rule portscan {
         mitre_att_tactic = "TA0007"
         mitre_att_technique = "T1046"
     strings:
-        $portscan = "portscan" nocase
+        $ = "portscan" nocase
     condition:
-        $portscan
+        any of them
+}
+
+rule netGroupListMembers {
+    meta:
+        mitre_att_tactic = "TA0007"
+        mitre_att_technique = "T1069.002"
+    strings:
+        $ = "netGroupListMembers"
+    condition:
+        any of them
 }
