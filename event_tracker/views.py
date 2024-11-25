@@ -981,7 +981,7 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
             if row.type == "input":
                 result += f"<div class='input'>{row.data}</div>"
 
-            result += f"<div class='output'>{html.escape('\n'.join(row.associated_beaconlog_output.values_list('data', flat=True)))}</div>"
+            result += f"<div class='output'>{html.escape(chr(10).join(row.associated_beaconlog_output.values_list('data', flat=True)))}</div>"
 
             return result
         elif column == '':  # The column with button in
