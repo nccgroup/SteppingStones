@@ -27,9 +27,38 @@ rule netGroupListMembers {
         mitre_att_technique = "T1069.002"
         tool_owner = "TrustedSec"
         tool_name = "Situational Awareness BOF"
+        tool_component = "netGroupListMembers"
         tool_url = "https://github.com/trustedsec/CS-Situational-Awareness-BOF"
     strings:
         $ = "netGroupListMembers"
+    condition:
+        any of them
+}
+
+rule ldapsearch {
+    meta:
+        mitre_att_tactic = "TA0007"
+        mitre_att_technique = "T1087.002"
+        tool_owner = "TrustedSec"
+        tool_name = "Situational Awareness BOF"
+        tool_component = "ldapsearch"
+        tool_url = "https://github.com/trustedsec/CS-Situational-Awareness-BOF"
+    strings:
+        $ = "ldapsearch"
+    condition:
+        any of them
+}
+
+rule wmiquery {
+    meta:
+        mitre_att_tactic = "TA0007"
+        mitre_att_technique = "T1082"
+        tool_name = "Impacket"
+        tool_component = "wmiquery"
+        tool_url = "https://github.com/fortra/impacket"
+    strings:
+        $ = "wmiquery.py"
+        $ = "impacket-wmiquery"
     condition:
         any of them
 }

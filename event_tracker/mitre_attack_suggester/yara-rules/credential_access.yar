@@ -47,3 +47,35 @@ rule GMSAPasswordReader {
     condition:
         all of them
 }
+
+rule secretsdump_hivefiles_lsa {
+    meta:
+        mitre_att_tactic = "TA0006"
+        mitre_att_technique = "T1003.004"
+        tool_name = "Impacket"
+        tool_component = "secretsdump"
+        tool_url = "https://github.com/fortra/impacket"
+    strings:
+        $command_1 = "secretsdump.py"
+        $command_2 = "impacket-secretsdump"
+        $param_1 = "local"
+        $param_2 = "-security"
+    condition:
+        any of ($command_1, $command_2) and all of ($param_1, $param_2)
+}
+
+rule secretsdump_hivefiles_cdc { // Same as above rule, but with "Cached Domain Credentials" technique
+    meta:
+        mitre_att_tactic = "TA0006"
+        mitre_att_technique = "T1003.005"
+        tool_name = "Impacket"
+        tool_component = "secretsdump"
+        tool_url = "https://github.com/fortra/impacket"
+    strings:
+        $command_1 = "secretsdump.py"
+        $command_2 = "impacket-secretsdump"
+        $param_1 = "local"
+        $param_2 = "-security"
+    condition:
+        any of ($command_1, $command_2) and all of ($param_1, $param_2)
+}
