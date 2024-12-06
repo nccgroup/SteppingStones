@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'html_reports',
     'markdown_reports',
     'external_tool_reports',
+    'import_export',
 ]
 
 MIDDLEWARE = [
@@ -215,3 +216,6 @@ PERMISSIONS_POLICY = {
 
 # Define backend for matplotlib. Ensure a non-interactive backend is chosen to avoid dangling resources
 matplotlib.use('agg')
+
+IMPORT_EXPORT_IMPORT_PERMISSION_CODE = "add"
+IMPORT_EXPORT_EXPORT_PERMISSION_CODE = "view"

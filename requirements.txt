@@ -28,3 +28,4 @@ django-permissions-policy==4.23.0
 ansi2html==1.9.2
 django-plugins-bihealth==0.5.2
 yara-x==0.10.0
+django-import-export==4.3.3
