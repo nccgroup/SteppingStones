@@ -114,12 +114,12 @@ def _get_dn_children(tx, parent):
         parent = []
 
     children = tx.run("""
-    match (n) where reverse(split(n.distinguishedname, ','))[$parent_len] is not null and 
-           reverse(split(n.distinguishedname, ','))[0..$parent_len] = $parent
-    return distinct reverse(split(n.distinguishedname, ','))[$parent_len] as nodetext, 
-           reverse(split(n.distinguishedname, ','))[0..$node_len] as nodepath,
+    match (n) where reverse(split(replace(n.distinguishedname, "\\\\,", "%5c%2c"), ','))[$parent_len] is not null and 
+           reverse(split(replace(n.distinguishedname, "\\\\,", "%5c%2c"), ','))[0..$parent_len] = $parent
+    return distinct reverse(split(replace(n.distinguishedname, "\\\\,", "&comma;"), ','))[$parent_len] as nodetext, 
+           reverse(split(replace(n.distinguishedname, "\\\\,", "%5c%2c"), ','))[0..$node_len] as nodepath,
            count(*) as childcount,
-           not max(size(split(n.distinguishedname, ',')) > $node_len) as isleaf,
+           not max(size(split(replace(n.distinguishedname, "\\\\,", "%5c%2c"), ',')) > $node_len) as isleaf,
            collect(distinct labels(n)) as labs,
            true in collect(n.owned) as owned
     order by left(nodetext, 3) <> "DC=", isleaf, toLower(split(nodetext, '=')[-1])""", parent=parent, parent_len=len(parent), node_len=len(parent) + 1)

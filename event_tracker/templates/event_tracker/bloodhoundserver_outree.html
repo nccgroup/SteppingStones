@@ -48,7 +48,7 @@ $(function () { $('#jstree_div').jstree({
         'data' : {
             'url' : "{% url "event_tracker:bloodhound-ou-api" %}",
               'data' : function (node) {
-                  return { 'id' : node.id };
+                  return { 'id' : decodeURIComponent(node.id) };
               }
         },
         'themes': {
@@ -97,9 +97,9 @@ $(function () { $('#jstree_div').jstree({
 }).on('changed.jstree', function (e, data) {
     var i, j, r = [];
     for(i = 0, j = data.selected.length; i < j; i++) {
-      r.push(data.instance.get_node(data.selected[i]).text);
+      r.push(decodeURIComponent(data.instance.get_node(data.selected[i]).text));
     }
-        $('#selected').attr("src", "{% url "event_tracker:bloodhound-node" "dndndn" %}".replace("dndndn", data.node.id.split(",").reverse().join(",")));
+        $('#selected').attr("src", "{% url "event_tracker:bloodhound-node" "dndndn" %}".replace("dndndn", encodeURIComponent(decodeURIComponent(data.node.id.split(",").reverse().join(",")))));
   });
 });
 </script>
