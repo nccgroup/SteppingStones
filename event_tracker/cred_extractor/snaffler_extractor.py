@@ -10,8 +10,9 @@ dotnet_connection_string = re.compile(r'\"(;?\s*User ID=(?P<account>[^;\"]+)|;?\
 db_connection_string = re.compile(r'(?=.*Password=)(;?\s*User ID=(?P<account>[^;<>\"]+)|;?\s*Password=(?P<secret>[^;<>\"]+)|;?\s*(Data Source|Server)=(?P<system>[^;<>\"]+)|;?[^;<>\"]+)+', re.IGNORECASE)  # Similar to above, but embedded in XML, so switch quotes to angle brackets
 websense_client_password = re.compile(r'WDEUtil[^\n]+-password +(?P<secret>\S+)', re.IGNORECASE)
 
+
 class SnafflerExtractor(CredentialExtractor):
-    def extract(self, input_text: str, default_system: str) -> [Credential]:
+    def extract(self, input_text: str, default_system: str) -> ([Credential], [Credential]):
         result = []
 
         for match in snaffler_finding.finditer(input_text):
@@ -66,7 +67,7 @@ class SnafflerExtractor(CredentialExtractor):
                                                source_time=match['ainfo'].split('|')[-1],
                                                purpose='Websense Client Password'))
 
-        return result
+        return result, []
 
     def unescape_content(self, match):
         content = re.sub(r'\\r', r'\r', match["cinfo"])

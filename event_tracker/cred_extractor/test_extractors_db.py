@@ -8,7 +8,7 @@ class ExtractorTestCaseWithDB(django.test.TestCase):
 
     def test_rubeus_kerberoast_crlf(self):
         # Hash from HashCat example hashes
-        result = extract("""
+        result, _ = extract("""
 [*] SamAccountName         : USER\r
 [*] DistinguishedName      : CN=USER,OU=Service Accounts,OU=Non-Personal,OU=Accounts,OU=Brand,DC=domain,DC=local\r
 [*] ServicePrincipalName   : test/spn\r
@@ -28,7 +28,7 @@ class ExtractorTestCaseWithDB(django.test.TestCase):
 
     def test_rubeus_kerberoast_lf(self):
         # Hash from HashCat example hashes
-        result = extract("""
+        result, _ = extract("""
 [*] SamAccountName         : USER
 [*] DistinguishedName      : CN=USER,OU=Service Accounts,OU=Non-Personal,OU=Accounts,OU=Brand,DC=domain,DC=local
 [*] ServicePrincipalName   : test/spn

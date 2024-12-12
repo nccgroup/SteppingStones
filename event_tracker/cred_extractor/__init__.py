@@ -8,10 +8,13 @@ class CredentialExtractor(ABC):
     """
 
     @abstractmethod
-    def extract(self, input_text: str, default_system: str) -> [Credential]:
+    def extract(self, input_text: str, default_system: str) -> ([Credential], [Credential]):
         """
-        Returns a list of Credential objects found in the text.
-        Objects will be added to the DB if required _by the caller_.
+        Returns a tuple of:
+          a list of new Credential objects found in the text to add to the database,
+          a list of existing Credential objects superceeded as a result of the first list which should be deleted.
+
+        Objects will be added and removed to/from the DB if required _by the caller_.
         """
         pass
 
@@ -25,8 +28,8 @@ class CredentialExtractorGenerator(CredentialExtractor, ABC):
     """
     Special type of CredentialExtractor which uses a generator method
     """
-    def extract(self, input_text: str, default_system: str) -> [Credential]:
-        return list(self.cred_generator(input_text, default_system))
+    def extract(self, input_text: str, default_system: str) -> ([Credential], [Credential]):
+        return list(self.cred_generator(input_text, default_system)), list()
 
     @abstractmethod
     def cred_generator(self, input_text: str, default_system: str) -> Credential:

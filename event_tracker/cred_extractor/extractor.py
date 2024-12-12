@@ -34,11 +34,11 @@ extractor_classes = [SnafflerExtractor, BrowserExtractor, NetNTLMv1Extractor, Ne
 
 @transaction.atomic
 def extract_and_save(input_text: str, default_system: str) -> tuple[int, int]:
-    credentials = extract(input_text, default_system)
+    credentials_to_add, credentials_to_delete = extract(input_text, default_system)
     saved_secrets = 0
 
     creds_to_add_in_bulk = []
-    for cred in credentials:
+    for cred in credentials_to_add:
         if cred.secret:
             # post-save action should be called, as we have a secret
             # use keys_to_save as a pseudo-uniqueness constraint for this write operation
@@ -55,15 +55,23 @@ def extract_and_save(input_text: str, default_system: str) -> tuple[int, int]:
     Credential.objects.bulk_create(creds_to_add_in_bulk, ignore_conflicts=True,
                                    unique_fields=["hash", "hash_type", "account", "system"])
 
+    for obj in credentials_to_delete:
+        obj.delete()
+
     return Credential.objects.count() - pre_insert_count, saved_secrets
 
 
-def extract(input_text: str, default_system: str) -> [Credential]:
-    credentials = []
+def extract(input_text: str, default_system: str) -> ([Credential], [Credential]):
+    credentials_to_add = []
+    credentials_to_remove = []
     functions = [subclass().extract for subclass in extractor_classes]
     futures = []
     for function in functions:
         futures.append(executor.submit(function, input_text, default_system))
     for future in concurrent.futures.as_completed(futures):
-        credentials += future.result()
-    return credentials
+        result = future.result()
+        if result is not None:
+            to_add, to_remove = result
+            credentials_to_add += to_add
+            credentials_to_remove += to_remove
+    return credentials_to_add, credentials_to_remove

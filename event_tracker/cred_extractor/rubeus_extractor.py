@@ -3,7 +3,7 @@ import re
 from django.db.models import CharField, Value
 from django.db.models.functions import Length, StrIndex
 
-from event_tracker.cred_extractor import CredentialExtractorGenerator
+from event_tracker.cred_extractor import CredentialExtractorGenerator, CredentialExtractor
 from event_tracker.cred_extractor.kerberoast_extractor import convert_tgs_to_hashcat_format
 from event_tracker.models import Credential, HashCatMode
 
@@ -22,8 +22,10 @@ class RubeusU2UExtractor(CredentialExtractorGenerator):
                              purpose="Windows Login", source="Rubeus U2U")
 
 
-class RubeusKerberoastExtractor(CredentialExtractorGenerator):
-    def cred_generator(self, input_text: str, default_system: str):
+class RubeusKerberoastExtractor(CredentialExtractor):
+    def extract(self, input_text: str, default_system: str) -> ([Credential], [Credential]):
+        credentials_to_add = []
+
         for match in rubeus_kerberoast_regex.finditer(input_text):
             hash_str = match.groupdict()["hash"].replace(" ", "").replace("\n", "").replace("\r", "")
 
@@ -36,21 +38,22 @@ class RubeusKerberoastExtractor(CredentialExtractorGenerator):
             elif hash_str.startswith("$krb5tgs$17$"):
                 hash_type = 19600
 
-            yield Credential(hash=hash_str, account=match.groupdict()["account"],
+            credentials_to_add.append(Credential(hash=hash_str, account=match.groupdict()["account"],
                              hash_type=hash_type, system=match.groupdict()["system"] or default_system,
                              purpose=f"Windows Login (used by SPN: {match.groupdict()['purpose'].strip()})",
-                             source="Rubeus Kerberoasting")
+                             source="Rubeus Kerberoasting"))
 
             # Remove any similar but truncated hashes which haven't cracked, these are a result of stream processing kicking
             # in before the multiline kerberos ticket has been fully parsed from CS logs
             CharField.register_lookup(Length)
-            Credential.objects.filter(account=match.groupdict()["account"],
+            credentials_to_remove = list(Credential.objects.filter(account=match.groupdict()["account"],
                                       hash_type=hash_type, system=match.groupdict()["system"] or default_system,
                                       purpose=f"Windows Login (used by SPN: {match.groupdict()['purpose'].strip()})",
                                       source="Rubeus Kerberoasting") \
                 .filter(hash__length__lt=len(hash_str), secret__isnull=True) \
-                .annotate(stri=StrIndex(Value(hash_str), "hash")).filter(stri=1) \
-                .delete()
+                .annotate(stri=StrIndex(Value(hash_str), "hash")).filter(stri=1))
+
+            return credentials_to_add, credentials_to_remove
 
 
 class RubeusASREPRoastExtractor(CredentialExtractorGenerator):
