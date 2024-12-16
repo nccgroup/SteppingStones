@@ -30,7 +30,7 @@ class SnafflerExtractor(CredentialExtractor):
                     if innermatch.group("secret"):
                         innermatch_dict = remove_quotes(innermatch.groupdict())
                         if 'purpose' in innermatch_dict:
-                            innermatch_dict['purpose'] = f"SMB login for: {innermatch_dict['purpose']}"
+                            innermatch_dict['purpose'] = f"SMB login to use {chr(0x22) + innermatch_dict['purpose'] + chr(0x22)}"
                         else:
                             innermatch_dict['purpose'] = "SMB login"
                         result.append(Credential(**innermatch_dict,
@@ -55,7 +55,7 @@ class SnafflerExtractor(CredentialExtractor):
                         result.append(Credential(**innermatch_dict,
                                                source=match['binfo'],
                                                source_time=match['ainfo'].split('|')[-1],
-                                               purpose='DB Credentials'))
+                                               purpose='Database Credentials'))
 
             if match["ainfo"].startswith("KeepPassOrKeyInCode|"):
                 content = self.unescape_content(match)
