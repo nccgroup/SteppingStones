@@ -50,13 +50,13 @@ graphically configuring services that can populate the EventStream database.
 #### Member Variables
 
 title
-: Required : a human-readable, short name for the plugin displayed on the plugin management pages. 
+: Required : a human-readable, short name for the plugin displayed on the plugin management pages, e.g. "My Amazing Report"
 
 name
-: Required : a slug used for building plugin URLs
+: Required : a slug used for building plugin URLs, e.g. "my-amazing-report"
 
 category
-: Required : The name of the section title in the drop down menu to add the link under. Can define a new category or 
+: Required : The name of the section title in the drop-down menu to add the link under. Can define a new category or 
 use an existing one
 
 icon_class
@@ -69,7 +69,8 @@ PermissionRequiredMixin as the permissions are checked to ensure it is worth add
 urls
 : Required : A list similar to the `urlpatterns` found in `urls.py`, specifically for this plugin. The first entry in
 list will be used for the link added to the Stepping Stones UI, additional entries can then be used to build mutli-page
-plugins.
+plugins. The first link will be passed an integer argument which represents the task ID. This should be assigned to a
+URL param, e.g. `<int:task_id>\rest-of-path`
 
 ### Background Tasks
 
