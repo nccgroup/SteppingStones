@@ -55,7 +55,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django_referrer_policy.middleware.ReferrerPolicyMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -165,7 +164,7 @@ MAX_RUN_TIME = 60 * 60 * 24 * 365 * 10  # 10 years
 
 TAGGIT_CASE_INSENSITIVE = True
 
-REFERRER_POLICY = "same-origin"
+SECURE_REFERRER_POLICY = "same-origin"
 
 CSP_DEFAULT_SRC = ("'none'",)
 CSP_SCRIPT_SRC_ELEM = ("'self'", "cdnjs.cloudflare.com", "cdn.datatables.net", "cdn.jsdelivr.net", "unpkg.com", "api.ipify.org")
