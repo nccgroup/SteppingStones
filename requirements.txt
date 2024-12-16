@@ -5,8 +5,7 @@ matplotlib==3.9.2
 django-autocomplete-light==3.11.0
 requests==2.32.3
 tldextract==5.1.3
-# Use fork of django-background-tasks which doesn't include "import imp" in tasks.py as that is removed in Py 3.12
-django4-background-tasks @ git+https://github.com/LoyalMed/django4-background-tasks.git@3a844eb
+django4-background-tasks==1.2.10
 psutil==6.1.0
 impacket==0.12.0
 pyasn1==0.6.1
