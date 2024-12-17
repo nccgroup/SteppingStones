@@ -975,8 +975,8 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
             return result
         elif column == 'data':
             result = ""
-            if row.associated_archive_task_description:
-                result += f"<div class='description'>{row.associated_archive_task_description}</div>"
+            if row.associated_archive_tasks_description:
+                result += f"<div class='description'>{row.associated_archive_tasks_description}</div>"
 
             if row.type == "input":
                 result += f"<div class='input'>{row.data}</div>"
