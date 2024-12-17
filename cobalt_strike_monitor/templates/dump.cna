@@ -1,7 +1,14 @@
 $last_session = {{last_session_timestamp}};
 sub session_filter
 {
-    return iff(parseNumber($1["opened"]) > $last_session, $1, $null);
+    if (strlen($1["opened"]) > 0)
+    {
+        return iff(parseNumber($1["opened"]) > $last_session, $1, $null);
+    }
+    else
+    {
+        return $null;
+    }
 }
 
 sub session_sorter
@@ -22,7 +29,14 @@ sub archive_filter
 $last_beaconlog = {{last_beaconlog_timestamp}};
 sub beaconlog_filter
 {
-    return iff(parseNumber($1[-1]) > $last_beaconlog, $1, $null);
+    if (strlen($1[-1]) > 0)
+    {
+        return iff(parseNumber($1[-1]) > $last_beaconlog, $1, $null);
+    }
+    else
+    {
+        return $null;
+    }
 }
 
 $last_credential = {{last_credential_timestamp}};
@@ -42,7 +56,14 @@ sub credential_sorter
 $last_download = {{last_download_timestamp}};
 sub download_filter
 {
-    return iff(parseNumber($1["date"]) > $last_download, $1, $null);
+    if (strlen($1["date"]) > 0)
+    {
+        return iff(parseNumber($1["date"]) > $last_download, $1, $null);
+    }
+    else
+    {
+        return $null;
+    }
 }
 
 sub download_sorter
