@@ -61,7 +61,7 @@ def _get_kerberoastables(tx, system: Optional[str]):
             OPTIONAL MATCH shortestPath((n:User)-[:MemberOf]->(g:Group)) WHERE g.highvalue=true 
             return 
                 toLower(n.name), toLower(g.name)
-            order by n.name""").values()
+            order by n.domain, n.name""").values()
 
 
 def _get_asreproastables(tx, system: Optional[str]):
@@ -83,7 +83,7 @@ def _get_asreproastables(tx, system: Optional[str]):
             OPTIONAL MATCH shortestPath((n:User)-[:MemberOf]->(g:Group)) WHERE g.highvalue=true 
             return 
                 toLower(n.name), toLower(g.name)
-            order by n.name""").values()
+            order by n.domain, n.name""").values()
 
 
 def _get_recent_os_distribution(tx, system: Optional[str], most_recent_machine_login):
