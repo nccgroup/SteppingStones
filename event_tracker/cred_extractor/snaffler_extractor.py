@@ -45,7 +45,7 @@ class SnafflerExtractor(CredentialExtractor):
                         result.append(Credential(**innermatch_dict,
                                                source=match['binfo'],
                                                source_time=match['ainfo'].split('|')[-1],
-                                               purpose='DB Credentials'))
+                                               purpose='Database Credentials'))
 
             if match["ainfo"].startswith("KeepDbConnStringPw|"):
                 content = self.unescape_content(match)

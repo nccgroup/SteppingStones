@@ -41,3 +41,5 @@ class CredentialExtractorGenerator(CredentialExtractor, ABC):
 
 valid_windows_domain = r'[^,~:!@#$%^&\')(}{_ \n]{2,155}'
 valid_windows_username = r'[^"/\\[\]\:;|=,+*?<>\n]{1,64}'
+EMPTY_LMHASH = "AAD3B435B51404EEAAD3B435B51404EE"
+EMPTY_NTLMHASH = "31d6cfe0d16ae931b73c59d7e0c089c0"

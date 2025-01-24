@@ -1,13 +1,12 @@
 import re
 
-from event_tracker.cred_extractor import CredentialExtractorGenerator, valid_windows_domain, valid_windows_username
+from event_tracker.cred_extractor import CredentialExtractorGenerator, valid_windows_domain, valid_windows_username, \
+    EMPTY_LMHASH, EMPTY_NTLMHASH
 from event_tracker.models import Credential, HashCatMode
 
 secretsdump_dcsync_regex = re.compile(
     r'^(?:\[.+] )*(?:(?P<system>' + valid_windows_domain + r'?)\\)?(?P<account>' + valid_windows_username +
     r')(?::\d+)?:(?P<lmhash>[a-f0-9]{32}):(?P<ntlmhash>[a-f0-9]{32}):::', flags=re.MULTILINE)
-EMPTY_LMHASH = "AAD3B435B51404EEAAD3B435B51404EE"
-EMPTY_NTLMHASH = "31d6cfe0d16ae931b73c59d7e0c089c0"
 
 
 class SecretsDumpDCSyncExtractor(CredentialExtractorGenerator):

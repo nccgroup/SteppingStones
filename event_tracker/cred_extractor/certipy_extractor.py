@@ -1,7 +1,6 @@
 import re
 
-from event_tracker.cred_extractor import CredentialExtractorGenerator, valid_windows_username, valid_windows_domain
-from event_tracker.cred_extractor.secretsdump_extractor import EMPTY_LMHASH, EMPTY_NTLMHASH
+from event_tracker.cred_extractor import CredentialExtractorGenerator, EMPTY_LMHASH, EMPTY_NTLMHASH
 from event_tracker.models import Credential, HashCatMode
 
 certipy_hash_regex = re.compile(
