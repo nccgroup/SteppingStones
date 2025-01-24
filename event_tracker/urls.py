@@ -48,6 +48,7 @@ urlpatterns = [
     path('<int:task_id>/creds/masklist/prefixes', prefix_masklist, name='prefix-masklist'),
     path('<int:task_id>/creds/masklist/suffixes', suffix_masklist, name='suffix-masklist'),
     path('<int:task_id>/creds/hashes/<int:hash_type>', credential_uncracked_hashes, name='credential-uncracked-hashes'),
+    path('<int:task_id>/creds/hashes/pwdump', event_tracker.views_credentials.credential_uncracked_hashes_pwdump, name='credential-uncracked-hashes-pwdump'),
     path('<int:task_id>/creds/hashes/cracked', event_tracker.views_credentials.UploadCrackedHashes.as_view(), name='credential-cracked-hashes-upload'),
     path('<int:task_id>/creds/hashes/cracked-done/<int:cracked_hashes>/<int:cracked_accounts>/', event_tracker.views_credentials.UploadCrackedHashesDone.as_view(), name='credential-cracked-hashes-upload-done'),
     path('<int:task_id>/creds/hashes', event_tracker.views_credentials.UploadHashes.as_view(), name='credential-hashes-upload'),

@@ -10,10 +10,10 @@ import numpy as np
 from django import forms
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.db.models import Count, Max, Subquery, F, Case, When, Value, Q, ExpressionWrapper, FloatField
+from django.db.models import Count, Max, Subquery, F, Case, When, Value, Q, ExpressionWrapper, FloatField, OuterRef
 from django.db.models.functions import Lower, Length, Cast
 from django.forms import BooleanField, Textarea
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, StreamingHttpResponse
 from django.shortcuts import redirect
 from django.template.defaultfilters import truncatechars_html
 from django.urls import reverse, reverse_lazy
@@ -27,6 +27,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from neo4j.exceptions import ClientError
 
+from event_tracker.cred_extractor import EMPTY_LMHASH, EMPTY_NTLMHASH
 from event_tracker.models import Credential, HashCatMode, BloodhoundServer
 from event_tracker.plugins import CredentialReportingPluginPoint
 from event_tracker.signals import get_driver_for, extract_creds
@@ -833,6 +834,29 @@ def credential_uncracked_hashes(request, task_id, hash_type):
     return HttpResponse(content="\n".join(values),
                         headers={'Content-Disposition':
                                      f'attachment; filename="hashes-{hash_type}-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
+
+
+def pwdump_iterator():
+    # Gets the newest lm hash and nt hash for each users that has at least one lm hash or nt hash
+    values = Credential.objects.filter(Q(hash_type=1000) | Q(hash_type=3000)).annotate(lmhash=Subquery(
+        Credential.objects.filter(hash_type=3000, system=OuterRef("system"), account=OuterRef("account")).order_by(
+            "-id").values("hash"))).annotate(nthash=Subquery(
+        Credential.objects.filter(hash_type=1000, system=OuterRef("system"), account=OuterRef("account")).order_by(
+            "-id").values("hash"))).values("system", "account", "lmhash", "nthash").distinct()
+
+    # Yield a line in pwdump format
+    for line in values:
+        if line["system"]:
+            yield f"{line["system"]}\\{line["account"]}::{line["lmhash"] or EMPTY_LMHASH}:{line["nthash"] or EMPTY_NTLMHASH}:::\n"
+        else:
+            yield f"{line["account"]}::{line["lmhash"] or EMPTY_LMHASH}:{line["nthash"] or EMPTY_NTLMHASH}:::\n"
+
+
+@permission_required('event_tracker.view_credential')
+def credential_uncracked_hashes_pwdump(request, task_id):
+    return StreamingHttpResponse(pwdump_iterator(),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="hashes-pwdump-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
 
 class CrackedHashesForm(forms.Form):
