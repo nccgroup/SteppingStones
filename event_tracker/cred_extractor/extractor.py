@@ -7,6 +7,7 @@ from django.forms import model_to_dict
 from event_tracker.cred_extractor.askcreds_extractor import AskCredsExtractor
 from event_tracker.cred_extractor.asreproast_extractor import PlainASREPRoastExtractor
 from event_tracker.cred_extractor.browser_extractor import BrowserExtractor
+from event_tracker.cred_extractor.certipy_extractor import CertipyHashExtractor
 from event_tracker.cred_extractor.credphisher_extractor import CredPhisherExtractor
 from event_tracker.cred_extractor.domaincachedcredentials2_extractor import DCC2Extractor
 from event_tracker.cred_extractor.kerberoast_extractor import PlainKerberoastExtractor
@@ -29,7 +30,7 @@ extractor_classes = [SnafflerExtractor, BrowserExtractor, NetNTLMv1Extractor, Ne
                      OutflankKerberoastExtractor, RubeusU2UExtractor, RubeusKerberoastExtractor,
                      RubeusASREPRoastExtractor,
                      PlainKerberoastExtractor, PlainASREPRoastExtractor, SecretsDumpDCSyncExtractor,
-                     SharpSCCMNAAExtractor]
+                     SharpSCCMNAAExtractor, CertipyHashExtractor]
 
 
 @transaction.atomic
