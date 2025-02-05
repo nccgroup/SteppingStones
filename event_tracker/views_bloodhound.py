@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from typing import Optional
 
@@ -233,6 +234,7 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
         asreproastable_hashtypes = [HashCatMode.Kerberos_5_ASREP_RC4]
 
         os_distribution = {}
+        os_distribution_query = {}
         kerberoastable_users = {}
         kerberoastable_ticket_count = 0
         kerberoastable_cracked_count = 0
@@ -257,6 +259,8 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                                     continue
                                 if result[0] not in os_distribution:
                                     os_distribution[result[0]] = 0
+                                    # TODO incorperate the domain into the query when we support filtering stats by domain
+                                    os_distribution_query[result[0]] = f'MATCH (n:Computer) WHERE n.lastlogontimestamp > {int(most_recent_machine_login) - 2628000} AND n.operatingsystem = {json.dumps(result[0])} RETURN n'
                                 os_distribution[result[0]] += result[1]
                         # Kerberoastables
                         results = session.execute_read(_get_kerberoastables, system)
@@ -305,6 +309,7 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                         print(f"Skipping {server} due to {e}")
 
         context["os_distribution"] = os_distribution
+        context["os_distribution_query"] = os_distribution_query
         context["kerberoastable_users"] = kerberoastable_users
         context["kerberoastable_ticket_count"] = kerberoastable_ticket_count
         context["kerberoastable_cracked_count"] = kerberoastable_cracked_count

@@ -1,4 +1,5 @@
 {% extends "base/base.html" %}
+{% load custom_tags %}
 {% load static %}
 
 {% block bloodhound-menu-class %}
@@ -12,6 +13,28 @@ BloodHound Servers
 {% block head %}
     {% include "base/external-libs/jquery.html" %}
     {% include "base/external-libs/turndown-tables.html" %}
+    
+    <style nonce="{{request.csp_nonce}}">
+        .copyToClipboard { text-decoration: none; cursor: copy; color: var(--bs-body-color) }
+        .copyToClipboard i { opacity: 25%; color: var(--bs-secondary-color) }
+        .copyToClipboard:hover { text-decoration: none; cursor: copy}
+        .copyToClipboard:hover i { opacity: 100% !important }
+    </style>
+    
+    <script nonce="{{request.csp_nonce}}">
+        function copyToClipboard(element) {
+            jq_element = $(element);
+            navigator.clipboard.writeText(jq_element.text());
+            // Remove any other done clipboards on the page
+            $('i.fa-clipboard-check').replaceWith('<i class="fa-regular fa-paste ms-1"></i>');
+            // Mark our clipboard as done
+            jq_element.children('i').replaceWith('<i class="fa-solid fa-clipboard-check ms-1 opacity-50"></i>');
+        }
+        
+        $(function() {
+            $(".copyToClipboard").on("click", function() {copyToClipboard(this)});
+        })
+    </script>
 {% endblock %}
 
 {% block body %}
@@ -42,7 +65,7 @@ BloodHound Servers
                                             {% for name, value in os_distribution.items %}
                                                 <tr>
                                                     <td>{{ name }}</td>
-                                                    <td>{{ value }}</td>
+                                                    <td>{{ value }} <a title="Copy associated Cypher query to clipboard" class="copyToClipboard"><span class="d-none">{{ os_distribution_query|getdictentry:name }}</span><i class="fa-regular fa-paste ms-1"></i></a></td>
                                                 </tr>
                                             {% endfor %}
                                           </tbody>
