@@ -837,7 +837,7 @@ def credential_uncracked_hashes(request, task_id, hash_type):
 
 
 def pwdump_iterator():
-    # Gets the newest lm hash and nt hash for each users that has at least one lm hash or nt hash
+    # Gets the newest lm hash and nt hash for each user that has at least one lm hash or nt hash
     values = Credential.objects.filter(Q(hash_type=1000) | Q(hash_type=3000)).annotate(lmhash=Subquery(
         Credential.objects.filter(hash_type=3000, system=OuterRef("system"), account=OuterRef("account")).order_by(
             "-id").values("hash"))).annotate(nthash=Subquery(
