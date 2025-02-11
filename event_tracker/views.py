@@ -56,7 +56,7 @@ from .plugins import EventReportingPluginPoint, EventStreamSourcePluginPoint
 from .signals import cs_beacon_to_context, cs_beaconlog_to_file, notify_webhook_new_beacon, cs_listener_to_context, \
     get_driver_for
 from .templatetags.custom_tags import render_ts_local
-from .mitre_attack_suggester.suggester import generate_suggestions
+from .event_detail_suggester.suggester import generate_suggestions
 from .views_bloodhound import get_bh_users, get_bh_hosts
 
 
@@ -455,13 +455,13 @@ class EventForm(forms.ModelForm):
     timestamp = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
     timestamp_end = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}), required=False)
     operator = forms.ModelChoiceField(User.objects)
-    mitre_attack_tactic = forms.ModelChoiceField(AttackTactic.objects, required=False, label="Tactic", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:suggestions-mitre-attack"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
-    mitre_attack_technique = forms.ModelChoiceField(AttackTechnique.objects, required=False, label="Technique", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:suggestions-mitre-attack"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
-    mitre_attack_subtechnique = forms.ModelChoiceField(AttackSubTechnique.objects, required=False, label="Subtechnique", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:suggestions-mitre-attack"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
+    mitre_attack_tactic = forms.ModelChoiceField(AttackTactic.objects, required=False, label="Tactic", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:event-field-suggestions"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
+    mitre_attack_technique = forms.ModelChoiceField(AttackTechnique.objects, required=False, label="Technique", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:event-field-suggestions"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
+    mitre_attack_subtechnique = forms.ModelChoiceField(AttackSubTechnique.objects, required=False, label="Subtechnique", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:event-field-suggestions"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
     source = forms.ModelChoiceField(get_context_queryset(), required=False, empty_label="New Source...", widget=autocomplete.ModelSelect2(url='event_tracker:context-autocomplete', attrs={"data-placeholder": "New Source...", "data-html": True, "data-theme":"bootstrap-5", "class": "clonable-dropdown"}))
     target = forms.ModelChoiceField(get_context_queryset(), required=False, empty_label="New Target...", widget=autocomplete.ModelSelect2(url='event_tracker:context-autocomplete', attrs={"data-placeholder": "New Target...", "data-html": True, "data-theme":"bootstrap-5", "class": "clonable-dropdown"}))
-    description = forms.CharField(widget=forms.Textarea())
-    raw_evidence = forms.CharField(label="Raw Evidence", required=False, widget=forms.Textarea(attrs={'class': 'font-monospace', "spellcheck": "false", "hx-post": reverse_lazy("event_tracker:suggestions-mitre-attack"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:500ms, load"}))
+    description = forms.CharField(widget=forms.Textarea(attrs={"hx-post": reverse_lazy("event_tracker:event-field-suggestions"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
+    raw_evidence = forms.CharField(label="Raw Evidence", required=False, widget=forms.Textarea(attrs={'class': 'font-monospace', "spellcheck": "false", "hx-post": reverse_lazy("event_tracker:event-field-suggestions"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:500ms, load"}))
     source_user = forms.CharField(required=False, widget=autocomplete.ListSelect2(url='event_tracker:user-list-autocomplete', attrs={'class': 'context-field user-field', "data-theme": "bootstrap-5", "data-tags": "true", "data-token-separators": "null", "data-language": "ss"}))
     source_host = forms.CharField(required=False, widget=autocomplete.ListSelect2(url='event_tracker:host-list-autocomplete', attrs={'class': 'context-field host-field', "data-theme": "bootstrap-5", "data-tags": "true", "data-token-separators": "null", "data-language": "ss"}))
     source_process = forms.CharField(required=False, widget=autocomplete.ListSelect2(url='event_tracker:process-list-autocomplete', attrs={'class': 'context-field process-field', "data-theme": "bootstrap-5", "data-tags": "true", "data-token-separators": "null", "data-language": "ss"}))
@@ -1705,14 +1705,11 @@ def toggle_qs_stars(request, task_id):
     return redirect(reverse_lazy("event_tracker:event-list", kwargs={"task_id": task_id}))
 
 
-class MitreAttackSuggestion(View):
+class EventFieldSuggestions(View):
     def post(self, request, *args, **kwargs):
         event_form = EventForm(request.POST)
 
         context = {}
-        context["mitre_suggestions"] = generate_suggestions(event_form)
+        context["description_suggestions"], context["mitre_suggestions"] = generate_suggestions(event_form)
 
-        if not context["mitre_suggestions"]:
-            return HttpResponse(status=200)  # Send 200 with no content to clear the suggestion box. HTMX treats 204 as "no change"
-
-        return render(request, "suggestions/mitre_attack.html", context)
+        return render(request, "suggestions/event_field_suggestions.html", context)

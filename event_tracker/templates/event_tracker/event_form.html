@@ -179,6 +179,7 @@ Edit Event
         {% bootstrap_field form.operator layout='horizontal'%}
         {% bootstrap_field form.tags layout='horizontal'%}
         {% bootstrap_field form.description layout='horizontal'%}
+        <div id="description-suggestion"></div>
         {% bootstrap_field form.raw_evidence layout='horizontal'%}
 
           <div class="mb-3 row">
@@ -740,6 +741,12 @@ Edit Event
         $.when($("#id_mitre_attack_tactic").val(tactic))
             .then(tacticChanged(technique).then(function() {techniqueChanged(subtechnique)}))
             .done();
+        
+        htmx.trigger("#id_mitre_attack_subtechnique", "input");
+    }
+    
+    function setDescription(description) {
+        $("#id_description").val(description)
         
         htmx.trigger("#id_mitre_attack_subtechnique", "input");
     }

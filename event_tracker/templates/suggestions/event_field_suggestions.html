@@ -1,3 +1,4 @@
+{% if  mitre_suggestions %}
 <div class="alert alert-light py-2" role="alert">Suggestion{{ mitre_suggestions | pluralize }}:
 {% for suggestion in mitre_suggestions %}
     <a class="btn btn-secondary btn-sm mitre-attack-suggestion d-inline-block my-1" href="#" data-tactic="{{ suggestion.mitre_attack_tactic.pk }}" {% if suggestion.mitre_attack_technique %}data-technique="{{ suggestion.mitre_attack_technique.pk }}"{% endif %} {% if suggestion.mitre_attack_subtechnique %}data-subtechnique="{{ suggestion.mitre_attack_subtechnique.pk }}"{% endif %}>
@@ -11,10 +12,34 @@
   -
 {% endif %}
    </a>{% endfor %}</div>
+{% endif %}
 
 <script nonce="{{request.csp_nonce}}">
     $(".mitre-attack-suggestion").on("click", function() {
         setMitre($(this).data("tactic"), $(this).data("technique"), $(this).data("subtechnique"));
         return false;
     })
+    
+    $(".description-suggestion").on("click", function() {
+        setDescription($(this).data("description"))
+        return false;
+    })
 </script>
+
+
+{# This div will not be placed in the htmx target, but instead replace the div with the same ID #}
+<div id="description-suggestion" hx-swap-oob="true">
+  {% if description_suggestions %}
+  <div class="mb-3 row">
+    <div class="col-sm-2 pt-3"></div>
+    <div class="col-sm-10">
+        <div class="alert alert-light py-2" role="alert">
+            Suggestion{{ description_suggestions | pluralize }}:
+            {% for suggestion in description_suggestions %}
+                <a class="btn btn-secondary btn-sm description-suggestion d-inline-block my-1" href="#" data-description="{{ suggestion }}">{{ suggestion }}</a>
+            {% endfor %}
+        </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
