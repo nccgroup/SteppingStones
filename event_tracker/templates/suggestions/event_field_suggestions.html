@@ -34,7 +34,7 @@
     <div class="col-sm-2 pt-3"></div>
     <div class="col-sm-10">
         <div class="alert alert-light py-2" role="alert">
-            Suggestion{{ description_suggestions | pluralize }}:
+            Foundation{{ description_suggestions | pluralize }}:
             {% for suggestion in description_suggestions %}
                 <a class="btn btn-secondary btn-sm description-suggestion d-inline-block my-1" href="#" data-description="{{ suggestion }}">{{ suggestion }}</a>
             {% endfor %}

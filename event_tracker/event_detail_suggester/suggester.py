@@ -27,7 +27,7 @@ def generate_suggestions(event_form) -> Tuple[Set, List[Dict[str, object]]]:
         suggestions += future.result()
 
     for description, tactic, technique in suggestions:
-        if description and ("description" not in event_form.cleaned_data or description != event_form.cleaned_data["description"]):
+        if description and ("description" not in event_form.cleaned_data):
             description_suggestions.add(description)
 
         mitre_suggestion = {}
