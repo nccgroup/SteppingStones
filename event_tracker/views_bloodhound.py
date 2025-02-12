@@ -1,7 +1,9 @@
 import json
 from datetime import datetime
+from functools import cmp_to_key
 from typing import Optional
 
+from django import forms
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.http import HttpRequest, JsonResponse
@@ -9,11 +11,55 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.decorators.clickjacking import xframe_options_exempt
-from django.views.generic import ListView, TemplateView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, TemplateView, CreateView, UpdateView, DeleteView, FormView
+from neo4j.exceptions import ServiceUnavailable
 
 from event_tracker.models import BloodhoundServer, HashCatMode, Credential
 from event_tracker.signals import get_driver_for
 
+
+def domain_name_comparer(domain_a, domain_b) -> bool:
+    if domain_a.count(".") != domain_b.count("."):
+        return domain_a.count(".") - domain_b.count(".")
+    elif domain_a < domain_b:
+        return -1
+    elif domain_a > domain_b:
+        return 1
+    else:
+        return 0
+
+
+class BloodhoundStatsFilter(forms.Form):
+    class Media:
+        js = ["scripts/ss-forms.js"]
+
+    def __init__(self, **kwargs):
+        super(BloodhoundStatsFilter, self).__init__(**kwargs)
+
+        domains = set()
+
+        for bloodhound_server in BloodhoundServer.objects.filter(active=True).all():
+            if driver := get_driver_for(bloodhound_server):
+                try:
+                    with driver.session() as session:
+                        domains.update(session.execute_read(_get_distinct_domains))
+                except ServiceUnavailable:
+                    print("Timeout talking to neo4j for domain filter")
+
+        choices = [('', f"All domains")]
+        choices += sorted(list(zip(domains, domains)), key=cmp_to_key(domain_name_comparer))
+        self.fields['domain'] = forms.ChoiceField(choices=choices, required=False,
+                                                  widget=forms.Select(attrs={'class': 'form-select form-select-sm submit-on-change'}))
+
+
+def _get_distinct_domains(tx):
+    domains = set()
+
+    result = tx.run("MATCH (n:Base) return collect(distinct toLower(n.domain))")
+    for domain in result:
+        domains.update(domain[0])
+
+    return domains
 
 def get_bh_users(tx, q):
     users = set()
@@ -43,8 +89,8 @@ class BloodhoundServerListView(PermissionRequiredMixin, ListView):
     ordering = ['neo4j_connection_url']
 
 
-def _get_kerberoastables(tx, system: Optional[str]):
-    if system:
+def _get_kerberoastables(tx, domain: Optional[str]):
+    if domain:
         return tx.run("""
             match (n:User) where 
                 n.domain = $system and 
@@ -53,7 +99,7 @@ def _get_kerberoastables(tx, system: Optional[str]):
             OPTIONAL MATCH shortestPath((n:User)-[:MemberOf]->(g:Group)) WHERE g.highvalue=true 
             return 
                 toLower(n.name), toLower(g.name)
-            order by n.name""", system=system.upper()).values()
+            order by n.name""", system=domain.upper()).values()
     else:
         return tx.run("""
             match (n:User) where 
@@ -65,8 +111,8 @@ def _get_kerberoastables(tx, system: Optional[str]):
             order by n.domain, n.name""").values()
 
 
-def _get_asreproastables(tx, system: Optional[str]):
-    if system:
+def _get_asreproastables(tx, domain: Optional[str]):
+    if domain:
         return tx.run("""
             match (n:User) where 
                 n.domain = $system and 
@@ -75,7 +121,7 @@ def _get_asreproastables(tx, system: Optional[str]):
             OPTIONAL MATCH shortestPath((n:User)-[:MemberOf]->(g:Group)) WHERE g.highvalue=true 
             return 
                 toLower(n.name), toLower(g.name)
-            order by n.name""", system=system.upper()).values()
+            order by n.name""", system=domain.upper()).values()
     else:
         return tx.run("""
            match (n:User) where 
@@ -87,19 +133,19 @@ def _get_asreproastables(tx, system: Optional[str]):
             order by n.domain, n.name""").values()
 
 
-def _get_recent_os_distribution(tx, system: Optional[str], most_recent_machine_login):
-    if system:
+def _get_recent_os_distribution(tx, domain: Optional[str], most_recent_machine_login):
+    if domain:
         return tx.run("match (n:Computer) where n.domain = $system and n.lastlogontimestamp > $most_recent_machine_login - 2628000 return n.operatingsystem as os, count(n.operatingsystem) as freq order by os",
-                      system=system.upper(), most_recent_machine_login=most_recent_machine_login).values()
+                      system=domain.upper(), most_recent_machine_login=most_recent_machine_login).values()
     else:
         return tx.run(
             "match (n:Computer) where n.lastlogontimestamp > $most_recent_machine_login - 2628000 return n.operatingsystem as os, count(n.operatingsystem) as freq order by os desc",
             most_recent_machine_login=most_recent_machine_login).values()
 
 
-def _get_most_recent_machine_login(tx, system: Optional[str]):
-    if system:
-        return tx.run("match (n:Computer) where n.domain = $system return max(n.lastlogontimestamp)", system=system.upper()).single()[0]
+def _get_most_recent_machine_login(tx, domain: Optional[str]):
+    if domain:
+        return tx.run("match (n:Computer) where n.domain = $system return max(n.lastlogontimestamp)", system=domain.upper()).single()[0]
     else:
         return tx.run("match (n:Computer) return max(n.lastlogontimestamp)").single()[0]
 
@@ -218,14 +264,28 @@ def toggle_bloodhound_node_highvalue(request, dn):
     return redirect(reverse_lazy('event_tracker:bloodhound-node', kwargs={"dn": dn}))
 
 
-class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
+class BloodhoundServerStatsView(PermissionRequiredMixin, FormView):
     permission_required = 'event_tracker.view_bloodhoundserver'
     template_name = 'event_tracker/bloodhoundserver_stats.html'
+    form_class = BloodhoundStatsFilter
+
+    def get_initial(self):
+        """
+        Merge the session stored filter into the form's initial state
+        """
+        initial = super().get_initial()
+        initial.update(self.request.session.get("bloodhoundstatsfilter", default={}))
+        return initial
+
+    def form_valid(self, form):
+        self.request.session['bloodhoundstatsfilter'] = form.cleaned_data
+        return self.render_to_response(self.get_context_data())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        system = None  # Todo make this configurable
+        statsfilter = self.request.session.get('bloodhoundstatsfilter', {})
+        domain = statsfilter.get("domain", None) or None
 
         kerberosoatable_hashtypes = [HashCatMode.Kerberos_5_TGSREP_RC4,
                                      HashCatMode.Kerberos_5_TGSREP_AES128,
@@ -250,20 +310,21 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                 with driver.session() as session:
                     try:
                         # Machine OS
-                        most_recent_machine_login = session.execute_read(_get_most_recent_machine_login, system)
+                        most_recent_machine_login = session.execute_read(_get_most_recent_machine_login, domain)
                         if most_recent_machine_login:
-                            results = session.execute_read(_get_recent_os_distribution, system,
+                            results = session.execute_read(_get_recent_os_distribution, domain,
                                                            int(most_recent_machine_login))
                             for result in results:
                                 if not result[0]:
                                     continue
                                 if result[0] not in os_distribution:
                                     os_distribution[result[0]] = 0
-                                    # TODO incorperate the domain into the query when we support filtering stats by domain
-                                    os_distribution_query[result[0]] = f'MATCH (n:Computer) WHERE n.lastlogontimestamp > {int(most_recent_machine_login) - 2628000} AND n.operatingsystem = {json.dumps(result[0])} RETURN n'
+                                    os_distribution_query[result[0]] = (f'MATCH (n:Computer) WHERE n.lastlogontimestamp > {int(most_recent_machine_login) - 2628000} AND n.operatingsystem = {json.dumps(result[0])}' +
+                                                                        (f' AND n.domain = {json.dumps(domain.upper())}' if domain else '') +
+                                                                        f' RETURN n')
                                 os_distribution[result[0]] += result[1]
                         # Kerberoastables
-                        results = session.execute_read(_get_kerberoastables, system)
+                        results = session.execute_read(_get_kerberoastables, domain)
                         for result in results:
                             user_parts = result[0].split('@')
                             username = user_parts[0].lower()
@@ -271,8 +332,8 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                             kerberoastable_domains.add(domain)
 
                             credential_obj_query = Credential.objects.filter(account__iexact=username, hash_type__in=kerberosoatable_hashtypes)
-                            if system:
-                                credential_obj_query = credential_obj_query.filter(system=system)
+                            if domain:
+                                credential_obj_query = credential_obj_query.filter(system=domain)
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
                             kerberoastable_users[username] = {"credential": credential_obj,
@@ -285,7 +346,7 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
                                     kerberoastable_cracked_count += 1
 
                         # ASREP roastable users
-                        results = session.execute_read(_get_asreproastables, system)
+                        results = session.execute_read(_get_asreproastables, domain)
                         for result in results:
                             user_parts = result[0].split('@')
                             username = user_parts[0].lower()
@@ -294,8 +355,8 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, TemplateView):
 
                             credential_obj_query = Credential.objects.filter(account__iexact=username,
                                                                              hash_type__in=asreproastable_hashtypes)
-                            if system:
-                                credential_obj_query = credential_obj_query.filter(system=system)
+                            if domain:
+                                credential_obj_query = credential_obj_query.filter(system=domain)
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
                             asreproastable_users[username] = {"credential": credential_obj,

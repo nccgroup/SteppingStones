@@ -37,6 +37,15 @@ BloodHound Servers
     </script>
 {% endblock %}
 
+{% block filter %}
+    {{ form.media }}
+    <form class="d-flex me-2" method="post">
+     <label for="system" class="d-flex align-items-center text-white-50">Domain:&nbsp;&nbsp;</label>
+     {% csrf_token %}
+     {{ form.domain }}
+    </form>
+{% endblock filter %}
+
 {% block body %}
 {% block bootstrap5_content %}
     <div class="container-fluid">
