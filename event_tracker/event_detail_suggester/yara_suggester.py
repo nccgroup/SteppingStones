@@ -48,6 +48,8 @@ class YaraSuggester:
             description_values = {}
             if description_template:
                 for pattern in match.patterns:
+                    if not pattern.matches:
+                        continue
                     string_parts = re.split(b"[ :@'\"]+", scan_buffer[pattern.matches[0].offset:pattern.matches[0].offset + pattern.matches[0].length])
                     string_parts[:] = [x.decode('utf-8') for x in string_parts]
                     description_values[pattern.identifier.lstrip("$")] = string_parts

@@ -8,6 +8,21 @@ rule kerberoast {
         any of them
 }
 
+rule impacket_kerberoast {
+    meta:
+        mitre_att_tactic = "TA0006"
+        mitre_att_technique = "T1558.003"
+        tool_name = "Impacket"
+        tool_component = "GetUserSPNs"
+        tool_url = "https://github.com/fortra/impacket"
+        description = "Kerberoast using impacket"
+    strings:
+        $command = "GetUserSPNs"
+        $request_param = "-request"
+    condition:
+        $command and $request_param
+}
+
 rule sprayad {
     meta:
         mitre_att_tactic = "TA0006"
@@ -80,13 +95,14 @@ rule secretsdump_hivefiles_cdc { // Same as above rule, but with "Cached Domain 
         any of ($command_1, $command_2) and all of ($param_1, $param_2)
 }
 
-rule ldapshell_laps {
+rule impacket_ldapshell_laps {
     meta:
         mitre_att_tactic = "TA0006"
         mitre_att_technique = "T1555"
         tool_name = "Impacket"
         tool_component = "ldap_shell"
         tool_url = "https://github.com/fortra/impacket"
+        description = "Use LDAP to read LAPS password for {{ subcommand_1.1 }}"
     strings:
         $command_1 = "ldap_shell.py"
         $subcommand_1 = /get_laps_password .+\$/  // Ensure there's a $ in the target name to avoid the help text

@@ -62,3 +62,15 @@ rule wmiquery {
     condition:
         any of them
 }
+
+rule cim_local_service_query {
+    meta:
+        mitre_att_tactic = "TA0007"
+        mitre_att_technique = "T1007"
+        tool_name = "Powershell"
+    strings:
+        $ = "Get-CimInstance" nocase
+        $ = " FROM Win32_Service" nocase
+    condition:
+        all of them
+}
