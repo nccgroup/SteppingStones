@@ -10,6 +10,7 @@ import numpy as np
 from django import forms
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import ValidationError
 from django.db.models import Count, Max, Subquery, F, Case, When, Value, Q, ExpressionWrapper, FloatField, OuterRef
 from django.db.models.functions import Lower, Length, Cast
 from django.forms import BooleanField, Textarea
@@ -987,64 +988,59 @@ class HashesForm(forms.Form):
     hash_type = forms.ChoiceField(help_text="The hashcat module number for the hash", choices=[(tag.value, f"{tag.name} ({tag.value})") for tag in HashCatMode], required=False)
 
 
-class UploadHashes(PermissionRequiredMixin, TemplateView):
+class UploadHashes(PermissionRequiredMixin, FormView):
     permission_required = 'event_tracker.add_credential'
     template_name = "event_tracker/credential_hashes_upload.html"
+    form_class = HashesForm
 
-    def get_context_data(self, **kwargs):
-        context = super(TemplateView, self).get_context_data(**kwargs)
-        context['form'] = HashesForm()
-        return context
 
-    def post(self, request, *args, **kwargs):
-        form = HashesForm(request.POST, request.FILES)
-        if form.is_valid():
-            # There's a risk that a hash spans two chunks and therefore won't get captured by regex, so split on
-            # newlines
-            previous_chunk = ""
-            total_saved_hashes = 0
-            total_saved_secrets = 0
+    def form_valid(self, form):
+        # There's a risk that a hash spans two chunks and therefore won't get captured by regex, so split on
+        # newlines
+        previous_chunk = ""
+        total_saved_hashes = 0
+        total_saved_secrets = 0
 
-            for chunk in request.FILES['file'].chunks():
-                chunk_txt = chunk.decode("UTF-8", errors="ignore")
-                last_newline = chunk_txt.rfind("\n")
+        for chunk in self.request.FILES['file'].chunks():
+            chunk_txt = chunk.decode("UTF-8", errors="ignore")
+            last_newline = chunk_txt.rfind("\n")
 
-                chunk_main = previous_chunk + chunk_txt[:last_newline]
-                if form.cleaned_data['type'] == 'grep':
-                    saved_hashes, saved_secrets = extract_creds(chunk_main, default_system=form.cleaned_data['system'])
-                elif form.cleaned_data['type'] == 'keepass':
-                    saved_hashes, saved_secrets = self.parse_keepass_csv(chunk_main, form.cleaned_data['file'].name)
-                elif form.cleaned_data['type'] == 'user:hash':
-                    saved_hashes, saved_secrets = self.parse_user_hash(chunk_main, form.cleaned_data['system'], form.cleaned_data['hash_type'])
-                elif form.cleaned_data['type'] == 'pwdump':
-                    saved_hashes, saved_secrets = self.parse_pwdump(chunk_main, form.cleaned_data['system'])
-                else:
-                    raise forms.ValidationError("Invalid upload type")
+            chunk_main = previous_chunk + chunk_txt[:last_newline]
+            if form.cleaned_data['type'] == 'grep':
+                saved_hashes, saved_secrets = extract_creds(chunk_main, default_system=form.cleaned_data['system'])
+            elif form.cleaned_data['type'] == 'keepass':
+                saved_hashes, saved_secrets = self.parse_keepass_csv(chunk_main, form.cleaned_data['file'].name)
+            elif form.cleaned_data['type'] == 'user:hash':
+                saved_hashes, saved_secrets = self.parse_user_hash(chunk_main, form.cleaned_data['system'], form.cleaned_data['hash_type'])
+            elif form.cleaned_data['type'] == 'pwdump':
+                saved_hashes, saved_secrets = self.parse_pwdump(chunk_main, form.cleaned_data['system'])
+            else:
+                raise forms.ValidationError("Invalid upload type")
 
-                previous_chunk = chunk_txt[last_newline:]
-                total_saved_hashes += saved_hashes
-                total_saved_secrets += saved_secrets
-
-            # Handle final part of upload between last newline and EOF
-            if previous_chunk:
-                if form.cleaned_data['type'] == 'grep':
-                    saved_hashes, saved_secrets = extract_creds(previous_chunk, default_system=form.cleaned_data['system'])
-                elif form.cleaned_data['type'] == 'keepass':
-                    saved_hashes, saved_secrets = self.parse_keepass_csv(previous_chunk, form.cleaned_data['file'].name)
-                elif form.cleaned_data['type'] == 'user:hash':
-                    saved_hashes, saved_secrets = self.parse_user_hash(previous_chunk, form.cleaned_data['system'], form.cleaned_data['hash_type'])
-                elif form.cleaned_data['type'] == 'pwdump':
-                    saved_hashes, saved_secrets = self.parse_pwdump(previous_chunk, form.cleaned_data['system'])
-                else:
-                    raise forms.ValidationError("Invalid upload type")
-
+            previous_chunk = chunk_txt[last_newline:]
             total_saved_hashes += saved_hashes
             total_saved_secrets += saved_secrets
 
-            return redirect(reverse_lazy('event_tracker:credential-dump-upload-done',
-                                         kwargs={'task_id': kwargs['task_id'],
-                                                 'saved_hashes': total_saved_hashes,
-                                                 'saved_secrets': total_saved_secrets}))
+        # Handle final part of upload between last newline and EOF
+        if previous_chunk:
+            if form.cleaned_data['type'] == 'grep':
+                saved_hashes, saved_secrets = extract_creds(previous_chunk, default_system=form.cleaned_data['system'])
+            elif form.cleaned_data['type'] == 'keepass':
+                saved_hashes, saved_secrets = self.parse_keepass_csv(previous_chunk, form.cleaned_data['file'].name)
+            elif form.cleaned_data['type'] == 'user:hash':
+                saved_hashes, saved_secrets = self.parse_user_hash(previous_chunk, form.cleaned_data['system'], form.cleaned_data['hash_type'])
+            elif form.cleaned_data['type'] == 'pwdump':
+                saved_hashes, saved_secrets = self.parse_pwdump(previous_chunk, form.cleaned_data['system'])
+            else:
+                raise forms.ValidationError("Invalid upload type")
+
+        total_saved_hashes += saved_hashes
+        total_saved_secrets += saved_secrets
+
+        return redirect(reverse_lazy('event_tracker:credential-dump-upload-done',
+                                     kwargs={'task_id': self.kwargs['task_id'],
+                                             'saved_hashes': total_saved_hashes,
+                                             'saved_secrets': total_saved_secrets}))
 
     def parse_keepass_csv(self, chunk_main, filename) -> tuple[int, int]:
         buffer = io.StringIO(chunk_main.encode('latin-1', 'backslashreplace').decode('unicode-escape'))
