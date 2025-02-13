@@ -11,6 +11,7 @@ from event_tracker.cred_extractor.certipy_extractor import CertipyHashExtractor
 from event_tracker.cred_extractor.credphisher_extractor import CredPhisherExtractor
 from event_tracker.cred_extractor.domaincachedcredentials2_extractor import DCC2Extractor
 from event_tracker.cred_extractor.kerberoast_extractor import PlainKerberoastExtractor
+from event_tracker.cred_extractor.ldapshell_extractor import LDAPShellLAPSExtractor
 from event_tracker.cred_extractor.netntlmv1_extractor import NetNTLMv1Extractor
 from event_tracker.cred_extractor.netntlmv2_extractor import NetNTLMv2Extractor
 from event_tracker.cred_extractor.outflankkerberoast_extractor import OutflankKerberoastExtractor
@@ -30,7 +31,7 @@ extractor_classes = [SnafflerExtractor, BrowserExtractor, NetNTLMv1Extractor, Ne
                      OutflankKerberoastExtractor, RubeusU2UExtractor, RubeusKerberoastExtractor,
                      RubeusASREPRoastExtractor,
                      PlainKerberoastExtractor, PlainASREPRoastExtractor, SecretsDumpDCSyncExtractor,
-                     SharpSCCMNAAExtractor, CertipyHashExtractor]
+                     SharpSCCMNAAExtractor, CertipyHashExtractor, LDAPShellLAPSExtractor]
 
 
 @transaction.atomic
