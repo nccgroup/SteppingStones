@@ -848,9 +848,9 @@ def pwdump_iterator():
     # Yield a line in pwdump format
     for line in values:
         if line["system"]:
-            yield f"{line["system"]}\\{line["account"]}::{line["lmhash"] or EMPTY_LMHASH}:{line["nthash"] or EMPTY_NTLMHASH}:::\n"
+            yield f"{line['system']}\\{line['account']}::{line['lmhash'] or EMPTY_LMHASH}:{line['nthash'] or EMPTY_NTLMHASH}:::\n"
         else:
-            yield f"{line["account"]}::{line["lmhash"] or EMPTY_LMHASH}:{line["nthash"] or EMPTY_NTLMHASH}:::\n"
+            yield f"{line['account']}::{line['lmhash'] or EMPTY_LMHASH}:{line['nthash'] or EMPTY_NTLMHASH}:::\n"
 
 
 @permission_required('event_tracker.view_credential')
