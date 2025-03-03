@@ -12,7 +12,7 @@ from .views import EventCreateView, EventUpdateView, EventDeleteView, EventListV
     UserListAutocomplete, HostListAutocomplete, ProcessListAutocomplete, InitialConfigTask, InitialConfigAdmin, \
     toggle_event_star, EventTagAutocomplete, TeamServerConfigView, EventStreamListView, EventStreamListJSON, EventStreamUpload, \
     EventStreamToEventView, toggle_qs_stars, LimitedEventUpdateView, EventBulkEdit, \
-    TeamServerHealthCheckView, EventFieldSuggestions
+    TeamServerHealthCheckView, EventFieldSuggestions, UserPreferencesView
 from .views_bloodhound import BloodhoundServerListView, BloodhoundServerCreateView, BloodhoundServerUpdateView, \
     BloodhoundServerDeleteView
 from .views_credentials import CredentialListView, CredentialListJson, CredentialCreateView, CredentialUpdateView, \
@@ -122,4 +122,5 @@ urlpatterns = [
 
     path('initial-config/task', InitialConfigTask.as_view(), name='initial-config-task'),
     path('initial-config/admin', InitialConfigAdmin.as_view(), name='initial-config-admin'),
+    path('user-config/preferences', UserPreferencesView.as_view(), name='user-preferences'),
 ]

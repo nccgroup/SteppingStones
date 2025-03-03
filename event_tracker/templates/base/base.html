@@ -156,6 +156,7 @@
                 {{ user.get_username | upper }}
               </button>
               <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'event_tracker:user-preferences' %}">Preferences</a></li>
                 <li><a class="dropdown-item" href="{% url 'password_change' %}">Change Password</a></li>
                 <li><form action="{% url 'logout' %}" method="post">
                   {% csrf_token %}

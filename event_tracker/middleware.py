@@ -29,6 +29,8 @@ class TimezoneMiddleware:
                 timezone.activate(preferences.timezone)
             else:
                 timezone.deactivate()
+                if request.get_full_path() != reverse('event_tracker:user-preferences'):
+                    return redirect("event_tracker:user-preferences")
 
         response = self.get_response(request)
 

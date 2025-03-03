@@ -16,7 +16,7 @@ from dal_select2_taggit.widgets import TaggitSelect2
 from django import forms
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.mixins import UserPassesTestMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import UserPassesTestMixin, PermissionRequiredMixin, LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.contrib.staticfiles import finders
 from django.db import transaction, connection
@@ -1679,6 +1679,34 @@ class InitialConfigAdmin(UserPassesTestMixin, CreateView):
 
     def test_func(self):
         return not self.model.objects.exists()
+
+
+class UserPreferencesView(LoginRequiredMixin, FormView):
+    template_name = 'registration/user-preferences.html'
+    form_class = UserPreferencesForm
+    success_url = "/event-tracker/1"
+
+    def get_initial(self):
+        obj = UserPreferences.objects.filter(user=self.request.user).first()
+        if not obj:
+            return {}
+        else:
+            return {"timezone": obj.timezone}
+
+    def form_valid(self, form):
+        form_obj = form.save(commit=False)
+
+        db_obj = UserPreferences.objects.filter(user=self.request.user).first()
+        if not db_obj:
+            # Create a new user preference, via the form's save()
+            form_obj.user = self.request.user
+            form_obj.save()
+        else:
+            # Update the existing user preference, copying info from the form
+            db_obj.timezone = form_obj.timezone
+            db_obj.save()
+
+        return super().form_valid(form)
 
 
 @permission_required('event_tracker.change_event')

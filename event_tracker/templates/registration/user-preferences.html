@@ -1,0 +1,38 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load django_bootstrap5 %}
+
+{% block title %}
+Configure User Timezone
+{% endblock title %}
+
+{% block head %}
+{% include "base/external-libs/jquery.html" %}
+
+<script nonce="{{request.csp_nonce}}">
+$(function() {
+    // Auto set the timezone if one is not set
+    if($("#id_timezone option:selected").val() == "") {
+        $("#id_timezone").val(Intl.DateTimeFormat().resolvedOptions().timeZone)
+    }
+});
+</script>
+{% endblock %}
+
+{% block body %}
+{% block bootstrap5_content %}
+<div class="container">
+  <main>
+    <div class="py-3">
+        <p>Please confirm your preferences:</p>
+        <form method="post">{% csrf_token %}
+            {% bootstrap_form form layout='horizontal' %}
+
+            <a href="{% url 'event_tracker:event-list' 1 %}" role="button" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+  </main>
+</div>
+{%  endblock bootstrap5_content %}
+{% endblock body %}
