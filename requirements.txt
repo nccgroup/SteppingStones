@@ -1,4 +1,4 @@
-django==5.1.6
+django==5.1.7
 django-bootstrap5==24.3
 numpy==2.2.2
 matplotlib==3.10.0
