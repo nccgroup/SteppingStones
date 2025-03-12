@@ -141,3 +141,15 @@ rule certipy_req {
     condition:
         all of them
 }
+
+rule nanodump {
+    meta:
+        mitre_att_tactic = "TA0006"
+        mitre_att_technique = "T1003.001"
+        tool_name = "nanodump"
+        tool_url = "https://github.com/fortra/nanodump"
+    strings:
+        $command_1 = "nanodump"
+    condition:
+        any of them
+}

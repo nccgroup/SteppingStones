@@ -74,3 +74,16 @@ rule cim_local_service_query {
     condition:
         all of them
 }
+
+rule FindObjects {
+    meta:
+        mitre_att_tactic = "TA0006"
+        mitre_att_technique = "T1057"
+        tool_name = "FindObjects"
+        tool_url = "https://github.com/outflanknl/C2-Tool-Collection/tree/main/BOF/FindObjects"
+    strings:
+        $command_1 = "FindModule"
+        $command_2 = "FindProcHandle"
+    condition:
+        any of them
+}
