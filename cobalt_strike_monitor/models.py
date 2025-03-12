@@ -30,6 +30,8 @@ class Listener(models.Model):
     bindto = models.CharField(max_length=100)
     status = models.CharField(max_length=100)
     maxretry = models.CharField(max_length=100)
+    localonly = models.BooleanField(default=False)
+    guards = models.CharField(max_length=100, default="")  # Tab seperated list of guardrails values
 
     @property
     def beacons_list(self):
@@ -41,6 +43,18 @@ class Listener(models.Model):
             return "SMB"
         elif self.payload == "windows/beacon_https/reverse_https":
             return "HTTPS"
+        elif self.payload == "windows/beacon_http/reverse_http":
+            return "HTTP"
+        elif self.payload == "windows/foreign/reverse_https":
+            return "Foreign HTTPS"
+        elif self.payload == "windows/foreign/reverse_http":
+            return "Foreign HTTP"
+        elif self.payload == "windows/beacon_bind_tcp":
+            return "TCP"
+        elif self.payload == "windows/beacon_dns/reverse_dns_txt":
+            return "DNS"
+        elif self.payload == "windows/beacon_extc2":
+            return "External C2"
         else:
             return f"Unknown ({self.payload})"
 

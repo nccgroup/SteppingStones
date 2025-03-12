@@ -252,8 +252,14 @@ def parse(p, server):
             try:
                 line_id, line_data = parse_line(line)
                 if line.startswith("[L]"):  # Listeners
-                    line_data.pop("guards")  # Throw away the guard rails info for now
-                    listener = Listener(**line_data)
+                    # TCP Listeners can be configured to only bind to localhost
+                    if "localonly" in line_data:
+                        line_data["localonly"] = (line_data["localonly"] == "true")
+                    listener = Listener(**dict(filter(
+                        lambda elem: elem[0] in ["name", "proxy", "payload", "port", "profile", "host",
+                                                 "althost", "strategy", "beacons", "bindto", "status", "maxretry",
+                                                 "guards", "localonly"],
+                        line_data.items())))
                     listener.team_server = server
                     listener.save()
                 elif line.startswith("[M]"):  # Beacon Metadata

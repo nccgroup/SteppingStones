@@ -196,7 +196,8 @@ sub dumpmodelhashofhashes {
 sub cleanvalue {
    $1 = replace($1, "\\\\", "\\\\\\\\"); # Escape /
    $1 = replace($1, "\"", "\\\\\""); #  Escape "
-   $1 = replace($1, "\r", "\\\\n"); #  Escape \r
+   $1 = replace($1, "\r", "\\\\r"); #  Escape \r
    $1 = replace($1, "\n", "\\\\n"); #  Escape \n
+   $1 = replace($1, "\t", "\\\\t"); #  Escape \t
    $1 = replace($1, "[^ -~][0-9A-F]?", ""); #  Remove non-ASCII (and any hex char after to cover syntax highlighting syntax)
 }
