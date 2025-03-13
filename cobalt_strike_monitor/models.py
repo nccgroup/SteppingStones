@@ -295,8 +295,10 @@ class BeaconLog(models.Model):
     when = models.DateTimeField()  # Timestamp of the entry
     beacon = models.ForeignKey(Beacon, on_delete=models.CASCADE)
 
-    type = models.CharField(max_length=20)  # One of: input, task, checkin, output, error, note, indicator
+    type = models.CharField(max_length=25)  # One of: input, task, checkin, output, output_ps, error, note, indicator, output_job_registered, output_job_completed
     data = models.TextField()  # The content of the log
+    output_job = models.IntegerField(null=True)
+
     operator = models.CharField(max_length=100, null=True)  # The user initiating the request
 
 

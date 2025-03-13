@@ -29,14 +29,7 @@ sub archive_filter
 $last_beaconlog = {{last_beaconlog_timestamp}};
 sub beaconlog_filter
 {
-    if (strlen($1[-1]) > 0)
-    {
-        return iff(parseNumber($1[-1]) > $last_beaconlog, $1, $null);
-    }
-    else
-    {
-        return $null;
-    }
+    return iff($1["when"] > $last_beaconlog, $1, $null);
 }
 
 $last_credential = {{last_credential_timestamp}};
@@ -80,8 +73,9 @@ on beacons {
    $last_session_obj = dumpmodelarraysofhashes("[S]", data_query("sessions"), &session_sorter, &session_filter);
    if ($last_session_obj) { $last_session = parseNumber($last_session_obj["opened"]); }
 
-   $last_beaconlog_obj = dumpmodelarrayofarrays("[B]", data_query("beaconlog"), &beaconlog_filter);
-   if ($last_beaconlog_obj) { $last_beaconlog = parseNumber($last_beaconlog_obj[-1]); }
+   $beaconloghashes = convertbeaconlogtohashes(data_query("beaconlog"));
+   $last_beaconlog_obj = dumpmodelarraysofhashes("[B]", $beaconloghashes, $null, &beaconlog_filter);
+   if ($last_beaconlog_obj) { $last_beaconlog = parseNumber($last_beaconlog_obj["when"]); }
 
    # Deal with metadata after any new beacon sessions have been created, but before our "last" figure is too far off.
    # Our processing of checkins needs sleep data from beacon logs so needs to come after that too
@@ -95,6 +89,27 @@ on beacons {
 
    $last_download_obj = dumpmodelarraysofhashes("[D]", data_query("downloads"), &download_sorter, &download_filter);
    if ($last_download_obj) { $last_download = $last_download_obj["date"]; }
+}
+
+sub convertbeaconlogtohashes {
+    # $1 : array of beacon logs, which are also an array
+    @result = @();
+    foreach $index => $entry ($1) {
+        if ($entry[0] eq "beacon_input") {
+            putAll(%hash, @("type", "bid", "operator", "data", "when"), $entry);
+        }
+        else if ($entry[0] eq "beacon_output_job_registered" || $entry[0] eq "beacon_output_job_completed") {
+            putAll(%hash, @("type", "bid", "output_job", "when"), $entry);
+        }
+        else {
+            # Must be beacon_output, beacon_error, beacon_note, beacon_checkin, beacon_tasked
+            putAll(%hash, @("type", "bid", "data", "when", "output_job"), $entry);
+        }
+        push(@result, copy(%hash));
+        clear(%hash);
+    }
+
+    return @result;
 }
 
 sub dumpmodelarraysofhashes {
@@ -130,37 +145,6 @@ sub dumpmodelarraysofhashes {
             }
 
             println("{" . join(", ", @values) . "}" );
-
-            clear(@values);
-            $result = $entry
-        }
-    }
-
-    return $result;
-}
-
-sub dumpmodelarrayofarrays {
-    # $1 : the prefix
-    # $2 : the model to dump
-    # $3 : a closure for filtering the whole array
-    # Returns : The last element from the batch which is just dumped, or $null if none were dumped
-
-    $data = $2;
-    $result = $null;
-    if ($data)
-    {
-        $subarray = filter($3, $data);
-
-        foreach $index => $entry ($subarray) {
-            print("$1 [" . ($index + $3) . "] ");
-
-            foreach $value($entry)
-            {
-               cleanvalue($value);
-               push(@values, "\" $+ $value $+ \"");
-            }
-
-            println("[" . join(", ", @values) . "]" );
 
             clear(@values);
             $result = $entry
