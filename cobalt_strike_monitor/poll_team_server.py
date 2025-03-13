@@ -359,7 +359,6 @@ def parse(p, server):
                             # Merge current with pending and discard current
                             pending_beacon_log.data += beacon_log.data
                             pending_beacon_log.when = beacon_log.when # Update the time for use in subsequent time comparisons
-                            print (f"[i] Merging into pending_beacon_log for BID {pending_beacon_log.beacon_id} @ {pending_beacon_log.when}")
                         else:
                             # Flush pending beacon log and save current one
 
