@@ -2,10 +2,10 @@ import re
 from datetime import timedelta
 
 from django.db.models import Q
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from cobalt_strike_monitor.models import TeamServer, BeaconPresence, BeaconLog
+from cobalt_strike_monitor.models import TeamServer, BeaconPresence, BeaconLog, CSAction, Archive
 from cobalt_strike_monitor.poll_team_server import TeamServerPoller, recent_checkin
 
 
@@ -80,3 +80,46 @@ def checkin_handler(sender, beacon, metadata, **kwargs):
                        sleep_seconds=sleep,
                        sleep_jitter=jitter).save()
 
+
+@receiver(pre_save, sender=BeaconLog)
+def beaconlog_action_correlator(sender, instance: BeaconLog, **kwargs):
+    # We dump the beacon log before the archives, so use beacon logs to determine when to start new actions.
+
+    if instance.cs_action:
+        #We have already processed this BeaconLog
+        return
+
+    # If there's an input, it will always signify the start of a new action
+    if instance.type == "input":
+        new_action = CSAction(start=instance.when, beacon=instance.beacon)
+
+        # When commands are run in quick succession the output can get assigned to the wrong action. There are some
+        # commands which we know won't product output, and therefore we can defend against this a bit
+        if instance.data.startswith("sleep ") or instance.data.startswith("note "):
+            new_action.accept_output = False
+
+        new_action.save()
+        instance.cs_action = new_action
+
+    # A task with no input log within the last second, relating to sleep, is also the start of a new action
+    elif instance.type == "task" and "Tasked beacon to sleep " in instance.data and\
+            not CSAction.objects.filter(beacon=instance.beacon, start__gte=instance.when - timedelta(seconds=1), start__lte=instance.when).exists():
+        new_action = CSAction(start=instance.when, beacon=instance.beacon)
+        new_action.save()
+        instance.cs_action = new_action
+        instance.expect_output = False
+
+    # For everything else, associate it with the most recent action on the beacon
+    else:
+        most_recent_action_query = CSAction.objects.filter(beacon=instance.beacon, start__lte=instance.when).order_by(
+            "-start")
+        if instance.type.startswith("output") or instance.type == "error":
+            most_recent_action_query = most_recent_action_query.filter(accept_output=True)
+        instance.cs_action = most_recent_action_query.first()
+
+
+@receiver(pre_save, sender=Archive)
+def archive_action_correlator(sender, instance: Archive, **kwargs):
+    most_recent_action = CSAction.objects.filter(beacon=instance.beacon, start__lte=instance.when).order_by(
+        "-start").first()
+    instance.cs_action = most_recent_action

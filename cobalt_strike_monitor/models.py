@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, ForeignKey, BooleanField
 from django.utils.html import format_html, escape
 from django.utils.timezone import now
 
@@ -226,6 +226,43 @@ class BeaconExclusion(models.Model):
             return f"Exclude all beacons with external IP: {self.external}"
 
 
+class CSAction(models.Model):
+    start = models.DateTimeField()  # Timestamp of the entry
+    beacon = models.ForeignKey(Beacon, on_delete=models.CASCADE, null=True)
+    event_mappings = GenericRelation("event_tracker.EventMapping", related_query_name='cs_action')
+    accept_output = BooleanField(default=True)
+
+    @property
+    def operator(self):
+        return self.beaconlog_set.filter(operator__isnull=False).first().operator
+
+    @property
+    def tactic(self):
+        archive_with_tactic = self.archive_set.filter(tactic__isnull=False).first()
+        if archive_with_tactic:
+            return archive_with_tactic.tactic
+        else:
+            return None
+
+    @property
+    def description(self):
+        return ", ".join(self.archive_set.filter(type="task").exclude(data="").values_list('data', flat=True))
+
+    @property
+    def input(self):
+        return chr(10).join(self.archive_set.filter(type="input").exclude(data="").values_list('data', flat=True))
+
+    @property
+    def output(self):
+        return chr(10).join(self.beaconlog_set
+                            .filter(Q(type__startswith="output") | Q(type="error")).exclude(data="")
+                            .values_list('data', flat=True)).rstrip("\n")
+
+    @property
+    def indicators(self):
+        return self.archive_set.filter(type="indicator")
+
+
 class Archive(models.Model):
     team_server = models.ForeignKey(TeamServer, on_delete=models.CASCADE)
     id = models.IntegerField(primary_key=True)  # ID used internally by a Team Server to refer to this archive entry
@@ -237,7 +274,7 @@ class Archive(models.Model):
     data = models.CharField(max_length=100)  # The content of the log
     tactic = models.CharField(max_length=100, null=True)  # One or more (comma seperated) MITRE tactics
 
-    event_mappings = GenericRelation("event_tracker.EventMapping", related_query_name='beacon')
+    cs_action = ForeignKey(CSAction, on_delete=models.CASCADE, null=True)
 
     @property
     def indicator_hash(self):
@@ -260,33 +297,6 @@ class Archive(models.Model):
         else:
             return None
 
-    @property
-    def associated_beaconlog_input(self):
-        return BeaconLog.objects.filter(type="input", when__lte=self.when, beacon=self.beacon) \
-            .order_by("-when").first()
-
-    @property
-    def associated_beaconlog_output(self):
-        next_output_generator = BeaconLog.objects.filter(Q(type="input") | Q(type="task")) \
-                                 .filter(when__gt=timedelta(seconds=1) + self.when, beacon=self.beacon) \
-                                 .order_by("when")
-
-        outputs_between = BeaconLog.objects.filter(Q(type="output") | Q(type="error")) \
-                .filter(id__gte=self.id, beacon=self.beacon)
-
-        if next_output_generator.exists():
-            outputs_between = outputs_between.filter(id__lt=next_output_generator.first().id)
-
-        return outputs_between
-
-    @property
-    def associated_archive_tasks(self):
-        return Archive.objects.filter(type="task", when__gte=self.when, when__lt=self.when + timedelta(seconds=2), beacon=self.beacon) \
-            .order_by("-when")
-
-    @property
-    def associated_archive_tasks_description(self):
-        return " ".join(self.associated_archive_tasks.values_list('data', flat=True))
 
 class BeaconLog(models.Model):
     team_server = models.ForeignKey(TeamServer, on_delete=models.CASCADE)
@@ -300,6 +310,7 @@ class BeaconLog(models.Model):
     output_job = models.IntegerField(null=True)
 
     operator = models.CharField(max_length=100, null=True)  # The user initiating the request
+    cs_action = ForeignKey(CSAction, on_delete=models.CASCADE, null=True)
 
 
 class Credential(models.Model):

@@ -41,7 +41,7 @@ from taggit.forms import TagField
 from taggit.models import Tag
 
 from cobalt_strike_monitor.models import TeamServer, Archive, Beacon, BeaconExclusion, BeaconPresence, \
-    Download
+    Download, CSAction
 from cobalt_strike_monitor.poll_team_server import healthcheck_teamserver
 from .models import Task, Event, AttackTactic, AttackTechnique, Context, AttackSubTechnique, FileDistribution, File, \
     EventMapping, Webhook, BeaconReconnectionWatcher, BloodhoundServer, UserPreferences, \
@@ -53,7 +53,7 @@ from datetime import datetime, timedelta
 from dal import autocomplete
 
 from .plugins import EventReportingPluginPoint, EventStreamSourcePluginPoint
-from .signals import cs_beacon_to_context, cs_beaconlog_to_file, notify_webhook_new_beacon, cs_listener_to_context, \
+from .signals import cs_beacon_to_context, cs_indicator_archive_to_file, notify_webhook_new_beacon, cs_listener_to_context, \
     get_driver_for
 from .templatetags.custom_tags import render_ts_local
 from .event_detail_suggester.suggester import generate_suggestions
@@ -833,10 +833,10 @@ class TeamServerHealthCheckView(TemplateView):
         return context
 
 
-# -- CS Logs views
-class CSLogsListView(PermissionRequiredMixin, TemplateView):
+# -- CS Action views
+class CSActionListView(PermissionRequiredMixin, TemplateView):
     permission_required = 'cobalt_strike_monitor.view_archive'
-    template_name = "cobalt_strike_monitor/archive_list.html"
+    template_name = "cobalt_strike_monitor/cs_action_list.html"
 
 
 class FilterableDatatableView(ABC, BaseDatatableView):
@@ -921,10 +921,10 @@ class FilterableDatatableView(ABC, BaseDatatableView):
 
 class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
     permission_required = 'cobalt_strike_monitor.view_archive'
-    model = Archive
-    columns = ['when', 'source', 'target', 'data', 'tactic', '']
-    order_columns = ['when', '', '', 'data', 'tactic', '']
-    filter_column_mapping = {'Timestamp': 'when'}
+    model = CSAction
+    columns = ['start', 'operator', 'source', 'target', 'data', 'tactic', '']
+    order_columns = ['start', 'operator', '', '', 'data', 'tactic', '']
+    filter_column_mapping = {'Timestamp': 'start'}
 
     def apply_row_filter(self, qs):
         # Removed hidden beacons, prefetches beacon data, remove empty rows
@@ -932,23 +932,11 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
                 .select_related("beacon").select_related("beacon__listener") \
                 .exclude(data="")
 
-    def get_initial_queryset(self):
-        # Rows with type task where there is no input in the same second nor 1 second earlier
-        task_rows_without_input = (Archive.objects.filter(type="task").annotate(when_trunc=Trunc("when", "second", output_field=DateTimeField()))
-            # Exclude task rows whose timestamp is the same as an existing input row
-            .exclude(when_trunc__in=Archive.objects.filter(type="input").annotate(when_trunc=Trunc("when", "second", output_field=DateTimeField())).values("when_trunc"))
-            # Exclude task rows whose timestamp is one second later than an existing input row
-            .exclude(when_trunc__in=Archive.objects.filter(type="input").annotate(
-                    one_sec_later=timedelta(seconds=1) + Trunc("when", "second", output_field=DateTimeField())).values("one_sec_later")))
-
-        input_rows = Archive.objects.filter(type="input")
-
-        return self.apply_row_filter(input_rows | task_rows_without_input)
 
     def render_column(self, row, column):
         # We want to render some columns in a special way
-        if column == 'when':
-            return render_ts_local(row.when),
+        if column == 'start':
+            return render_ts_local(row.start),
         elif column == 'source':
             if hasattr(row.beacon.listener, "althost") and row.beacon.listener.althost:
                 return f'<ul class="fa-ul"><li><span class="fa-li text-muted"><i class="fas fa-network-wired"></i></span>{ escape(row.beacon.listener.althost) }</li></ul>'
@@ -975,13 +963,17 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
             return result
         elif column == 'data':
             result = ""
-            if row.associated_archive_tasks_description:
-                result += f"<div class='description'>{row.associated_archive_tasks_description}</div>"
+            rowdescription = row.description
+            if rowdescription:
+                result = f"<div class='description'>{html.escape(rowdescription)}</div>"
 
-            if row.type == "input":
-                result += f"<div class='input'>{row.data}</div>"
+            rowinput = row.input
+            if rowinput:
+                result += f"<div class='input'>{html.escape(rowinput)}</div>"
 
-            result += f"<div class='output'>{html.escape(chr(10).join(row.associated_beaconlog_output.values_list('data', flat=True)))}</div>"
+            rowoutput = row.output
+            if rowoutput:
+                result += f"<div class='output'>{html.escape(rowoutput)}</div>"
 
             return result
         elif column == '':  # The column with button in
@@ -998,9 +990,10 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
         q = Q(beacon__listener__althost__icontains=term) | Q(beacon__listener__host__icontains=term) | \
             Q(beacon__computer__icontains=term) | Q(beacon__user__icontains=term) | Q(
             beacon__process__icontains=term) | \
-            Q(data__icontains=term) | Q(tactic__icontains=term) | Q(beacon__pid=term)
+            Q(archive__data__icontains=term) | Q(beaconlog__data__icontains=term) | \
+            Q(archive__tactic__icontains=term) | Q(beacon__pid=term) | Q(beaconlog__operator__icontains=term)
 
-        return qs.filter(q)
+        return qs.filter(q).distinct()
 
 # -- EventStream List
 
@@ -1347,22 +1340,17 @@ def previous_hop_to_context(beacon):
 class CSLogToEventView(EventCreateView):
     def get_initial(self):
         task = Task.objects.order_by("-id").first()
-        cs_archive = get_object_or_404(Archive, pk=self.kwargs.get('pk'))
+        cs_action = get_object_or_404(CSAction, pk=self.kwargs.get('pk'))
 
         tactic = None
         technique = None
         subtechnique = None
 
-        if cs_archive.data.startswith("file: "):
-            description = "Uploaded file to target"
-        else:
-            description = cs_archive.data
-
         # Find associated MITRE tactic:
-        tactic_record = cs_archive.associated_archive_tasks.filter(tactic__isnull=False).exclude(tactic='').first()
+        action_tactic = cs_action.tactic
 
-        if tactic_record:
-            cs_mitre_refs = tactic_record.tactic.split(",")  # These are typically techniques, not tactics, but CS names them wrong
+        if action_tactic:
+            cs_mitre_refs = action_tactic.split(",")  # These are typically techniques, not tactics, but CS names them wrong
             for cs_mitre_ref in cs_mitre_refs:
                 try:
                     if "." in cs_mitre_ref:
@@ -1380,39 +1368,34 @@ class CSLogToEventView(EventCreateView):
                 except (AttackTechnique.DoesNotExist, AttackSubTechnique.DoesNotExist):
                     pass
 
-        # Operator determined by the last user to provide input to that beacon
-        associated_input_command = cs_archive.associated_beaconlog_input
-
-        if associated_input_command:
+        if cs_action.operator:
             # Do a "fuzzy" match to find a user with the same case insensitive username as the operator,
             # ignoring any trailing digits which are sometimes added to CS operator logins to workaround concurrent
             # logins.
-            operator = User.objects.filter(username__iexact=associated_input_command.operator.rstrip(string.digits)).first()
+            operator = User.objects.filter(username__iexact=cs_action.operator.rstrip(string.digits)).first()
         else:
             operator = None
 
-        input_evidence = cs_archive.data
-        output_evidence = "\n".join(cs_archive.associated_beaconlog_output.values_list('data', flat=True))
-
         return {
             "task": task,
-            "timestamp": timezone.localtime(cs_archive.when).strftime("%Y-%m-%dT%H:%M"),
-            "source": previous_hop_to_context(cs_archive.beacon),
-            "target": cs_beacon_to_context(None, cs_archive.beacon),
+            "timestamp": timezone.localtime(cs_action.start).strftime("%Y-%m-%dT%H:%M"),
+            "source": previous_hop_to_context(cs_action.beacon),
+            "target": cs_beacon_to_context(None, cs_action.beacon),
             "operator": operator,
             "mitre_attack_tactic": tactic,
             "mitre_attack_technique": technique,
             "mitre_attack_subtechnique": subtechnique,
-            "description": cs_archive.associated_archive_tasks_description,
-            "raw_evidence": f"{input_evidence}{chr(13)+chr(13) + output_evidence if output_evidence else ''}" if cs_archive.type == "input" else None
+            "description": cs_action.description,
+            "raw_evidence": f"{cs_action.input}{chr(13)+chr(13) + cs_action.output if cs_action.output else ''}"
         }
 
     def get_context_data(self, **kwargs):
         context = super(EventCreateView, self).get_context_data(**kwargs)
 
-        cslog = get_object_or_404(Archive, pk=self.kwargs.get('pk'))
-        if cslog.data.startswith("file: ") and not self.request.POST:
-            file, location = cs_beaconlog_to_file(cslog.data)
+        cs_action = get_object_or_404(CSAction, pk=self.kwargs.get('pk'))
+
+        if cs_action.indicators.exists() and not self.request.POST:
+            file, location = cs_indicator_archive_to_file(cs_action.indicators.first().data)
             initial = [{"location": location,
                         "file": file,
                         "removed": False
@@ -1434,9 +1417,9 @@ class CSLogToEventView(EventCreateView):
     def form_valid(self, form):
         response = super(CSLogToEventView, self).form_valid(form)
 
-        archive = get_object_or_404(Archive, pk=self.kwargs.get('pk'))
+        cs_action = get_object_or_404(CSAction, pk=self.kwargs.get('pk'))
 
-        mapping = EventMapping(source_object=archive, event=self.object)
+        mapping = EventMapping(source_object=cs_action, event=self.object)
         mapping.save()
 
         return response

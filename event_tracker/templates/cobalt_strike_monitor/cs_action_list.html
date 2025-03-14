@@ -22,8 +22,8 @@ CS Logs
         monospaceFontURL: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
         brandingSVG: '{{REPORT_FOOTER_IMAGE}}',
         brandingText: '{{REPORT_FOOTER_TEXT}}',
-        totalColumns: 6,
-        descriptionColumn: 3,
+        totalColumns: 7,
+        descriptionColumn: 4,
     }
     </script>
     
@@ -67,6 +67,7 @@ CS Logs
               <thead>
                 <tr>
                   <th scope="col">Timestamp</th>
+                  <th scope="col">Operator</th>
                   <th scope="col">Source</th>
                   <th scope="col">Target</th>
                   <th scope="col">Description</th>
@@ -140,6 +141,7 @@ CS Logs
           order: [[0, 'desc']],
           columns: [
             { searchBuilderType: "moment-{% datetime_format_moment %}" },
+            null,
             { orderable: false },
             { orderable: false },
             { render: descriptionRender },
