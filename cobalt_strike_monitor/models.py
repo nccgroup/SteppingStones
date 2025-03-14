@@ -234,7 +234,11 @@ class CSAction(models.Model):
 
     @property
     def operator(self):
-        return self.beaconlog_set.filter(operator__isnull=False).first().operator
+        log_with_operator = self.beaconlog_set.filter(operator__isnull=False).first()
+        if log_with_operator:
+            return log_with_operator.operator
+        else:
+            return None
 
     @property
     def tactic(self):
