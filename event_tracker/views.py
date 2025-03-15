@@ -20,8 +20,8 @@ from django.contrib.auth.mixins import UserPassesTestMixin, PermissionRequiredMi
 from django.contrib.auth.models import User
 from django.contrib.staticfiles import finders
 from django.db import transaction, connection
-from django.db.models import Max, Q, DateTimeField
-from django.db.models.functions import Greatest, Coalesce, Trunc
+from django.db.models import Max, Q, Subquery, OuterRef
+from django.db.models.functions import Greatest, Coalesce
 from django.forms import inlineformset_factory
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -41,14 +41,14 @@ from taggit.forms import TagField
 from taggit.models import Tag
 
 from cobalt_strike_monitor.models import TeamServer, Archive, Beacon, BeaconExclusion, BeaconPresence, \
-    Download, CSAction
+    Download, CSAction, BeaconLog
 from cobalt_strike_monitor.poll_team_server import healthcheck_teamserver
 from .models import Task, Event, AttackTactic, AttackTechnique, Context, AttackSubTechnique, FileDistribution, File, \
     EventMapping, Webhook, BeaconReconnectionWatcher, BloodhoundServer, UserPreferences, \
     ImportedEvent
 from django.urls import reverse_lazy, reverse
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from dal import autocomplete
 
@@ -919,11 +919,11 @@ class FilterableDatatableView(ABC, BaseDatatableView):
         pass
 
 
-class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
+class CSActionListJSON(PermissionRequiredMixin, FilterableDatatableView):
     permission_required = 'cobalt_strike_monitor.view_archive'
     model = CSAction
     columns = ['start', 'operator', 'source', 'target', 'data', 'tactic', '']
-    order_columns = ['start', 'operator', '', '', 'data', 'tactic', '']
+    order_columns = ['start', 'operator_anno', '', '', '', 'tactic_anno', '']
     filter_column_mapping = {'Timestamp': 'start'}
 
     def apply_row_filter(self, qs):
@@ -932,6 +932,14 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
                 .select_related("beacon").select_related("beacon__listener") \
                 .exclude(data="")
 
+
+    def get_initial_queryset(self):
+        operator_subquery = BeaconLog.objects.filter(cs_action__id=OuterRef('pk'), operator__isnull=False)
+        tactic_subquery = Archive.objects.filter(cs_action__id=OuterRef('pk'), tactic__isnull=False)
+
+        return (self.model.objects
+                .annotate(operator_anno=Subquery(operator_subquery.values("operator")[:1]))
+                .annotate(tactic_anno=Subquery(tactic_subquery.values("tactic")[:1])))
 
     def render_column(self, row, column):
         # We want to render some columns in a special way
@@ -984,7 +992,7 @@ class CSLogsListJSON(PermissionRequiredMixin, FilterableDatatableView):
             else:
                 return ""
         else:
-            return truncatechars_html((super(CSLogsListJSON, self).render_column(row, column)), 400)
+            return truncatechars_html((super(CSActionListJSON, self).render_column(row, column)), 400)
 
     def filter_queryset_by_searchterm(self, qs, term):
         q = Q(beacon__listener__althost__icontains=term) | Q(beacon__listener__host__icontains=term) | \

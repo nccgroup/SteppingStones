@@ -91,7 +91,7 @@ CS Logs
       $('.table').DataTable({
           "processing": true,
           "serverSide": true,
-          "ajax": "{% url 'event_tracker:cs-logs-json' %}",
+          "ajax": "{% url 'event_tracker:cs-actions-json' %}",
           language: {
             emptyTable: "<i class='fa fa-exclamation-triangle' aria-hidden='true'></i> No logs found, ensure they are being polled for or remove <a href='{% url 'event_tracker:cs-beacon-exclusion-list' %}'>beacon exclusions</a>.",
             searchBuilder: {
@@ -141,10 +141,10 @@ CS Logs
           order: [[0, 'desc']],
           columns: [
             { searchBuilderType: "moment-{% datetime_format_moment %}" },
-            null,
+            { orderable: true },
             { orderable: false },
             { orderable: false },
-            { render: descriptionRender },
+            { orderable: false, render: descriptionRender },
             null,
             { orderable: false },
           ],

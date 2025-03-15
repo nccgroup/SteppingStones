@@ -45,7 +45,7 @@ def get_pseudo_ctime(root, tarinfo):
 
 
 class Command(BaseCommand):
-    help = 'Parse a tar file of CS logs, created with `tar cvfz cslogs.tar.gz /opt/cobaltstrike/logs`'
+    help = 'Parse a tar file of CS logs, created with `tar cvfz cslogs.tar.gz /opt/cobaltstrike/server/logs`'
 
     def add_arguments(self, parser):
         parser.add_argument('tar_file', type=pathlib.Path)
