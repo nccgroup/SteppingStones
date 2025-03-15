@@ -140,13 +140,13 @@ CS Logs
           },
           order: [[0, 'desc']],
           columns: [
-            { searchBuilderType: "moment-{% datetime_format_moment %}" },
-            { orderable: true },
-            { orderable: false },
-            { orderable: false },
-            { orderable: false, render: descriptionRender },
-            null,
-            { orderable: false },
+            { searchBuilderType: "moment-{% datetime_format_moment %}", width: "10%" },
+            { orderable: true, width: "6%" },
+            { orderable: false, width: "12%" },
+            { orderable: false, width: "12%" },
+            { orderable: false, render: descriptionRender, width: "50%" },
+            { orderable: true, width: "5%" },
+            { orderable: false, width: "5%" },
           ],
           drawCallback: tableDrawCallback
       } )
