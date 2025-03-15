@@ -4,11 +4,11 @@ import event_tracker.views_bloodhound
 import event_tracker.views_credentials
 from . import views
 from .views import EventCreateView, EventUpdateView, EventDeleteView, EventListView, EventCloneView, ContextAutocomplete, CSVEventListView, TeamServerCreateView, \
-    TeamServerUpdateView, TeamServerDeleteView, CSLogsListView, CSLogToEventView, CSUploadsListView, \
+    TeamServerUpdateView, TeamServerDeleteView, CSActionListView, CSLogToEventView, CSUploadsListView, \
     FileAutocomplete, CSBeaconsListView, CSBeaconToEventView, FileListView, TeamServerListView, BeaconExclusionList, \
     BeaconExclusionDeleteView, WebhookListView, WebhookCreateView, WebhookUpdateView, WebhookDeleteView, \
     CSBeaconsTimelineView, beaconwatch_add, beaconwatch_remove, CSDownloadsListView, CSDownloadToEventView, \
-    EventLatMoveCloneView, CSLogsListJSON, \
+    EventLatMoveCloneView, CSActionListJSON, \
     UserListAutocomplete, HostListAutocomplete, ProcessListAutocomplete, InitialConfigTask, InitialConfigAdmin, \
     toggle_event_star, EventTagAutocomplete, TeamServerConfigView, EventStreamListView, EventStreamListJSON, EventStreamUpload, \
     EventStreamToEventView, toggle_qs_stars, LimitedEventUpdateView, EventBulkEdit, \
@@ -75,8 +75,8 @@ urlpatterns = [
     path('team-server/<int:serverid>/healthcheck', TeamServerHealthCheckView.as_view(), name='team-server-healthcheck'),
     path('team-server/<int:pk>/delete/', TeamServerDeleteView.as_view(), name='team-server-delete'),
 
-    path('cs-logs', CSLogsListView.as_view(), name='cs-logs-list'),
-    path('cs-logs-api', CSLogsListJSON.as_view(), name='cs-logs-json'),
+    path('cs-actions', CSActionListView.as_view(), name='cs-actions-list'),
+    path('cs-actions-api', CSActionListJSON.as_view(), name='cs-actions-json'),
     path('cs-logs/<int:pk>/to_event/', CSLogToEventView.as_view(), name="cs-log-to-event"),
     path('cs-uploads', CSUploadsListView.as_view(), name='cs-uploads-list'),
     path('cs-downloads', CSDownloadsListView.as_view(), name='cs-downloads-list'),

@@ -83,7 +83,7 @@ def cs_credential_listener(sender, instance: cobalt_strike_monitor.models.Creden
     return credential
 
 
-def cs_beaconlog_to_file(log_data):
+def cs_indicator_archive_to_file(log_data):
     md5_hash, size, path = re.match(r"file: ([a-f0-9]{32}) (\d+) bytes (.*)", log_data).groups()
     directory, sep, filename = split_path(path)
     file, created = File.objects.get_or_create(size=size,
@@ -98,7 +98,7 @@ def cs_beaconlog_to_file(log_data):
 @receiver(post_save, sender=BeaconLog)
 def cs_beaconlog_parser(sender, instance: BeaconLog, **kwargs):
     if instance.data.startswith("file: "):
-        cs_beaconlog_to_file(instance.data)
+        cs_indicator_archive_to_file(instance.data)
     elif instance.type == "output":
         message = instance.data
         extract_creds(message, default_system=instance.beacon.computer)

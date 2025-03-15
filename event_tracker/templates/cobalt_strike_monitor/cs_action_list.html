@@ -22,8 +22,8 @@ CS Logs
         monospaceFontURL: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
         brandingSVG: '{{REPORT_FOOTER_IMAGE}}',
         brandingText: '{{REPORT_FOOTER_TEXT}}',
-        totalColumns: 6,
-        descriptionColumn: 3,
+        totalColumns: 7,
+        descriptionColumn: 4,
     }
     </script>
     
@@ -67,6 +67,7 @@ CS Logs
               <thead>
                 <tr>
                   <th scope="col">Timestamp</th>
+                  <th scope="col">Operator</th>
                   <th scope="col">Source</th>
                   <th scope="col">Target</th>
                   <th scope="col">Description</th>
@@ -90,7 +91,7 @@ CS Logs
       $('.table').DataTable({
           "processing": true,
           "serverSide": true,
-          "ajax": "{% url 'event_tracker:cs-logs-json' %}",
+          "ajax": "{% url 'event_tracker:cs-actions-json' %}",
           language: {
             emptyTable: "<i class='fa fa-exclamation-triangle' aria-hidden='true'></i> No logs found, ensure they are being polled for or remove <a href='{% url 'event_tracker:cs-beacon-exclusion-list' %}'>beacon exclusions</a>.",
             searchBuilder: {
@@ -139,12 +140,13 @@ CS Logs
           },
           order: [[0, 'desc']],
           columns: [
-            { searchBuilderType: "moment-{% datetime_format_moment %}" },
-            { orderable: false },
-            { orderable: false },
-            { render: descriptionRender },
-            null,
-            { orderable: false },
+            { searchBuilderType: "moment-{% datetime_format_moment %}", width: "10%" },
+            { orderable: true, width: "6%" },
+            { orderable: false, width: "12%" },
+            { orderable: false, width: "12%" },
+            { orderable: false, render: descriptionRender, width: "50%" },
+            { orderable: true, width: "5%" },
+            { orderable: false, width: "5%" },
           ],
           drawCallback: tableDrawCallback
       } )

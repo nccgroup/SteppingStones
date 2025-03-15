@@ -229,7 +229,7 @@ def parse(p, server):
     try:
         reader = BufferedReader(p.stdout)
 
-        beacon_log_to_merge = None
+        pending_beacon_log = None
 
         for line in iter(reader.readline, b''):
             # We don't need to check the TS is enabled every line, but should do so every few seconds
@@ -251,6 +251,16 @@ def parse(p, server):
 
             try:
                 line_id, line_data = parse_line(line)
+
+                # First, lets flush the pending Beacon Log if we've moved onto a processing different type of line:
+                if not line.startswith("[B]"):
+                    if pending_beacon_log:
+                        # Our regexes rely on a \n to find ends of passwords etc, so ensure there's always 1
+                        pending_beacon_log.data = pending_beacon_log.data.rstrip("\n") + "\n"
+                        pending_beacon_log.save()
+                        pending_beacon_log = None
+
+                # Now lets process the current line
                 if line.startswith("[L]"):  # Listeners
                     # TCP Listeners can be configured to only bind to localhost
                     if "localonly" in line_data:
@@ -312,60 +322,56 @@ def parse(p, server):
                     archive.save()
                 elif line.startswith("[B]"):  # Beacon Logs
                     # Example:
-                    # [B] [0] ["beacon_input", "23646214", "ST1", "clear", "1654870320677"]
-                    # [B] [1] ["beacon_tasked", "23646214", "Cleared beacon queue", "1654870320728"]
+                    # [B] [1263] {"data":"received output:\n[+] roborg Runtime Initalized, assembly size 488960, .NET Runtime Version: 4.0.30319.42000 in AppDomain qiBsaBzIc\r\n", "type":"beacon_output", "bid":"270632664", "when":"1741168779890"}
                     # To avoid hammering the DB and rerunning lots of regexes, we first try and buffer sequential output
                     # logs in memory, but this only works for those logs read in a single non-blocking read, so
                     # eventually we also have to attempt a DB level merge too.
-                    beacon_log = BeaconLog()
+                    beacon_log = BeaconLog(**dict(filter(
+                        lambda elem: elem[0] in ["data", "operator", "output_job"],
+                        line_data.items())))
 
-                    beacon_log.type = clean_type(line_data[0])
-                    beacon_log.beacon = get_beacon_for_bid(line_data[1], server)
+                    beacon_log.type = clean_type(line_data["type"])
+                    beacon_log.beacon = get_beacon_for_bid(line_data["bid"], server)
+                    beacon_log.team_server = server
 
                     # Work back from the end of line_data, as there may (or may not) be an operator element in the
                     # middle which messes up later offsets
-                    beacon_log.when = datetime.fromtimestamp(int(line_data[-1]) / 1000, tz=UTC)
+                    beacon_log.when = datetime.fromtimestamp(int(line_data["when"]) / 1000, tz=UTC)
 
-                    # Our regexes rely on a \n to find ends of passwords etc, so ensure there's always 1
-                    beacon_log.data = line_data[-2].rstrip("\n") + "\n"
+                    if "data" in line_data:
+                        # Trim prefix added by NCC custom tooling
+                        if beacon_log.data.startswith("received output:"):
+                            beacon_log.data = beacon_log.data[17:]
 
-                    # Trim prefix added by NCC custom tooling
-                    if beacon_log.data.startswith("received output:"):
-                        beacon_log.data = beacon_log.data[17:]
-
-                    if beacon_log_to_merge:  # If this was set by a previous line
-                        beacon_log.data = beacon_log_to_merge.data + beacon_log.data
-
-                    if len(line_data) > 4:
-                        beacon_log.operator = line_data[-3]
-
-                    beacon_log.team_server = server
-
-                    # Should merge output lines with next line?
-                    beacon_log_to_merge = None
-                    if beacon_log.type == "output":
-                        # First, lets see if there's more related beacon logs to process
-                        next_data = reader.peek(1000).decode("ascii")
-                        if next_data.startswith("[B]") and "\n" in next_data:
-                            next_line, _ = next_data.split("\n", 1)
-                            _, next_line_data = parse_line(next_line)
-
-                            if clean_type(next_line_data[0]) == "output" and line_data[1] == next_line_data[1]:
-                                # Both this line and the next are confirmed to be "output" for the same beacon
-                                if int(next_line_data[-1]) - int(line_data[-1]) < 5:
-                                    # The two lines are within 5ms of each other
-                                    beacon_log_to_merge = beacon_log
-
-                    if beacon_log_to_merge is None:
-                        # We're not preserving this beacon_log object for the next iteration, so write it to the DB
-
-                        #Lets see if we should merge with the previous log:
-                        previous_log_for_beacon = beacon_log.beacon.beaconlog_set.filter(type="output").order_by("when").last()
-                        if previous_log_for_beacon and beacon_log.when - previous_log_for_beacon.when < timedelta(milliseconds=5):
-                            previous_log_for_beacon.when = beacon_log.when
-                            previous_log_for_beacon.data += beacon_log.data
-                            previous_log_for_beacon.save()
+                    # Beacon Logs output types are special in that we try and merge adjacent output lines into a single DB row.
+                    # This is done by storing the DB row in a "pending" variable which is either appended to, or
+                    # flushed if appending doesn't make sense because the current and pending lines aren't related.
+                    # Lines will not be merged if there is too much of a time difference between each line, or if other
+                    # concurrent events are occurring on the team server.
+                    # So there remains the need to do additional processing to collate the output/errors associated with an input/task.
+                    if pending_beacon_log:
+                        # Does current entry fit with pending beacon log?
+                        if beacon_log.type == pending_beacon_log.type and \
+                                beacon_log.output_job == pending_beacon_log.output_job and \
+                                beacon_log.beacon_id == pending_beacon_log.beacon_id and \
+                                beacon_log.team_server_id == pending_beacon_log.team_server_id and \
+                                beacon_log.when - pending_beacon_log.when <= timedelta(milliseconds=15):
+                            # Merge current with pending and discard current
+                            pending_beacon_log.data += beacon_log.data
+                            pending_beacon_log.when = beacon_log.when # Update the time for use in subsequent time comparisons
                         else:
+                            # Flush pending beacon log and save current one
+
+                            # Our regexes rely on a \n to find ends of passwords etc, so ensure there's always 1
+                            pending_beacon_log.data = pending_beacon_log.data.rstrip("\n") + "\n"
+                            pending_beacon_log.save()
+                            pending_beacon_log = None
+                            beacon_log.save()
+                    else:
+                        if beacon_log.type == "output":
+                            pending_beacon_log = beacon_log
+                        else:
+                            # There's no pending beacon log, just save this non-output log straight to the DB
                             beacon_log.save()
                 elif line.startswith("[C]"):  # Credentials
                     credential = Credential(**dict(filter(
@@ -419,4 +425,4 @@ def clear_local_copy(team_server):
 
 
 def clean_type(input_string):
-    return input_string.removeprefix("beacon_").removesuffix("ed").removesuffix("_alt")
+    return input_string.removeprefix("beacon_").replace("tasked", "task").removesuffix("_alt")
