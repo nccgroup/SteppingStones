@@ -107,7 +107,7 @@ def beaconlog_action_correlator(sender, instance: BeaconLog, **kwargs):
         new_action = CSAction(start=instance.when, beacon=instance.beacon)
         new_action.save()
         instance.cs_action = new_action
-        instance.expect_output = False
+        instance.accept_output = False
 
     # For everything else, associate it with the most recent action on the beacon
     else:
