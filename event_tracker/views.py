@@ -926,20 +926,16 @@ class CSActionListJSON(PermissionRequiredMixin, FilterableDatatableView):
     order_columns = ['start', 'operator_anno', '', '', '', 'tactic_anno', '']
     filter_column_mapping = {'Timestamp': 'start'}
 
-    def apply_row_filter(self, qs):
-        # Removed hidden beacons, prefetches beacon data, remove empty rows
-        return qs.filter(beacon__in=Beacon.visible_beacons()) \
-                .select_related("beacon").select_related("beacon__listener") \
-                .exclude(data="")
-
 
     def get_initial_queryset(self):
         operator_subquery = BeaconLog.objects.filter(cs_action__id=OuterRef('pk'), operator__isnull=False)
         tactic_subquery = Archive.objects.filter(cs_action__id=OuterRef('pk'), tactic__isnull=False)
 
         return (self.model.objects
+                .filter(beacon__in=Beacon.visible_beacons())
                 .annotate(operator_anno=Subquery(operator_subquery.values("operator")[:1]))
-                .annotate(tactic_anno=Subquery(tactic_subquery.values("tactic")[:1])))
+                .annotate(tactic_anno=Subquery(tactic_subquery.values("tactic")[:1]))
+                .distinct())
 
     def render_column(self, row, column):
         # We want to render some columns in a special way
@@ -999,9 +995,11 @@ class CSActionListJSON(PermissionRequiredMixin, FilterableDatatableView):
             Q(beacon__computer__icontains=term) | Q(beacon__user__icontains=term) | Q(
             beacon__process__icontains=term) | \
             Q(archive__data__icontains=term) | Q(beaconlog__data__icontains=term) | \
-            Q(archive__tactic__icontains=term) | Q(beacon__pid=term) | Q(beaconlog__operator__icontains=term)
+            Q(tactic_anno__icontains=term) | Q(beacon__pid=term) | Q(operator_anno__icontains=term)
 
-        return qs.filter(q).distinct()
+        # Adding more Q objects via filter() or using intersection is weirdly very slow, nested queries is equivalent
+        # and gives the same output
+        return qs.filter(pk__in=self.get_initial_queryset().filter(q).distinct().values("pk"))
 
 # -- EventStream List
 
