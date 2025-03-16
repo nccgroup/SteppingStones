@@ -17,4 +17,5 @@ class SharpSCCMNAAExtractor(CredentialExtractorGenerator):
         for match in naa_regex.finditer(input_text):
             yield Credential(**match.groupdict(),
                              purpose="SCCM Network Access Account",
-                             source="SharpSCCM")
+                             source="SharpSCCM",
+                             source_time=None)

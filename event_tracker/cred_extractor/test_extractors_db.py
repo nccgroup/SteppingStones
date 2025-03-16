@@ -45,3 +45,46 @@ class ExtractorTestCaseWithDB(django.test.TestCase):
         self.assertEqual(1, len(result))
         self.assertEqual("realm", result[0].system)
         self.assertEqual("USER", result[0].account)
+
+    def test_db_write_idempotent(self):
+        # Ensure we have a clean DB
+        self.assertFalse(Credential.objects.filter(secret="Password123", system="DOMAIN", account="USER").exists())
+        self.assertFalse(Credential.objects.filter(secret="Password123", system="DOMAIN", account="USER2").exists())
+
+        # Parse a NAA cred
+        result, _ = extract_and_save(r"""
+[+] Decrypting network access account credentials
+
+    NetworkAccessUsername: DOMAIN\USER
+    NetworkAccessPassword: Password123
+""", "DUMMY")
+
+        # Ensure it got written to DB
+        self.assertEqual(1, Credential.objects.filter(secret="Password123", system="DOMAIN", account="USER").count())
+
+        # Parse a NAA cred a second time
+        result, _ = extract_and_save(r"""
+[+] Decrypting network access account credentials
+
+    NetworkAccessUsername: DOMAIN\USER
+    NetworkAccessPassword: Password123
+""", "DUMMY")
+
+        # Ensure idempotency between transactions - i.e. still only 1
+        self.assertEqual(1, Credential.objects.filter(secret="Password123", system="DOMAIN", account="USER").count())
+
+        # Parse a NAA cred a third time
+        result, _ = extract_and_save(r"""
+[+] Decrypting network access account credentials
+
+    NetworkAccessUsername: DOMAIN\USER2
+    NetworkAccessPassword: Password123
+
+[+] Decrypting network access account credentials
+
+    NetworkAccessUsername: DOMAIN\USER2
+    NetworkAccessPassword: Password123
+""", "DUMMY")
+
+        # Ensure idempotency within transactions - i.e. still only 1
+        self.assertEqual(1, Credential.objects.filter(secret="Password123", system="DOMAIN", account="USER2").count())
