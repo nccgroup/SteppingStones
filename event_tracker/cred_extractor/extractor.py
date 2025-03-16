@@ -36,6 +36,8 @@ extractor_classes = [SnafflerExtractor, BrowserExtractor, NetNTLMv1Extractor, Ne
 
 @transaction.atomic
 def extract_and_save(input_text: str, default_system: str) -> tuple[int, int]:
+    # Returns number individually saved, and number saved in the separate bulk save
+
     credentials_to_add, credentials_to_delete = extract(input_text, default_system)
     saved_secrets = 0
 
