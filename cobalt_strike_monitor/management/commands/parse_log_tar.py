@@ -9,6 +9,8 @@ from django.core.management import BaseCommand
 
 from cobalt_strike_monitor.models import Beacon, TeamServer, Listener, Download, BeaconLog, Archive
 
+BINARY_CHAR_REGEX = re.compile(r"[^ -~\r\n\t][0-9A-F]")
+
 
 def get_pseudo_ctime(root, tarinfo):
     if tarinfo.isfile() and tarinfo.name.endswith('.log'):
@@ -21,6 +23,7 @@ def get_pseudo_ctime(root, tarinfo):
         try:
             lines = buffer.readlines()
             first_line = lines[0].decode("utf-8")
+            first_line = re.sub(BINARY_CHAR_REGEX, "", first_line)
         except UnicodeError:
             print(f"[E] Could not decode {lines[0]} in {tarinfo.name}")
 
@@ -72,6 +75,7 @@ class Command(BaseCommand):
 
         buffer = root.extractfile(file)
         buffer_str = buffer.read().decode("utf-8")
+        buffer_str = re.sub(BINARY_CHAR_REGEX, "", buffer_str)
 
         filename_parts = re.match(r".*(?P<session>beacon|ssh)_(?P<id>\d+).log", file.name).groupdict()
 
@@ -213,6 +217,7 @@ class Command(BaseCommand):
         buffer = root.extractfile(file)
         for line in buffer.readlines():
             line = line.decode("utf-8")
+            line = re.sub(BINARY_CHAR_REGEX, "", line)
             match = re.match(
                 r"^(?P<date>\d{2}/\d{2}) (?P<time>.+)\t(?P<host>[^\t]+)\t(?P<bid>[^\t]+)\t(?P<size>[^\t]+)\t(?P<localpath>[^\t]+)\t(?P<name>[^\t]+)\t(?P<path>[^\t]+)",
                 line)

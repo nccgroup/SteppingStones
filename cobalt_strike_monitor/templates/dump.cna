@@ -178,7 +178,7 @@ sub dumpmodelhashofhashes {
 }
 
 sub cleanvalue {
-   $1 = replace($1, "\\\\", "\\\\\\\\"); # Escape /
+   $1 = replace($1, "\\\\", "\\\\\\\\"); # Escape \
    $1 = replace($1, "\"", "\\\\\""); #  Escape "
    $1 = replace($1, "\r", "\\\\r"); #  Escape \r
    $1 = replace($1, "\n", "\\\\n"); #  Escape \n

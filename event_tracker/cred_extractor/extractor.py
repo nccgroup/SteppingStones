@@ -68,6 +68,10 @@ def extract(input_text: str, default_system: str) -> ([Credential], [Credential]
     credentials_to_remove = []
     functions = [subclass().extract for subclass in extractor_classes]
     futures = []
+
+    # Clean up input text - standardise on *nix line endings and remove null bytes
+    input_text = input_text.replace('\r\n', '\n')
+
     for function in functions:
         futures.append(executor.submit(function, input_text, default_system))
     for future in concurrent.futures.as_completed(futures):
