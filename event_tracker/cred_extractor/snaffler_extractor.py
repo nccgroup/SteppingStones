@@ -12,7 +12,7 @@ net_use_command = re.compile(r'net use (?:\S+ )?(?P<purpose>\\\S+)(?=.*/user)(?:
 dotnet_connection_string = re.compile(r'\"(;?\s*User( ID)?=(?P<account>[^;\"]+)|;?\s*Password=(?P<secret>[^;\"]+)|;?\s*(Data Source|Server)=(?P<system>[^;\"]+)|;?[^\";]+)+', re.IGNORECASE)
 db_connection_string = re.compile(r'(?=.*Password=)(;?\s*User( ID)?=(?P<account>[^;<>\"]+)|;?\s*Password=(?P<secret>[^;<>\"]+)|;?\s*(Data Source|Server)=(?P<system>[^;<>\"]+)|;?[^;<>\"]+)+', re.IGNORECASE)  # Similar to above, but embedded in XML, so switch quotes to angle brackets
 websense_client_password = re.compile(r'WDEUtil[^\n]+-password +(?P<secret>\S+)', re.IGNORECASE)
-
+sql_account_creation = re.compile(r"CREATE (USER|LOGIN)\s+(=\s+)?[nN]?(['\"]?)(?P<account>\S+)(\3).{0,200}\s+(IDENTIFIED BY|WITH PASSWORD)\s+(=\s+)?[nN]?(['\"]?)(?P<secret>\S+)(\8)", re.IGNORECASE)
 
 class SnafflerExtractor(CredentialExtractor):
     def extract(self, input_text: str, default_system: str) -> ([Credential], [Credential]):
@@ -79,7 +79,28 @@ class SnafflerExtractor(CredentialExtractor):
                                                source_time=finding['modifiedstamp'],
                                                purpose='Websense Client Password'))
 
+            if  finding["matchedclassifier"] == "KeepSqlAccountCreation":
+                content = self.unescape_content(finding["matchcontext"])
+                for innermatch in sql_account_creation.finditer(content):
+                    if innermatch.group("secret"):
+                        candidate = Credential(**innermatch.groupdict(),
+                                                 source=finding['filepath'],
+                                                 source_time=finding['modifiedstamp'],
+                                                 purpose='SQL Account Creation')
+                        if not self.is_garbage(candidate):
+                            result.append(candidate)
+
         return result, []
+
+    def is_garbage(self, credential):
+        # If the username and secret both appear to be variable placeholders (i.e. both start with common placeholder symbols)
+        if credential.account[0] == credential.secret[0] and credential.account[0] in "$&{":
+            return True
+        # If the username is just made up of symbols, it's unlikely to be parsed properly
+        elif not any(c.isalnum() for c in credential.account):
+            return True
+        else:
+            return False
 
     def unescape_content(self, content):
         # We might be processing a partial output line, in which case we can return the empty string
