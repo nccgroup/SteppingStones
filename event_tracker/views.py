@@ -1375,10 +1375,10 @@ class CSLogToEventView(EventCreateView):
                     pass
 
         if cs_action.operator:
-            # Do a "fuzzy" match to find a user with the same case insensitive username as the operator,
+            # Do a "fuzzy" match to find a user with the same case-insensitive username as the operator,
             # ignoring any trailing digits which are sometimes added to CS operator logins to workaround concurrent
             # logins.
-            operator = User.objects.filter(username__iexact=cs_action.operator.rstrip(string.digits)).first()
+            operator = User.objects.filter(username__istartswith=cs_action.operator.rstrip(string.digits)).first()
         else:
             operator = None
 
