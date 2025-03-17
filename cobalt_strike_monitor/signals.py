@@ -91,7 +91,7 @@ def beaconlog_action_correlator(sender, instance: BeaconLog, **kwargs):
 
     # If there's an input, it will always signify the start of a new action
     if instance.type == "input":
-        new_action = CSAction(start=instance.when, beacon=instance.beacon)
+        new_action = CSAction(start=instance.when, beacon_id=instance.beacon.pk)
 
         # When commands are run in quick succession the output can get assigned to the wrong action. There are some
         # commands which we know won't product output, and therefore we can defend against this a bit
@@ -99,27 +99,27 @@ def beaconlog_action_correlator(sender, instance: BeaconLog, **kwargs):
             new_action.accept_output = False
 
         new_action.save()
-        instance.cs_action = new_action
+        instance.cs_action_id = new_action.pk
 
     # A task with no input log within the last second, relating to sleep, is also the start of a new action
     elif instance.type == "task" and "Tasked beacon to sleep " in instance.data and\
-            not CSAction.objects.filter(beacon=instance.beacon, start__gte=instance.when - timedelta(seconds=1), start__lte=instance.when).exists():
-        new_action = CSAction(start=instance.when, beacon=instance.beacon)
+            not CSAction.objects.filter(beacon__pk=instance.beacon.pk, start__gte=instance.when - timedelta(seconds=1), start__lte=instance.when).exists():
+        new_action = CSAction(start=instance.when, beacon_id=instance.beacon.pk)
         new_action.save()
-        instance.cs_action = new_action
+        instance.cs_action_id = new_action.pk
         instance.accept_output = False
 
     # For everything else, associate it with the most recent action on the beacon
     else:
-        most_recent_action_query = CSAction.objects.filter(beacon=instance.beacon, start__lte=instance.when).order_by(
+        most_recent_action_query = CSAction.objects.filter(beacon__pk=instance.beacon.pk, start__lte=instance.when).order_by(
             "-start")
         if instance.type.startswith("output") or instance.type == "error":
             most_recent_action_query = most_recent_action_query.filter(accept_output=True)
-        instance.cs_action = most_recent_action_query.first()
+        instance.cs_action_id = most_recent_action_query.values_list("id", flat=True).first()
 
 
 @receiver(pre_save, sender=Archive)
 def archive_action_correlator(sender, instance: Archive, **kwargs):
-    most_recent_action = CSAction.objects.filter(beacon=instance.beacon, start__lte=instance.when).order_by(
-        "-start").first()
-    instance.cs_action = most_recent_action
+    most_recent_action_id = CSAction.objects.filter(beacon__pk=instance.beacon.pk, start__lte=instance.when).order_by(
+        "-start").values_list("id", flat=True).first()
+    instance.cs_action_id = most_recent_action_id
