@@ -143,7 +143,9 @@ class Beacon(models.Model):
                 elif self.ver == "6.3":
                     return "Windows 8.1 / Windows Server 2012 R2"
                 elif self.ver == "6.2":
-                    return "Windows 8 / Windows Server 2012"
+                    # Might be lying, hence the "+"
+                    # see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getversion
+                    return "Windows 8+ / Windows Server 2012+"
                 elif self.ver == "6.1":
                     if self.build == "7600":
                         return "Windows 7"
