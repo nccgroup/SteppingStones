@@ -120,6 +120,10 @@ def beaconlog_action_correlator(sender, instance: BeaconLog, **kwargs):
 
 @receiver(pre_save, sender=Archive)
 def archive_action_correlator(sender, instance: Archive, **kwargs):
+    if instance.beacon is None:
+        # Can occur for webhits or notify types, nothing to do, so exit early
+        return
+
     most_recent_action_id = CSAction.objects.filter(beacon__pk=instance.beacon.pk, start__lte=instance.when).order_by(
         "-start").values_list("id", flat=True).first()
     instance.cs_action_id = most_recent_action_id
