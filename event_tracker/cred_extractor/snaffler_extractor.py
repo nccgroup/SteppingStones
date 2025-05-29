@@ -5,13 +5,14 @@ import re
 from event_tracker.cred_extractor import CredentialExtractor
 from event_tracker.models import Credential
 
-snaffler_plaintext_finding = re.compile(r'\[.+] \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z \[(File|Share)\] \{(?P<triagestring>Red|Yellow|Green)\}<(?P<matchedclassifier>.+?)\|(?P<canread>R?)(?P<canwrite>W?)(?P<canmodify>M?)\|(?P<matchedstring>.+?)\|(?P<filesize>.+?)\|(?P<modifiedstamp>.+?)>\((?P<filepath>.+?)\) (?P<matchcontext>.*)')
+snaffler_plaintext_finding = re.compile(r'\[.+] \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z \[(File|Share)\] \{(?P<triagestring>Red|Yellow|Green)\}<(?P<matchedclassifier>.+?)\|(?P<canread>R?)(?P<canwrite>W?)(?P<canmodify>M?)\|(?P<matchedstring>.+?)\|(?P<filesize>\d.+?)\|(?P<modifiedstamp>.+?)>\((?P<filepath>.+?)\) (?P<matchcontext>.*)')
 snaffler_tsv_finding = re.compile(r'\[.+]\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z\t\[(File|Share)\]\t(Red|Yellow|Green)\t')
 net_user_add_command = re.compile(r'net user (/add )?((?P<system>\S+)\\)?(?P<account>\S+) (?P<secret>\S+)$', re.IGNORECASE + re.MULTILINE)
 net_use_command = re.compile(r'net use (?:\S+ )?(?P<purpose>\\\S+)(?=.*/user)(?: /user:((?P<system>\S+)\\)?(?P<account>\S+)| (?P<secret>[^/]\S+)| /\S+){2,}?', re.IGNORECASE + re.MULTILINE)
-dotnet_connection_string = re.compile(r'\"(;?\s*User( ID)?=(?P<account>[^;\"]+)|;?\s*Password=(?P<secret>[^;\"]+)|;?\s*(Data Source|Server)=(?P<system>[^;\"]+)|;?[^\";]+)+', re.IGNORECASE)
-db_connection_string = re.compile(r'(?=.*Password=)(;?\s*User( ID)?=(?P<account>[^;<>\"]+)|;?\s*Password=(?P<secret>[^;<>\"]+)|;?\s*(Data Source|Server)=(?P<system>[^;<>\"]+)|;?[^;<>\"]+)+', re.IGNORECASE)  # Similar to above, but embedded in XML, so switch quotes to angle brackets
+db_connection_string_code = re.compile(r'\"(;?\s*User( ID)?=(?P<account>[^;\"]+)|;?\s*Password=(?P<secret>[^;\"]+)|;?\s*(Data Source|Server)=(?P<system>[^;\"]+)|;?[^\";]+)+', re.IGNORECASE)
+db_connection_string_xml = re.compile(r'(?=.*Password=)(;?\s*User( ID)?="?(?P<account>[^;<>\"]+)|;?\s*Password="?(?P<secret>[^;<>\"]+)|;?\s*(Data Source|Server)="?(?P<system>[^;<>\"]+)|;?[^;<>\"]+)+', re.IGNORECASE)  # Similar to above, but embedded in XML, so switch quotes to angle brackets
 websense_client_password = re.compile(r'WDEUtil[^\n]+-password +(?P<secret>\S+)', re.IGNORECASE)
+couchbase_password = re.compile(r'couchbase.+servers (bucket="(?P<account>.+?)"|bucketPassword="(?P<secret>.+?)"|\s){2,}>.+.+uri="(?P<system>.+?)"', re.DOTALL)
 sql_account_creation = re.compile(r"CREATE (USER|LOGIN)\s+(=\s+)?[nN]?(['\"]?)(?P<account>\S+)(\3).{0,200}\s+(IDENTIFIED BY|WITH PASSWORD)\s+(=\s+)?[nN]?(['\"]?)(?P<secret>\S+)(\8)", re.IGNORECASE)
 
 class SnafflerExtractor(CredentialExtractor):
@@ -28,6 +29,8 @@ class SnafflerExtractor(CredentialExtractor):
 
 
         for finding in finding_iter:
+            pre_result_size = len(result)
+
             if finding["matchedclassifier"] == "KeepCmdCredentials":
                 content = self.unescape_content(finding["matchcontext"])
 
@@ -51,7 +54,7 @@ class SnafflerExtractor(CredentialExtractor):
 
             if finding["matchedclassifier"] == "KeepCSharpDbConnStringsRed":
                 content = self.unescape_content(finding["matchcontext"])
-                for innermatch in dotnet_connection_string.finditer(content):
+                for innermatch in db_connection_string_code.finditer(content):
                     if innermatch.group("secret"):
                         innermatch_dict = remove_quotes(innermatch.groupdict())
                         result.append(Credential(**innermatch_dict,
@@ -59,10 +62,10 @@ class SnafflerExtractor(CredentialExtractor):
                                                source_time=finding['modifiedstamp'],
                                                purpose='Database Credentials'))
 
-            if finding["matchedclassifier"] == "KeepDbConnStringPw":
+            if finding["matchedclassifier"] == "KeepDbConnStringPw" or finding["matchedclassifier"] == "KeepPassOrKeyInCode" or finding["matchedclassifier"] == "KeepCSharpDbConnStringsYellow":
                 content = self.unescape_content(finding["matchcontext"])
-                for innermatch in db_connection_string.finditer(content):
-                    if innermatch.group("secret"):
+                for innermatch in db_connection_string_xml.finditer(content):
+                    if innermatch.group("secret") and innermatch.group("account"):
                         innermatch_dict = remove_quotes(innermatch.groupdict())
                         result.append(Credential(**innermatch_dict,
                                                source=finding['filepath'],
@@ -79,6 +82,14 @@ class SnafflerExtractor(CredentialExtractor):
                                                source_time=finding['modifiedstamp'],
                                                purpose='Websense Client Password'))
 
+                for innermatch in couchbase_password.finditer(content):
+                    if innermatch.group("secret"):
+                        innermatch_dict = remove_quotes(innermatch.groupdict())
+                        result.append(Credential(**innermatch_dict,
+                                               source=finding['filepath'],
+                                               source_time=finding['modifiedstamp'],
+                                               purpose='Couchbase Password'))
+
             if  finding["matchedclassifier"] == "KeepSqlAccountCreation":
                 content = self.unescape_content(finding["matchcontext"])
                 for innermatch in sql_account_creation.finditer(content):
@@ -89,6 +100,10 @@ class SnafflerExtractor(CredentialExtractor):
                                                  purpose='SQL Account Creation')
                         if not self.is_garbage(candidate):
                             result.append(candidate)
+
+            # Handy "default case" to print out snaffler lines which didn't match any of our regexes
+            # if len(result) == pre_result_size:
+            #     print(f"Couldn't extract creds from {finding['matchedclassifier']}: {self.unescape_content(finding["matchcontext"])}")
 
         return result, []
 
