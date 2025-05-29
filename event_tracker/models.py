@@ -298,7 +298,7 @@ class Credential(models.Model):
     system = models.CharField(max_length=200, null=True, blank=True, db_collation="nocase", help_text="The scope of the account, i.e. the name of the domain or host it applies to")
     account = models.CharField(max_length=200, db_collation="nocase", help_text="The username, without any system prefix or suffix")
     secret = models.CharField(max_length=200, null=True, blank=True, help_text="The password, or API key etc")
-    hash = models.CharField(max_length=5500, null=True, blank=True, db_collation="nocase", help_text="A hashed version of the secret, in a form usable by hashcat")  # AES Krb Tickets are ~5500 chars
+    hash = models.CharField(max_length=10000, null=True, blank=True, db_collation="nocase", help_text="A hashed version of the secret, in a form usable by hashcat")  # AES Krb Tickets are ~6300 chars
     hash_type = models.IntegerField(help_text="The hashcat module number for the hash", null=True, blank=True, choices=[(tag.value, f"{tag.name} ({tag.value})") for tag in HashCatMode] )
     purpose = models.CharField(max_length=100, null=True, blank=True, help_text="What the credential is used for")  # Needs to be long enough to include SPNs
     complexity = models.CharField(max_length=30, null=True, blank=True)
