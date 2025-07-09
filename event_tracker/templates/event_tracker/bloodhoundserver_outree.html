@@ -28,10 +28,10 @@ BloodHound Servers
 <div class="container-fluid">
     <div class="row">
         <div class="col-4 vh-100 overflow-scroll">
-            <div class="mb-3">
-                <input type="text" class="form-control" id="ou-search-box" placeholder="Search OUs, groups, users, computers...">
+            <div class="my-2">
+                <input type="search" class="form-control" id="ou-search-box" placeholder="Search OUs, groups, users, computers...">
             </div>
-            <div id="ou-search-results" class="list-group mb-3"></div>
+            <div id="ou-search-results" class="list-group mb-2"></div>
             <div id="jstree_div"></div>
         </div>
         <div class="col-8">
@@ -116,12 +116,14 @@ $(function () { $('#jstree_div').jstree({
 });
 
 $(function() {
+  $('#ou-search-results').empty().hide();
+
   var searchTimeout = null;
   $('#ou-search-box').on('input', function() {
     clearTimeout(searchTimeout);
     var query = $(this).val().trim();
     if (!query) {
-      $('#ou-search-results').empty();
+      $('#ou-search-results').empty().hide();
       return;
     }
     searchTimeout = setTimeout(function() {
@@ -129,12 +131,12 @@ $(function() {
         var results = data.results;
         var truncated = data.truncated;
         var $results = $('#ou-search-results');
-        $results.empty();
+        $results.empty().show();
         if (results.length === 0) {
           $results.append('<div class="list-group-item">No results</div>');
         } else {
           results.forEach(function(item) {
-            var label = `<strong>${item.name}</strong> <span class='text-muted'>(${item.type})</span>`;
+            var label = `<em><i class="${$('#jstree_div').jstree()['settings']['types'][item.type.toLowerCase()]['icon']} fa-fw"></i> ${item.name}</em>`;
             $results.append(`<button type='button' class='list-group-item list-group-item-action' data-dn='${encodeURIComponent(item.distinguishedname)}'>${label}</button>`);
           });
           if (truncated) {
