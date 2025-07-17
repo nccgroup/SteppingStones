@@ -26,7 +26,7 @@
     <table class="table table-striped">
     {% for key, value in node_dict.items %}
         <tr>
-            <th {% if key == 'owned' and value == True %}class="text-danger"{% endif %}>{{ key }}</th>
+            <th {% if key == 'owned' and value == True %}class="text-danger col-md-3"{% else %}class="col-md-3"{% endif %}>{{ key }}</th>
             <td {% if key == 'owned' and value == True %}class="text-danger"{% endif %}>{% if key == 'pwdlastset' or key == 'whencreated' or key == 'lastlogontimestamp' or key == 'lastlogon'%}
                     {% if value == -1 %}
                         Never
