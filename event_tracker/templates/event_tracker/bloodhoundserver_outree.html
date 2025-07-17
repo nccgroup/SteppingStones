@@ -19,6 +19,10 @@ BloodHound Servers
 #jstree_div {
     background-color: transparent !important;
 }
+
+.fullheight_excl_navbar {
+    height: calc(100vh - 64px);
+}
 </style>
 {% endblock head %}
 
@@ -27,7 +31,7 @@ BloodHound Servers
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-4 vh-100 overflow-scroll">
+        <div class="col-4 overflow-scroll fullheight_excl_navbar">
             <div class="my-2">
                 <input type="search" class="form-control" id="ou-search-box" placeholder="Search OUs, groups, users, computers...">
             </div>
