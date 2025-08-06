@@ -19,6 +19,10 @@ BloodHound Servers
 #jstree_div {
     background-color: transparent !important;
 }
+
+.fullheight_excl_navbar {
+    height: calc(100vh - 64px);
+}
 </style>
 {% endblock head %}
 
@@ -27,7 +31,11 @@ BloodHound Servers
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-4 vh-100 overflow-scroll">
+        <div class="col-4 overflow-auto fullheight_excl_navbar">
+            <div class="my-2">
+                <input type="search" class="form-control" id="ou-search-box" placeholder="Search OUs, groups, users, computers...">
+            </div>
+            <div id="ou-search-results" class="list-group mb-2"></div>
             <div id="jstree_div"></div>
         </div>
         <div class="col-8">
@@ -37,6 +45,11 @@ BloodHound Servers
 </div>
 
 <script nonce="{{request.csp_nonce}}">
+function updateIframeForNode(nodeId) {
+  var encoded = encodeURIComponent(decodeURIComponent(nodeId.split(",").reverse().join(",")));
+  $('#selected').attr("src", "{% url 'event_tracker:bloodhound-node' 'dndndn' %}".replace("dndndn", encoded));
+}
+
 if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     theme = "default-dark"
 } else {
@@ -46,10 +59,10 @@ if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').match
 $(function () { $('#jstree_div').jstree({
     'core' : {
         'data' : {
-            'url' : "{% url "event_tracker:bloodhound-ou-api" %}",
-              'data' : function (node) {
-                  return { 'id' : decodeURIComponent(node.id) };
-              }
+            'url' : "{% url 'event_tracker:bloodhound-ou-api' %}",
+            'data' : function (node) {
+                return { 'id' : decodeURIComponent(node.id) };
+            }
         },
         'themes': {
             "name": theme
@@ -99,7 +112,80 @@ $(function () { $('#jstree_div').jstree({
     for(i = 0, j = data.selected.length; i < j; i++) {
       r.push(decodeURIComponent(data.instance.get_node(data.selected[i]).text));
     }
-        $('#selected').attr("src", "{% url "event_tracker:bloodhound-node" "dndndn" %}".replace("dndndn", encodeURIComponent(decodeURIComponent(data.node.id.split(",").reverse().join(",")))));
+    if (data && data.node && data.node.id) {
+      updateIframeForNode(data.node.id);
+    }
+});
+
+});
+
+$(function() {
+  $('#ou-search-results').empty().hide();
+
+  var searchTimeout = null;
+  $('#ou-search-box').on('input', function() {
+    clearTimeout(searchTimeout);
+    var query = $(this).val().trim();
+    if (!query) {
+      $('#ou-search-results').empty().hide();
+      return;
+    }
+    searchTimeout = setTimeout(function() {
+      $.getJSON("{% url 'event_tracker:bloodhound-ou-search' %}", {q: query}, function(data) {
+        var results = data.results;
+        var truncated = data.truncated;
+        var $results = $('#ou-search-results');
+        $results.empty().show();
+        if (results.length === 0) {
+          $results.append('<div class="list-group-item">No results</div>');
+        } else {
+          results.forEach(function(item) {
+            var label = `<em><i class="${$('#jstree_div').jstree()['settings']['types'][item.type.toLowerCase()]['icon']} fa-fw"></i> ${item.name}</em>`;
+            $results.append(`<button type='button' class='list-group-item list-group-item-action' data-dn='${encodeURIComponent(item.distinguishedname)}'>${label}</button>`);
+          });
+          if (truncated) {
+            $results.append('<div class="list-group-item text-warning small">Showing first 50 results. Please refine your search for more.</div>');
+          }
+        }
+      });
+    }, 300);
+  });
+
+  async function expandAndSelectNode(tree, nodeIdParts, fullNodeId, updateIframeForNode) {
+    // Helper to open a node and wait for it to load
+    function openNodeAsync(id) {
+      return new Promise(resolve => {
+        if (tree.is_open(id)) return resolve();
+        tree.open_node(id, resolve, false);
+      });
+    }
+
+    // Open each ancestor in sequence
+    let currentId = "";
+    for (let i = 1; i < nodeIdParts.length; i++) {
+      currentId = nodeIdParts.slice(0, i).join(',');
+      await openNodeAsync(currentId);
+    }
+
+    // Now select and open the target node
+    tree.deselect_all();
+    tree.select_node(fullNodeId);
+    await openNodeAsync(fullNodeId);
+
+    // Scroll to and update details
+    let $el = tree.get_node(fullNodeId, true)[0];
+    if ($el) $el.scrollIntoView({behavior: 'smooth', block: 'center'});
+    updateIframeForNode(fullNodeId);
+  }
+
+  $('#ou-search-results').on('click', 'button', function() {
+    var dn = $(this).data('dn');
+    if (dn) {
+      var nodeIdParts = decodeURIComponent(dn).split(',').reverse();
+      var fullNodeId = nodeIdParts.join(',');
+      var tree = $('#jstree_div').jstree(true);
+      expandAndSelectNode(tree, nodeIdParts, fullNodeId, updateIframeForNode);
+    }
   });
 });
 </script>

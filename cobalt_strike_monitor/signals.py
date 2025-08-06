@@ -34,7 +34,8 @@ def checkin_handler(sender, beacon, metadata, **kwargs):
             .filter(beacon=beacon)\
             .filter(Q(data__startswith="Tasked beacon to sleep for ", type="task")
                     | Q(data="Tasked beacon to become interactive", type="task")
-                    | Q(data__startswith="started SOCKS4a server on: ", type="output"))\
+                    | Q(data__startswith="started SOCKS4a server on: ", type="output")
+                    | Q(data__startswith="started SOCKS5 server on: ", type="output"))\
             .order_by("when").last()
 
         sleep = 0

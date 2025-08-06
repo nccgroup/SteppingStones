@@ -248,6 +248,17 @@ def parse(p, server):
 
             line = line.decode("ascii").rstrip()
             print(f"[{server.description}] {line}")
+            # Skip connection status messages
+            if any(msg in line for msg in [
+                "Loading Windows error codes",
+                "Windows error codes loaded",
+                "Connected OK",
+                "Synchronizing",
+                "Synchronized OK",
+                "shutting down client",
+                "Disconnected from team server"
+            ]):
+                continue
 
             try:
                 line_id, line_data = parse_line(line)

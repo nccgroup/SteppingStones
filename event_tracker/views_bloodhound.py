@@ -416,3 +416,41 @@ class BloodhoundServerDeleteView(PermissionRequiredMixin, DeleteView):
 
     def get_success_url(self):
         return reverse_lazy('event_tracker:bloodhound-server-list')
+
+
+class BloodhoundServerOUSearchAPI(PermissionRequiredMixin, View):
+    permission_required = 'event_tracker.view_bloodhoundserver'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        query = request.GET.get('q', '').strip()
+        results = []
+        limit = 50
+        if not query:
+            return JsonResponse({'results': [], 'truncated': False})
+
+        for server in BloodhoundServer.objects.filter(active=True).all():
+            if driver := get_driver_for(server):
+                with driver.session() as session:
+                    cypher = '''
+                    MATCH (n)
+                    WHERE (
+                        (n:OU OR n:User OR n:Computer OR n:Group)
+                        AND (
+                            toLower(n.name) CONTAINS toLower($q)
+                            OR (n.description IS NOT NULL AND toLower(n.description) CONTAINS toLower($q))
+                            OR (n.objectid IS NOT NULL AND toLower(n.objectid) CONTAINS toLower($q))
+                        )
+                    )
+                    RETURN labels(n)[0] as type, n.name as name, n.distinguishedname as distinguishedname, n.objectid as sid
+                    LIMIT $limit
+                    '''
+                    for record in session.run(cypher, q=query, limit=limit):
+                        results.append({
+                            'type': record['type'],
+                            'name': record['name'],
+                            'distinguishedname': record['distinguishedname'],
+                            'sid': record['sid'],
+                            'server_id': server.id,
+                        })
+        truncated = len(results) >= limit
+        return JsonResponse({'results': results, 'truncated': truncated})
