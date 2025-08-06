@@ -202,9 +202,9 @@ class GraphicalMitreHeatMapEventListView(MitreEventListView):
         context["include_subtechniques"] = include_subtechniques
 
         if include_subtechniques:
-            value_columns = ['mitre_attack_tactic', "mitre_attack_technique", "mitre_attack_subtechnique"]
+            value_columns = ['mitre_attack_tactic_id', "mitre_attack_technique_id", "mitre_attack_subtechnique_id"]
         else:
-            value_columns = ['mitre_attack_tactic', "mitre_attack_technique"]
+            value_columns = ['mitre_attack_tactic_id', "mitre_attack_technique_id"]
 
         percentiles = self.get_queryset().values(*value_columns).annotate(
                 icount=Count('*'),
@@ -293,10 +293,10 @@ class GraphicalMitreHeatMapEventListView(MitreEventListView):
                     try:
                         row = next(iterator)
                         suffix = ""
-                        if "mitre_attack_subtechnique" in row and row["mitre_attack_subtechnique"]:
-                            object = AttackSubTechnique.objects.get(pk=row["mitre_attack_subtechnique"])
-                        elif "mitre_attack_technique" in row and row["mitre_attack_technique"]:
-                            object = AttackTechnique.objects.get(pk=row["mitre_attack_technique"])
+                        if "mitre_attack_subtechnique_id" in row and row["mitre_attack_subtechnique_id"]:
+                            object = AttackSubTechnique.objects.get(pk=row["mitre_attack_subtechnique_id"])
+                        elif "mitre_attack_technique_id" in row and row["mitre_attack_technique_id"]:
+                            object = AttackTechnique.objects.get(pk=row["mitre_attack_technique_id"])
                         else:
                             object = tactic
                             suffix = "\n[Uncategorised]"
