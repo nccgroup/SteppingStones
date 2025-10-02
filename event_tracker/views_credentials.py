@@ -222,7 +222,7 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
                            (" and enabled='1'" if enabled else ""))
         else:
             system = system.replace("'", "")
-            duckdb.execute(f"CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != '' and system = '{system}'" +
+            duckdb.execute(f"CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != '' and system COLLATE NOCASE = '{system}'" +
                            (" and enabled='1'" if enabled else ""))
 
         # Extract the rtrimed words
@@ -239,7 +239,7 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
                            (" and enabled='1'" if enabled else ""))
         else:
             system = system.replace("'", "")
-            duckdb.execute(f"CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != '' and system = '{system}'" +
+            duckdb.execute(f"CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != '' and system COLLATE NOCASE = '{system}'" +
                            (" and enabled='1'" if enabled else ""))
 
         # Extract the ltrimed words
@@ -984,7 +984,7 @@ class HashesForm(forms.Form):
 
     file = forms.FileField()
     type = forms.ChoiceField(choices=TYPE_CHOICES, widget=forms.RadioSelect())
-    system = forms.CharField(required=False, help_text="The scope of the accounts, i.e. the name of the domain or host they appliy to")
+    system = forms.CharField(required=False, help_text="The scope of the accounts, i.e. the name of the domain or host they apply to")
     hash_type = forms.ChoiceField(help_text="The hashcat module number for the hash", choices=[(tag.value, f"{tag.name} ({tag.value})") for tag in HashCatMode], required=False)
 
 
