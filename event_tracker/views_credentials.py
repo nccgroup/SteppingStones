@@ -23,7 +23,7 @@ from django.utils.html import escape
 from django.views.generic import FormView, ListView, CreateView, UpdateView, DeleteView, TemplateView
 from django_datatables_view.base_datatable_view import BaseDatatableView
 from djangoplugins.models import ENABLED
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, to_rgba_array
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from neo4j.exceptions import ClientError
@@ -42,6 +42,7 @@ LOW_RISK_COLOR = "#F7F4B9"
 MEDIUM_RISK_COLOR = "#F7D089"
 HIGH_RISK_COLOR = "#E97590"
 CRITICAL_RISK_COLOR = "#C881EC"
+UNKNOWN_COLOR = "#CDCDCD"
 badness_colormap = LinearSegmentedColormap.from_list("mycmap", [HIGH_RISK_COLOR, MEDIUM_RISK_COLOR, LOW_RISK_COLOR, GOOD_COLOR])
 intensity_colormap = LinearSegmentedColormap.from_list("mycmap", [INFO_COLOR, LOW_RISK_COLOR, MEDIUM_RISK_COLOR, HIGH_RISK_COLOR, CRITICAL_RISK_COLOR])
 
@@ -54,6 +55,7 @@ DIGIT_REGEX = "[0-9]"
 
 class CredentialSystemFilter(forms.Form):
     enabled = BooleanField(widget=forms.CheckboxInput(attrs={'class': 'submit-on-change'}), required=False, initial=False)
+    plot_uncracked = BooleanField(widget=forms.CheckboxInput(attrs={'class': 'submit-on-change'}), required=False, initial=False)
 
     class Media:
         js = ["scripts/ss-forms.js"]
@@ -125,9 +127,9 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        credential_per_account, filtered_creds, ids_of_unqiue_accounts, system, enabled = self.get_filtered_creds(self.request)
+        credential_per_cracked_account, _, filtered_creds, ids_of_unqiue_accounts, system, enabled, _ = self.get_filtered_creds(self.request)
 
-        self.add_crack_rates_to_context(credential_per_account, ids_of_unqiue_accounts, context)
+        self.add_crack_rates_to_context(credential_per_cracked_account, ids_of_unqiue_accounts, context)
 
         context['hash_types'] = dict()
         for hash_type in filtered_creds.filter(hash_type__isnull=False).values("hash_type").distinct():
@@ -136,26 +138,26 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
 
         context['password_is_username'] = filtered_creds.filter(account=F('secret')).count()
 
-        self.add_reused_passwords_to_context(credential_per_account, context)
+        self.add_reused_passwords_to_context(credential_per_cracked_account, context)
         self.add_common_prefixes_to_context(system, enabled, context)
         self.add_common_suffixes_to_context(system, enabled, context)
 
         # HaveIBeenPwned data
         records_still_to_process = filtered_creds.exclude(hash__isnull=True).exclude(hash="")\
             .filter(hash_type=HashCatMode.NTLM, haveibeenpwned_count__isnull=True)
-        records_in_breaches = credential_per_account.filter(haveibeenpwned_count__gt=0)
+        records_in_breaches = credential_per_cracked_account.filter(haveibeenpwned_count__gt=0)
 
         if not records_still_to_process.exists() and records_in_breaches.exists():
             context['top10pwned'] = records_in_breaches.values("secret","hash","haveibeenpwned_count").annotate(account_count=Count("hash")).order_by("-haveibeenpwned_count")[:10]
 
             if context['unique_user_accounts']:
-                context['weak_unique_user_accounts'] = credential_per_account.exclude(
+                context['weak_unique_user_accounts'] = credential_per_cracked_account.exclude(
                     account__endswith='$').filter(haveibeenpwned_count__gt=0).count()
                 context['weak_user_percent'] = context['weak_unique_user_accounts'] / context[
                     'unique_user_accounts'] * 100
 
             if context['unique_machine_accounts']:
-                context['weak_unique_machine_accounts'] = credential_per_account.filter(
+                context['weak_unique_machine_accounts'] = credential_per_cracked_account.filter(
                     account__endswith='$').filter(haveibeenpwned_count__gt=0).count()
                 context['weak_machine_percent'] = context['weak_unique_machine_accounts'] / context[
                     'unique_machine_accounts'] * 100
@@ -269,6 +271,7 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
         statsfilter = request.session.get('credentialstatsfilter', {})
         system = statsfilter.get("system", None) or None
         enabled = statsfilter.get("enabled", False)
+        plot_uncracked = statsfilter.get("plot_uncracked", False)
 
         if system:
             filtered_creds = Credential.objects.filter(system=system)
@@ -278,27 +281,43 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
         if enabled:
             filtered_creds = filtered_creds.filter(enabled=1)
 
+        # Used to count the number of distinct accounts
         ids_of_unqiue_accounts = filtered_creds.values("system", "account").annotate(x=Count(1)).annotate(
             max_id=Max("id")).all()
-        credential_per_account = filtered_creds.filter(secret__isnull=False).filter(
-            id__in=Subquery(ids_of_unqiue_accounts.values("max_id")))
+
+        # Just the cracked accounts
+        ids_of_unqiue_cracked_accounts = filtered_creds.filter(secret__isnull=False).values("system", "account").annotate(x=Count(1)).annotate(
+            max_id=Max("id")).all()
+        credential_per_cracked_account = filtered_creds.filter(secret__isnull=False).filter(
+            id__in=Subquery(ids_of_unqiue_cracked_accounts.values("max_id")))
+
+        # Accounts which have no cracked credentials. Accounts which occur multiple times with even 1 cracked cred will appear in the previous dataset only to avoid inflating total user counts
+        ids_of_unqiue_uncracked_accounts = filtered_creds.values("system", "account").annotate(x=Count(1)) \
+             .annotate(cracked=Count("pk", filter=Q(secret__isnull=False))) \
+             .annotate(not_cracked=Count("pk", filter=Q(secret__isnull=True))).filter(cracked=0, not_cracked__gt=0) \
+             .annotate(max_id=Max("id"))
+
+        credential_per_uncracked_account = filtered_creds.filter(secret__isnull=True).filter(
+            id__in=Subquery(ids_of_unqiue_uncracked_accounts.values("max_id")))
 
         print(f"Populated creds in {time.time() - start}")
 
-        return credential_per_account, filtered_creds, ids_of_unqiue_accounts, system, enabled
+        return credential_per_cracked_account, credential_per_uncracked_account, filtered_creds, ids_of_unqiue_accounts, system, enabled, plot_uncracked
 
 
 def password_complexity_piechart(request, task_id):
-    credential_per_account, _, _, system, enabled = CredentialStatsView.get_filtered_creds(request)
+    credential_per_cracked_account, credential_per_uncracked_account, _, _, system, enabled, plot_uncracked = CredentialStatsView.get_filtered_creds(request)
 
-    fig = plot_password_complexity_piechart(credential_per_account, enabled, system)
+    fig = plot_password_complexity_piechart(credential_per_cracked_account, credential_per_uncracked_account, system,
+                                            enabled, plot_uncracked)
     response = HttpResponse(content_type='image/png')
     fig.savefig(response, format='png')
 
     return response
 
-def plot_password_complexity_piechart(credential_per_account, enabled, system):
-    credential_per_account.update(complexity=Case(
+def plot_password_complexity_piechart(credential_per_cracked_account, credential_per_uncracked_account, system, enabled,
+                                      plot_uncracked):
+    credential_per_cracked_account.update(complexity=Case(
         When(secret="", then=Value("blank")),
         When(secret__regex=r"^\d+$", then=Value("numeric")),
         When(secret__regex=r'^[ ¬`!"£$%^&*()\-=_+{}\[\];\'#:@~,./\\<>?€¦|]+$', then=Value("special")),
@@ -323,7 +342,7 @@ def plot_password_complexity_piechart(credential_per_account, enabled, system):
 
     counts = {}
 
-    counts.update(credential_per_account.aggregate(
+    counts.update(credential_per_cracked_account.aggregate(
         blank=Count("pk", filter=Q(complexity="blank")),
         numeric=Count("pk", filter=Q(complexity="numeric")),
         special=Count("pk", filter=Q(complexity="special")),
@@ -354,13 +373,27 @@ def plot_password_complexity_piechart(credential_per_account, enabled, system):
                  "Lowercase & Symbol(s)", "Uppercase & Symbol(s)", "Mixedcase & Symbol(s)",
                  "Lowercase, Symbol(s) & Number(s)", "Uppercase, Symbol(s) & Number(s)",
                  "Mixedcase, Symbol(s) & Number(s)"]
+
+    if plot_uncracked:
+        piesegments.append(credential_per_uncracked_account.count())
+        pielabels.append("Unknown")
+
     # Turn the plain old lists into numpy versions if required, and throw away any values with 0 accounts using compress()
     piesegments2 = np.array(list(itertools.compress(piesegments, piesegments)))
     pielabels2 = list(itertools.compress(pielabels, piesegments))
     rescale = lambda y: y if len(y) == 1 else (y - np.min(y)) / (np.max(y) - np.min(y))
-    wedges, texts = ax[0].pie(piesegments2, colors=badness_colormap(rescale(range(len(piesegments2)))))
+
+    if plot_uncracked:
+        # Pick colors from the colormap for n-1 segments and append a new color for the "unknown"
+        colors = badness_colormap(rescale(range(len(piesegments2) - 1)))
+        colors = np.append(colors, to_rgba_array(UNKNOWN_COLOR), 0)
+    else:
+        # Pick colors from the colormap for all segments
+        colors = badness_colormap(rescale(range(len(piesegments2))))
+
+    wedges, texts = ax[0].pie(piesegments2, colors=colors)
     ax[0].set_title(
-        f"Password Complexity of Cracked Passwords for{chr(10)}All {'Enabled ' if enabled else ''}Accounts{f' on {system}' if system else ''}")
+        f"Password Complexity of {'Cracked ' if not plot_uncracked else ''}Passwords for{chr(10)}All {'Enabled ' if enabled else ''}Accounts{f' on {system}' if system else ''}")
     percents = piesegments2 * 100 / piesegments2.sum()
     ax[1].axis('off')  # Hide the dummy 2nd plot
     ax[1].legend(wedges, [f'{l}: {y:,} account{"s" if y != 1 else ""} ({s:.2f}%)' for l, y, s in
@@ -373,31 +406,46 @@ def plot_password_complexity_piechart(credential_per_account, enabled, system):
 
 
 def password_structure_piechart(request, task_id):
-    credential_per_account, _, _, system, enabled = CredentialStatsView.get_filtered_creds(request)
+    credential_per_cracked_account, credential_per_uncracked_account, _, _, system, enabled, plot_uncracked = CredentialStatsView.get_filtered_creds(request)
 
-    fig = plot_password_structure_piechart(credential_per_account, enabled, system)
+    fig = plot_password_structure_piechart(credential_per_cracked_account, credential_per_uncracked_account, system,
+                                           enabled, plot_uncracked)
     response = HttpResponse(content_type='image/png')
     fig.savefig(response, format='png')
 
     return response
 
-def plot_password_structure_piechart(credential_per_account, enabled, system):
-    calculate_char_masks(credential_per_account)
+def plot_password_structure_piechart(credential_per_cracked_account, credential_per_uncracked_account, system, enabled,
+                                     plot_uncracked):
+    calculate_char_masks(credential_per_cracked_account)
 
-    structurecounts = credential_per_account.values("structure").annotate(count=Count("structure")).order_by("count")
+    structurecounts = credential_per_cracked_account.values("structure").annotate(count=Count("structure")).order_by("count")
 
     fig = Figure(figsize=(10, 8))
     ax = fig.subplots(2, height_ratios=[3, 1])
-    piesegments = structurecounts.values_list("count", flat=True)
-    pielabels = structurecounts.values_list("structure", flat=True)
+    piesegments = list(structurecounts.values_list("count", flat=True))
+    pielabels = list(structurecounts.values_list("structure", flat=True))
 
-    # # Turn the plain old lists into numpy versions if required, and throw away any values with 0 accounts using compress()
+    if plot_uncracked:
+        piesegments.append(credential_per_uncracked_account.count())
+        pielabels.append("Unknown")
+
+    # Turn the plain old lists into numpy versions if required, and throw away any values with 0 accounts using compress()
     piesegments2 = np.array(list(itertools.compress(piesegments, piesegments)))
     pielabels2 = list(itertools.compress(pielabels, piesegments))
     rescale = lambda y: y if len(y) == 1 else (y - np.min(y)) / (np.max(y) - np.min(y))
-    wedges, texts = ax[0].pie(piesegments2, colors=intensity_colormap(rescale(range(len(piesegments2)))))
+
+    if plot_uncracked:
+        # Pick colors from the colormap for n-1 segments and append a new color for the "unknown"
+        colors = intensity_colormap(rescale(range(len(piesegments2) - 1)))
+        colors = np.append(colors, to_rgba_array(UNKNOWN_COLOR), 0)
+    else:
+        # Pick colors from the colormap for all segments
+        colors = intensity_colormap(rescale(range(len(piesegments2))))
+
+    wedges, texts = ax[0].pie(piesegments2, colors=colors)
     ax[0].set_title(
-        f"Structure of Cracked Passwords for{chr(10)}All {'Enabled ' if enabled else ''}Accounts{f' on {system}' if system else ''}")
+        f"Structure of {'Cracked ' if not plot_uncracked else ''}Passwords for{chr(10)}All {'Enabled ' if enabled else ''}Accounts{f' on {system}' if system else ''}")
     percents = piesegments2 * 100 / piesegments2.sum()
     ax[1].axis('off')  # Hide the dummy 2nd plot
     ax[1].legend(wedges, [f'{l}: {y:,} account{"s" if y != 1 else ""} ({s:.2f}%)' for l, y, s in
@@ -410,32 +458,46 @@ def plot_password_structure_piechart(credential_per_account, enabled, system):
 
 
 def password_length_chart(request, task_id):
-    credential_per_account, _, _, system, enabled = CredentialStatsView.get_filtered_creds(request)
+    credential_per_cracked_account, credential_per_uncracked_account, _, _, system, enabled, plot_uncracked = CredentialStatsView.get_filtered_creds(request)
 
-    fig = plot_password_length_chart(credential_per_account, enabled, system)
+    fig = plot_password_length_chart(credential_per_cracked_account, credential_per_uncracked_account, system, enabled,
+                                     plot_uncracked)
     response = HttpResponse(content_type='image/png')
     fig.savefig(response, format='png')
 
     return response
 
-def plot_password_length_chart(credential_per_account, enabled, system):
+def plot_password_length_chart(credential_per_cracked_account, credential_per_uncracked_account, system, enabled,
+                               plot_uncracked):
     fig = Figure(figsize=(7, 8))
     ax = fig.subplots(2)
 
-    lengths = credential_per_account.annotate(length=Length("secret")).order_by("length").values("length").annotate(
+    lengths = credential_per_cracked_account.annotate(length=Length("secret")).order_by("length").values("length").annotate(
         occurrences=Count("length"))
 
     x = np.array(lengths.values_list("length", flat=True))
     y = np.array(lengths.values_list("occurrences", flat=True))
     rescale = lambda y: y if len(y) == 1 else (y - np.min(y)) / (np.max(y) - np.min(y))
+
+    if plot_uncracked:
+        x = np.append(-1, x)
+        y = np.append(credential_per_uncracked_account.count(), y)
+
+        # Prepend a new color for the "unknown" and pick colors from the colormap for n-1 segments
+        colors = badness_colormap(rescale(range(len(x) - 1)))
+        colors = np.insert(colors, 0, to_rgba_array(UNKNOWN_COLOR), 0)
+    else:
+        # Pick colors from the colormap for all segments
+        colors = badness_colormap(rescale(range(len(x))))
+
     bars = ax[0].bar(x, y,
-                     color=badness_colormap(rescale(x)),
+                     color=colors,
                      label=x)
     ax[0].set_ylabel('Number of accounts')
-    ax[0].set_xlabel('Length of cracked password')
+    ax[0].set_xlabel(f"Length of {'cracked ' if not plot_uncracked else ''}password")
 
     ax[0].set_title(
-        f"Length of Cracked Passwords for{chr(10)}All {'Enabled ' if enabled else ''}Accounts{f' on {system}' if system else ''}")
+        f"Length of {'Cracked ' if not plot_uncracked else ''}Passwords for{chr(10)}All {'Enabled ' if enabled else ''}Accounts{f' on {system}' if system else ''}")
 
     if len(x) < 5:
         x_nbins = len(x) + 1
@@ -451,7 +513,8 @@ def plot_password_length_chart(credential_per_account, enabled, system):
     
     ax[1].axis('off')  # Hide the dummy 2nd plot
     percents = y * 100 / y.sum()
-    ax[1].legend(bars, [f'{l} character{"s" if l != 1 else ""}: {y:,} account{"s" if y != 1 else ""} ({s:.2f}%)' for
+    ax[1].legend(bars, [(f'{l} character{"s" if l != 1 else ""}' if l >= 0 else 'Unknown')
+                            + f': {y:,} account{"s" if y != 1 else ""} ({s:.2f}%)' for
                         l, y, s in zip(x, y, percents)],
                  loc="upper center",
                  ncol=2)
