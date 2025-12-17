@@ -4,7 +4,8 @@ from datetime import timedelta
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.db.models import Q, ForeignKey, BooleanField
-from django.utils.html import format_html, escape
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 
 
@@ -73,7 +74,7 @@ class Listener(models.Model):
                 result += f"<li>{escape(accessed_via)}</li>"
             result += "</ul>"
 
-        return format_html(result)
+        return mark_safe(result)
 
 class Beacon(models.Model):
     team_server = models.ForeignKey(TeamServer, on_delete=models.CASCADE)
