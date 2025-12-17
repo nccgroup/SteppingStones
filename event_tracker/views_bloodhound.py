@@ -333,7 +333,7 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, FormView):
 
                             credential_obj_query = Credential.objects.filter(account__iexact=username, hash_type__in=kerberosoatable_hashtypes)
                             if domain:
-                                credential_obj_query = credential_obj_query.filter(system=domain)
+                                credential_obj_query = credential_obj_query.filter(system__iexact=domain)
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
                             kerberoastable_users[username] = {"credential": credential_obj,
@@ -356,7 +356,7 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, FormView):
                             credential_obj_query = Credential.objects.filter(account__iexact=username,
                                                                              hash_type__in=asreproastable_hashtypes)
                             if domain:
-                                credential_obj_query = credential_obj_query.filter(system=domain)
+                                credential_obj_query = credential_obj_query.filter(system__iexact=domain)
 
                             credential_obj = credential_obj_query.order_by("hash_type").first()
                             asreproastable_users[username] = {"credential": credential_obj,

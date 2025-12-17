@@ -4,7 +4,7 @@ from event_tracker.cred_extractor import CredentialExtractorGenerator
 from event_tracker.libs.outflank.ticket_to_hashcat import TicketConverter
 from event_tracker.models import Credential
 
-outflank_kerberoast_regex = re.compile(r'<TICKET>\s+(?P<ticket>sAMAccountName = (?P<account>\S+\n)[^<]*)</TICKET>')
+outflank_kerberoast_regex = re.compile(r'<TICKET>\s+(?P<ticket>sAMAccountName = (?P<account>\S+)\n[^<]*)</TICKET>')
 
 
 class OutflankKerberoastExtractor(CredentialExtractorGenerator):
