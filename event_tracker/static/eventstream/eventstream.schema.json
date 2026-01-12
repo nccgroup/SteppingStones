@@ -124,7 +124,7 @@
   "required": [
     "ts"
   ],
-  "oneOf": [
+  "anyOf": [
     {
         "required": [
             "d"

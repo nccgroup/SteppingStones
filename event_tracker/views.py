@@ -1043,7 +1043,7 @@ class EventStreamListJSON(PermissionRequiredMixin, FilterableDatatableView):
         elif column == 'description':
             result = ""
             if row.description:
-                result = f"<div class='description'>{row.description}</div>"
+                result = f"<div class='description'>{escape(row.description)}</div>"
 
             if row.raw_evidence:
                 result += f"<div class='output'>{escape(row.raw_evidence)}</div>"
