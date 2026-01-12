@@ -186,8 +186,8 @@ def set_owned_bloodhound_users_with_domain(tx, users: list[str]):
 
     return tx.run(
         f'''unwind $users as ownedUser
-        match (u) where (u:User or u:AZUser) and u.name = ownedUser and u.owned = False
-        set u.owned=True, u.notes="Marked as Owned by Stepping Stones at {datetime.now():%Y-%m-%d %H:%M:%S%z}"''',
+        match (u) where (u:User or u:AZUser) and u.name = ownedUser and (u.owned = False or not u:Tag_Owned)
+        set u.owned=True, u:Tag_Owned, u.notes="Marked as Owned by Stepping Stones at {datetime.now():%Y-%m-%d %H:%M:%S%z}"''',
         users=users)
 
 
@@ -204,8 +204,8 @@ def set_owned_bloodhound_hosts_without_domain(tx, hosts):
 
     return tx.run(
         f'''unwind $hosts as ownedHost
-        match (n) where (n:Computer or n:AZDevice) and toLower(split(split(n.name, "@")[1], ".")[0]) = toLower(ownedHost) and n.owned=False 
-        set n.owned=True, n.notes="Marked as Owned by Stepping Stones at {datetime.now():%Y-%m-%d %H:%M:%S%z}"''',
+        match (n) where (n:Computer or n:AZDevice) and toLower(split(split(n.name, "@")[1], ".")[0]) = toLower(ownedHost) and (u.owned = False or not u:Tag_Owned) 
+        set n.owned=True, u:Tag_Owned, n.notes="Marked as Owned by Stepping Stones at {datetime.now():%Y-%m-%d %H:%M:%S%z}"''',
         hosts=hosts)
 
 
@@ -222,7 +222,7 @@ def set_owned_bloodhound_users_without_domain(tx, users):
 
     return tx.run(
         f'''unwind $users as ownedUser
-        match (n) where (n:User or n:AZUser) and toLower(split(n.name, "@")[0]) = toLower(ownedUser) and n.owned=False 
-        set n.owned=True, n.notes="Marked as Owned by Stepping Stones at {datetime.now():%Y-%m-%d %H:%M:%S%z}"''',
+        match (n) where (n:User or n:AZUser) and toLower(split(n.name, "@")[0]) = toLower(ownedUser) and (u.owned = False or not u:Tag_Owned) 
+        set n.owned=True, u:Tag_Owned, n.notes="Marked as Owned by Stepping Stones at {datetime.now():%Y-%m-%d %H:%M:%S%z}"''',
         users=users)
 
