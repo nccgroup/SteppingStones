@@ -1043,6 +1043,8 @@ class HashesForm(forms.Form):
     TYPE_CHOICES = [('grep', 'Text file, e.g. tool output (Hashes extracted via regex)'),
                     ('keepass', 'Keepass v1 .csv export'),
                     ('user:hash', 'User:Hash'),
+                    ('user:secret', 'User:Secret'),
+                    ('user:hash:secret', 'User:Hash:Secret'),
                     ('pwdump', "PWDump - e.g. corp.local\\bob:1021:aad3b435b51404eeaad3b435b51404ee:8027ce065399052165fa94b713980e33:::")]
 
     file = forms.FileField()
@@ -1075,6 +1077,10 @@ class UploadHashes(PermissionRequiredMixin, FormView):
                 saved_hashes, saved_secrets = self.parse_keepass_csv(chunk_main, form.cleaned_data['file'].name)
             elif form.cleaned_data['type'] == 'user:hash':
                 saved_hashes, saved_secrets = self.parse_user_hash(chunk_main, form.cleaned_data['system'], form.cleaned_data['hash_type'])
+            elif form.cleaned_data['type'] == 'user:secret':
+                saved_hashes, saved_secrets = self.parse_user_secret(chunk_main, form.cleaned_data['system'])
+            elif form.cleaned_data['type'] == 'user:hash:secret':
+                saved_hashes, saved_secrets = self.parse_user_hash_secret(chunk_main, form.cleaned_data['system'], form.cleaned_data['hash_type'])
             elif form.cleaned_data['type'] == 'pwdump':
                 saved_hashes, saved_secrets = self.parse_pwdump(chunk_main, form.cleaned_data['system'])
             else:
@@ -1092,6 +1098,10 @@ class UploadHashes(PermissionRequiredMixin, FormView):
                 saved_hashes, saved_secrets = self.parse_keepass_csv(previous_chunk, form.cleaned_data['file'].name)
             elif form.cleaned_data['type'] == 'user:hash':
                 saved_hashes, saved_secrets = self.parse_user_hash(previous_chunk, form.cleaned_data['system'], form.cleaned_data['hash_type'])
+            elif form.cleaned_data['type'] == 'user:secret':
+                saved_hashes, saved_secrets = self.parse_user_secret(previous_chunk, form.cleaned_data['system'])
+            elif form.cleaned_data['type'] == 'user:hash:secret':
+                saved_hashes, saved_secrets = self.parse_user_hash_secret(previous_chunk, form.cleaned_data['system'], form.cleaned_data['hash_type'])
             elif form.cleaned_data['type'] == 'pwdump':
                 saved_hashes, saved_secrets = self.parse_pwdump(previous_chunk, form.cleaned_data['system'])
             else:
@@ -1143,9 +1153,13 @@ class UploadHashes(PermissionRequiredMixin, FormView):
             line = line.strip()
             try:
                 account, account_hash = line.split(":", 1)
+                if '\\' in account:
+                    system_to_save, account = account.split('\\', 1)
+                else:
+                    system_to_save = system
 
                 if account and account_hash:  # Check we don't have a line starting or ending with a :
-                    creds_to_add.append(Credential(source="User:Hash import", system=system, account=account,
+                    creds_to_add.append(Credential(source="User:Hash import", system=system_to_save, account=account,
                                                  hash_type=hash_type, hash=account_hash))
             except ValueError:
                 if line:
@@ -1156,6 +1170,57 @@ class UploadHashes(PermissionRequiredMixin, FormView):
         pre_insert_count = Credential.objects.count()
         Credential.objects.bulk_create(creds_to_add, ignore_conflicts=True)
         return Credential.objects.count() - pre_insert_count, 0
+
+    def parse_user_secret(self, chunk, system) -> tuple[int, int]:
+        creds_to_add = []
+
+        for line in chunk.split("\n"):
+            line = line.strip()
+            try:
+                account, account_secret = line.split(":", 1)
+                if '\\' in account:
+                    system_to_save, account = account.split('\\', 1)
+                else:
+                    system_to_save = system
+
+                if account and account_secret:  # Check we don't have a line starting or ending with a :
+                    creds_to_add.append(Credential(source="User:Secret import", system=system_to_save, account=account,
+                                                 secret=account_secret))
+            except ValueError:
+                if line:
+                    print(f"Skipping: {line}")
+
+        # A before and after count may be incorrect if other users are concurrently modifying the table,
+        # but it's the best we have given the bulk operations don't return meaningful objects.
+        pre_insert_count = Credential.objects.count()
+        Credential.objects.bulk_create(creds_to_add, ignore_conflicts=True)
+        return 0, Credential.objects.count() - pre_insert_count
+
+    def parse_user_hash_secret(self, chunk, system, hash_type) -> tuple[int, int]:
+        creds_to_add = []
+
+        for line in chunk.split("\n"):
+            line = line.strip()
+            try:
+                account, account_hash, account_secret = line.split(":", 2)
+                if '\\' in account:
+                    system_to_save, account = account.split('\\', 1)
+                else:
+                    system_to_save = system
+
+                if account and account_hash and account_secret:  # Check we don't have a line starting or ending with a :
+                    creds_to_add.append(Credential(source="User:Hash:Secret import", system=system_to_save, account=account,
+                                                 secret=account_secret, hash_type=hash_type, hash=account_hash))
+            except ValueError:
+                if line:
+                    print(f"Skipping: {line}")
+
+        # A before and after count may be incorrect if other users are concurrently modifying the table,
+        # but it's the best we have given the bulk operations don't return meaningful objects.
+        pre_insert_count = Credential.objects.count()
+        Credential.objects.bulk_create(creds_to_add, ignore_conflicts=True)
+        new_count = Credential.objects.count() - pre_insert_count
+        return new_count, new_count
 
     def parse_pwdump(self, chunk, default_system) -> tuple[int, int]:
         creds_to_add = []
