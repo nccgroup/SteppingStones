@@ -190,7 +190,8 @@ def get_driver_for(bloodhound_server) -> Optional[Driver]:
         # Ensure the pool connection is still valid
         candidate.verify_connectivity()
         return candidate
-    except Exception:
+    except Exception as e:
+        logging.warning(f"No connection to neo4j at {bloodhound_server.neo4j_connection_url}: {e}")
         del neo4j_driver_dict[bloodhound_server]
         return None
 
