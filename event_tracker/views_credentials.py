@@ -870,6 +870,15 @@ def credential_wordlist(request, task_id):
 
 
 @permission_required('event_tracker.view_credential')
+def credential_known_secrets(request, task_id):
+    known_secrets = Credential.objects.filter(secret__isnull=False).values_list("secret", flat=True).distinct()
+
+    return HttpResponse(content="\n".join(known_secrets),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="knownsecrets-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
+
+
+@permission_required('event_tracker.view_credential')
 def prefix_wordlist(request, task_id):
     # Extract the rtrimed words
     duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")

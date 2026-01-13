@@ -16,7 +16,8 @@ from .views import EventCreateView, EventUpdateView, EventDeleteView, EventListV
 from .views_bloodhound import BloodhoundServerListView, BloodhoundServerCreateView, BloodhoundServerUpdateView, \
     BloodhoundServerDeleteView
 from .views_credentials import CredentialListView, CredentialListJson, CredentialCreateView, CredentialUpdateView, \
-    CredentialDeleteView, credential_wordlist, prefix_wordlist, suffix_wordlist, credential_uncracked_hashes, credential_masklist, prefix_masklist, suffix_masklist
+    CredentialDeleteView, credential_wordlist, prefix_wordlist, suffix_wordlist, credential_uncracked_hashes, \
+    credential_masklist, prefix_masklist, suffix_masklist, credential_known_secrets
 from .converters import NegativeIntConverter
 
 # Register the custom converter
@@ -45,6 +46,7 @@ urlpatterns = [
     path('<int:task_id>/creds/<int:pk>/', CredentialUpdateView.as_view(), name='credential-update'),
     path('<int:task_id>/creds/<int:pk>/delete/', CredentialDeleteView.as_view(), name='credential-delete'),
     path('<int:task_id>/creds/wordlist', credential_wordlist, name='credential-wordlist'),
+    path('<int:task_id>/creds/knownsecrets', credential_known_secrets, name='credential-knownsecrets'),
     path('<int:task_id>/creds/prefix-wordlist', prefix_wordlist, name='prefix-wordlist'),
     path('<int:task_id>/creds/suffix-wordlist', suffix_wordlist, name='suffix-wordlist'),
     path('<int:task_id>/creds/masklist/<int:min_len>', credential_masklist, name='credential-masklist'),
