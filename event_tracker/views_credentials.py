@@ -820,7 +820,8 @@ def calculate_char_masks(credential_queryset):
 
 def _get_description_words(tx):
     query = "MATCH (n:Base) where n.description is not null return n.description as words " \
-            "union MATCH (n:Base) where n.title is not null return n.title as words"
+            "union MATCH (n:Base) where n.title is not null return n.title as words " \
+            "union MATCH (n:Base) where n.displayname is not null return n.displayname as words"
     return list(tx.run(query))
 
 
