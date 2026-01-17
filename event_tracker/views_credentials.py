@@ -23,6 +23,7 @@ from django.utils.html import escape
 from django.views.generic import FormView, ListView, CreateView, UpdateView, DeleteView, TemplateView
 from django_datatables_view.base_datatable_view import BaseDatatableView
 from djangoplugins.models import ENABLED
+from durin.models import AuthTokenManager, AuthToken, Client
 from matplotlib.colors import LinearSegmentedColormap, to_rgba_array
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
@@ -940,6 +941,24 @@ class CrackedHashesForm(forms.Form):
 
 # How hashcat copes with non-ascii content, or content with :'s in
 hashcat_hex_re = re.compile(r"\$HEX\[([0-9a-f]{2,})]")
+
+
+class HashUploaderConfig(PermissionRequiredMixin, TemplateView):
+    permission_required = 'event_tracker.change_credential'
+    template_name = "event_tracker/credential_hash_uploader_config.ini"
+
+    def get_context_data(self, **kwargs):
+        context = super(TemplateView, self).get_context_data(**kwargs)
+        client_obj, created = Client.objects.get_or_create(name="hashmob_api")
+
+        # Mimic the get_or_create logic, but use the Manager's own creation function
+        if AuthToken.objects.filter(user=self.request.user, client=client_obj).exists():
+            context['api_key'] =  AuthToken.objects.filter(user=self.request.user, client=client_obj).get()
+        else:
+            context['api_key'] = AuthToken.objects.create(user=self.request.user, client=client_obj)
+
+        context['api_endpoint'] = self.request.build_absolute_uri("/api/hashmob/v2/submit")
+        return context
 
 
 class UploadCrackedHashes(PermissionRequiredMixin, TemplateView):

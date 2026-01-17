@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+from datetime import timedelta
 from pathlib import Path
 import matplotlib
 
@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'markdown_reports',
     'external_tool_reports',
     'import_export',
+    'rest_framework',
+    'durin',
 ]
 
 MIDDLEWARE = [
@@ -218,3 +220,14 @@ matplotlib.use('agg')
 
 IMPORT_EXPORT_IMPORT_PERMISSION_CODE = "add"
 IMPORT_EXPORT_EXPORT_PERMISSION_CODE = "view"
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': ('durin.auth.TokenAuthentication',),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
+
+REST_DURIN = {
+        "DEFAULT_TOKEN_TTL": timedelta(days=365*2),
+}

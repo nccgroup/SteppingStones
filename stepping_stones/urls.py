@@ -17,7 +17,9 @@ from django.contrib import admin
 from django.urls import include, path, reverse_lazy
 from django.views.generic import RedirectView
 from djangoplugins.utils import include_plugins
+from rest_framework import routers
 
+from api.hashmob.views import HashMobViewSet
 from event_tracker.models import Task
 from event_tracker.plugins import EventReportingPluginPoint, CredentialReportingPluginPoint, \
     EventStreamSourcePluginPoint
@@ -31,6 +33,9 @@ def root_view(request):
         url=reverse_lazy('event_tracker:event-list', kwargs={"task_id": Task.objects.last().pk}))(request)
 
 
+hashmob_router = routers.SimpleRouter(trailing_slash=False)
+hashmob_router.register(r"v2", HashMobViewSet, basename='hashmob_v2')
+
 urlpatterns = [
     path('', root_view),
     path('admin/', admin.site.urls),
@@ -40,4 +45,5 @@ urlpatterns = [
     path('plugins/events-reports/', include_plugins(EventReportingPluginPoint)),
     path('plugins/cred-reports/', include_plugins(CredentialReportingPluginPoint)),
     path('plugins/eventstream-sources/', include_plugins(EventStreamSourcePluginPoint)),
+    path('api/hashmob/', include(hashmob_router.urls)),
 ]
