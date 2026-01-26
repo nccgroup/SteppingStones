@@ -156,21 +156,21 @@ def update_owned_credentials(bloodhound_server, credentials):
     driver = get_driver_for(bloodhound_server)
     if driver:
         with driver.session() as session:
-            session.write_transaction(set_owned_bloodhound_users_with_domain, credentials)
+            session.execute_write(set_owned_bloodhound_users_with_domain, credentials)
 
 
 def update_owned_hosts(bloodhound_server, hosts):
     driver = get_driver_for(bloodhound_server)
     if driver:
         with driver.session() as session:
-            session.write_transaction(set_owned_bloodhound_hosts_without_domain, hosts)
+            session.execute_write(set_owned_bloodhound_hosts_without_domain, hosts)
 
 
 def update_owned_users(bloodhound_server, users):
     driver = get_driver_for(bloodhound_server)
     if driver:
         with driver.session() as session:
-            session.write_transaction(set_owned_bloodhound_users_without_domain, users)
+            session.execute_write(set_owned_bloodhound_users_without_domain, users)
 
 
 def set_owned_bloodhound_users_with_domain(tx, users: list[str]):
