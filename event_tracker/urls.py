@@ -17,7 +17,11 @@ from .views_bloodhound import BloodhoundServerListView, BloodhoundServerCreateVi
     BloodhoundServerDeleteView
 from .views_credentials import CredentialListView, CredentialListJson, CredentialCreateView, CredentialUpdateView, \
     CredentialDeleteView, credential_wordlist, prefix_wordlist, suffix_wordlist, credential_uncracked_hashes, \
-    credential_masklist, prefix_masklist, suffix_masklist, credential_known_secrets
+    credential_masklist, prefix_masklist, suffix_masklist, credential_known_secrets, credential_known_secrets_parts, \
+    credential_known_secrets_parts_appendrules, credential_known_secrets_parts_letters, \
+    credential_known_secrets_parts_appendrules_letters, credential_known_secrets_parts_numbers, \
+    credential_known_secrets_parts_appendrules_numbers, credential_known_secrets_parts_symbols, \
+    credential_known_secrets_parts_appendrules_symbols
 from .converters import NegativeIntConverter
 
 # Register the custom converter
@@ -47,6 +51,20 @@ urlpatterns = [
     path('<int:task_id>/creds/<int:pk>/delete/', CredentialDeleteView.as_view(), name='credential-delete'),
     path('<int:task_id>/creds/wordlist', credential_wordlist, name='credential-wordlist'),
     path('<int:task_id>/creds/knownsecrets', credential_known_secrets, name='credential-knownsecrets'),
+    path('<int:task_id>/creds/knownsecrets-parts', credential_known_secrets_parts, name='credential-knownsecrets-parts'),
+    path('<int:task_id>/creds/knownsecrets-parts-appendrules', credential_known_secrets_parts_appendrules, name='credential-knownsecrets-parts-appendrules'),
+    path('<int:task_id>/creds/knownsecrets-parts-letters', credential_known_secrets_parts_letters,
+         name='credential-knownsecrets-parts-letters'),
+    path('<int:task_id>/creds/knownsecrets-parts-appendrules-letters', credential_known_secrets_parts_appendrules_letters,
+         name='credential-knownsecrets-parts-appendrules-letters'),
+    path('<int:task_id>/creds/knownsecrets-parts-numbers', credential_known_secrets_parts_numbers,
+         name='credential-knownsecrets-parts-numbers'),
+    path('<int:task_id>/creds/knownsecrets-parts-appendrules-numbers', credential_known_secrets_parts_appendrules_numbers,
+         name='credential-knownsecrets-parts-appendrules-numbers'),
+    path('<int:task_id>/creds/knownsecrets-parts-symbols', credential_known_secrets_parts_symbols,
+         name='credential-knownsecrets-parts-symbols'),
+    path('<int:task_id>/creds/knownsecrets-parts-appendrules-symbols', credential_known_secrets_parts_appendrules_symbols,
+         name='credential-knownsecrets-parts-appendrules-symbols'),
     path('<int:task_id>/creds/prefix-wordlist', prefix_wordlist, name='prefix-wordlist'),
     path('<int:task_id>/creds/suffix-wordlist', suffix_wordlist, name='suffix-wordlist'),
     path('<int:task_id>/creds/masklist/<int:min_len>', credential_masklist, name='credential-masklist'),

@@ -2,6 +2,7 @@ import contextlib
 import csv
 import io
 import itertools
+import random
 import re
 import time
 from datetime import datetime
@@ -879,6 +880,110 @@ def credential_known_secrets(request, task_id):
                         headers={'Content-Disposition':
                                      f'attachment; filename="knownsecrets-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
+def fetch_known_secrets_letter_parts(refresh_view=True):
+    if refresh_view:
+        duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+
+    # No need for "distinct" as union has the same effect
+    results = duckdb.execute("select unnest(regexp_extract_all(secret, '([A-Z][a-z]{2,})')) from distinct_secrets "
+                             "union select unnest(regexp_extract_all(secret, '^([A-Z]{2,})', 1)) from distinct_secrets "
+                             "union select unnest(regexp_extract_all(secret, '^([a-z]{2,})', 1)) from distinct_secrets "
+                             "union select unnest(regexp_extract_all(secret, '[\\d\\W]([A-Z]{2,})', 1)) from distinct_secrets "
+                             "union select unnest(regexp_extract_all(secret, '[\\d\\W]([a-z]{2,})', 1)) from distinct_secrets "
+                             )
+
+    return [row[0] for row in results.fetchall()]
+
+def fetch_known_secrets_number_parts(refresh_view=True):
+    # Extract the regex matching words
+    if refresh_view:
+        duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+    results = duckdb.execute("select distinct unnest(regexp_extract_all(secret, '(\\d+)')) from distinct_secrets")
+
+    return [row[0] for row in results.fetchall()]
+
+def fetch_known_secrets_symbol_parts(refresh_view=True):
+    # Extract the regex matching words
+    if refresh_view:
+        duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+    results = duckdb.execute("select distinct unnest(regexp_extract_all(secret, '(\\W+)')) from distinct_secrets")
+
+    return [row[0] for row in results.fetchall()]
+
+def fetch_known_secrets_all_parts():
+    # Extract the regex matching words
+    duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+    results = (fetch_known_secrets_letter_parts(refresh_view=False)
+               + fetch_known_secrets_number_parts(refresh_view=False)
+               + fetch_known_secrets_symbol_parts(refresh_view=False))
+    random.shuffle(results)
+    return results
+
+def list_to_append_rules(wordlist):
+    rules = []
+    for word in wordlist:
+        rules.append('$'+'$'.join(word))
+    return rules
+
+@permission_required('event_tracker.view_credential')
+def credential_known_secrets_parts(request, task_id):
+    return HttpResponse(content="\n".join(fetch_known_secrets_all_parts()),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="all-parts-wordlist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
+
+@permission_required('event_tracker.view_credential')
+def credential_known_secrets_parts_appendrules(request, task_id):
+    all_parts = fetch_known_secrets_all_parts()
+    rules = list_to_append_rules(all_parts)
+
+    return HttpResponse(content="\n".join(rules),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="all-parts-append-{datetime.now().strftime("%Y%m%d-%H%M%S")}.rule"'})
+
+@permission_required('event_tracker.view_credential')
+def credential_known_secrets_parts_letters(request, task_id):
+    return HttpResponse(content="\n".join(fetch_known_secrets_letter_parts()),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="letter-parts-wordlist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
+
+@permission_required('event_tracker.view_credential')
+def credential_known_secrets_parts_appendrules_letters(request, task_id):
+    letter_parts = fetch_known_secrets_letter_parts()
+    rules = list_to_append_rules(letter_parts)
+
+    return HttpResponse(content="\n".join(rules),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="letter-parts-append-{datetime.now().strftime("%Y%m%d-%H%M%S")}.rule"'})
+
+@permission_required('event_tracker.view_credential')
+def credential_known_secrets_parts_numbers(request, task_id):
+    return HttpResponse(content="\n".join(fetch_known_secrets_number_parts()),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="number-parts-wordlist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
+
+@permission_required('event_tracker.view_credential')
+def credential_known_secrets_parts_appendrules_numbers(request, task_id):
+    number_parts = fetch_known_secrets_number_parts()
+    rules = list_to_append_rules(number_parts)
+
+    return HttpResponse(content="\n".join(rules),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="number-parts-append-{datetime.now().strftime("%Y%m%d-%H%M%S")}.rule"'})
+
+@permission_required('event_tracker.view_credential')
+def credential_known_secrets_parts_symbols(request, task_id):
+    return HttpResponse(content="\n".join(fetch_known_secrets_symbol_parts()),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="symbol-parts-wordlist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
+
+@permission_required('event_tracker.view_credential')
+def credential_known_secrets_parts_appendrules_symbols(request, task_id):
+    symbol_parts = fetch_known_secrets_symbol_parts()
+    rules = list_to_append_rules(symbol_parts)
+
+    return HttpResponse(content="\n".join(rules),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="symbol-parts-append-{datetime.now().strftime("%Y%m%d-%H%M%S")}.rule"'})
 
 @permission_required('event_tracker.view_credential')
 def prefix_wordlist(request, task_id):
