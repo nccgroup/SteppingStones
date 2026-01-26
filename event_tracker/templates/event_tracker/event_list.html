@@ -20,7 +20,7 @@ Event List
     
     <link rel="stylesheet" href="{% static "css/event_table.css"%}">
     <script src="{% static "scripts/event_table.js" %}"></script>
-    <script nonce="{{request.csp_nonce}}">
+    <script nonce="{{csp_nonce}}">
     let eventTableConfig = {
         monospaceFontURL: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
         brandingSVG: '{{REPORT_FOOTER_IMAGE}}',
@@ -32,7 +32,7 @@ Event List
     }
     </script>
     
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
     .fa-ul {margin-left: 30px; margin-bottom: 0px}
     .fa-li {color: lightgray}
 
@@ -255,7 +255,7 @@ Event List
   </div>
 </div>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
 $("a[title='Delete Event']").on("click", function() {deleteEvent(this)});
 
 function deleteEvent(src) {
@@ -272,7 +272,7 @@ function deleteEvent(src) {
 {% endif %}
 
 {% if perms.event_tracker.change_event %}
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
   $(".clickable-star").on("click", function() {star_click(this)})
 
   function star_click(src){
@@ -306,7 +306,7 @@ if ($('.fa-star.fa-solid').length <= 1)  // 1 star for the filter icon itself
 </script>
 {% endif %}
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
 $(function () {
     $('[data-toggle="tooltip"]').tooltip();
     $.fn.dataTable.moment('{% datetime_format_moment %}');

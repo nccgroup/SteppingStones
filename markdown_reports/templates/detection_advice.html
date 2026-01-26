@@ -16,7 +16,7 @@ Detection Advice
     {% include "base/external-libs/highlightjs.html" %}
     {% include "base/external-libs/clipboardjs.html" %}
 
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
     .language-html {
         white-space: break-spaces;
     }
@@ -28,7 +28,7 @@ Detection Advice
 {% endblock %}
 
 {% block body %}
-<script nonce="{{request.csp_nonce}}">new ClipboardJS('.btn');</script>
+<script nonce="{{csp_nonce}}">new ClipboardJS('.btn');</script>
 <div class="container">
 
 <h2 class="mt-3">Detection Advice</h2>
@@ -44,5 +44,5 @@ Detection Advice
 </pre>
 
 </div>
-<script nonce="{{request.csp_nonce}}">hljs.highlightAll();</script>
+<script nonce="{{csp_nonce}}">hljs.highlightAll();</script>
 {% endblock body %}

@@ -14,7 +14,7 @@
    </a>{% endfor %}</div>
 {% endif %}
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
     $(".mitre-attack-suggestion").on("click", function() {
         setMitre($(this).data("tactic"), $(this).data("technique"), $(this).data("subtechnique"));
         return false;

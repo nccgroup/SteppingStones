@@ -15,7 +15,7 @@ Event Logs
     {% include "base/external-libs/jquery.html" %}
     {% include "base/external-libs/highlightjs.html" %}
 
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
     .language-html {
         white-space: break-spaces;
     }
@@ -35,7 +35,7 @@ Event Logs
 <i class="fas fa-clipboard"></i>&nbsp; Copy to clipboard
 </button>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
     $(".btn").on("click", function() {
         const value = $("#to-copy").text();
         const type = 'text/html';
@@ -127,7 +127,7 @@ Process: {{ event.source.process }}
 </code></pre>
 
 </div>
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
     hljs.highlightAll();
 </script>
 {% endblock body %}

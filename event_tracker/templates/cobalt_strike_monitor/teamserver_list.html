@@ -12,7 +12,7 @@ Team Servers
 {% block head %}
     {% include "base/external-libs/jquery.html" %}
     {% include "base/external-libs/datatables-basic.html" %}
-<style nonce="{{request.csp_nonce}}">
+<style nonce="{{csp_nonce}}">
 td.accordion-button {
     cursor: pointer;
     padding: 0.6em 0;
@@ -102,7 +102,7 @@ div:has(+.dt-layout-table) {
   </div>
 </div>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
 $(document).ready( function () {
     var table = $('.table').DataTable({
         searching: true,

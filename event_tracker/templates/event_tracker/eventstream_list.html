@@ -17,7 +17,7 @@ EventStream
 
     <link rel="stylesheet" href="{% static "css/event_table.css"%}">
     <script src="{% static "scripts/event_table.js" %}"></script>
-    <script nonce="{{request.csp_nonce}}">
+    <script nonce="{{csp_nonce}}">
     let eventTableConfig = {
         monospaceFontURL: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
         brandingSVG: '{{REPORT_FOOTER_IMAGE}}',
@@ -27,7 +27,7 @@ EventStream
     }
     </script>
     
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
     .fa-ul {
         margin-left: 30px; margin-bottom: 0px
     }
@@ -140,7 +140,7 @@ EventStream
     </div>
 </div>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
     $(function () {
       $('[data-toggle="tooltip"]').tooltip();
       $.fn.dataTable.moment('{% datetime_format_moment %}');

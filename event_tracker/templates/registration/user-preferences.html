@@ -9,7 +9,7 @@ Configure User Timezone
 {% block head %}
 {% include "base/external-libs/jquery.html" %}
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
 $(function() {
     // Auto set the timezone if one is not set
     if($("#id_timezone option:selected").val() == "") {

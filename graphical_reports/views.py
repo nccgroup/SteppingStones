@@ -7,7 +7,6 @@ from math import ceil
 
 import matplotlib
 import numpy as np
-from csp.decorators import csp_exempt
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import connection
@@ -16,6 +15,7 @@ from django.db.models.functions import PercentRank
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404
 from django.views import View
+from django.views.decorators.csp import csp_override
 from matplotlib.cm import ScalarMappable
 from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
@@ -28,10 +28,10 @@ from event_tracker.views_credentials import badness_colormap, intensity_colormap
 class GraphicalMitreEventTimelineView(PermissionRequiredMixin, View):
     permission_required = 'event_tracker.view_event'
 
+    @csp_override({})
     def get(self, request, task_id, **kwargs):
         task = get_object_or_404(Task, id=task_id)
         response = HttpResponse(content_type='image/png')
-        response._csp_exempt = True
         matplotlib.rcParams['font.size'] = 8.0
 
         labels = []
@@ -77,10 +77,10 @@ class GraphicalMitreEventTimelineView(PermissionRequiredMixin, View):
 class GraphicalDailyDetectionsAndPreventionsView(PermissionRequiredMixin, View):
     permission_required = 'event_tracker.view_event'
 
+    @csp_override({})
     def get(self, request, task_id, **kwargs):
         task = get_object_or_404(Task, id=task_id)
         response = HttpResponse(content_type='image/png')
-        response._csp_exempt = True
 
         matplotlib.rcParams['font.size'] = 8.0
 

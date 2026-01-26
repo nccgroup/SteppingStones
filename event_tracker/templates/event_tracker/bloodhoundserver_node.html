@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" integrity="sha512-b2QcS5SsA8tZodcDtGRELiGv5SaKSk1vDHDaQRda0htPYWZ6046lr3kJ5bAAQdpV2mmA/4v0wQF9MyU6/pDIAg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </head>
   <body>
-    <script nonce="{{request.csp_nonce}}">
+    <script nonce="{{csp_nonce}}">
         // Set theme to the user's preferred color scheme
         function updateTheme() {
           const colorMode = window.matchMedia("(prefers-color-scheme: dark)").matches ?

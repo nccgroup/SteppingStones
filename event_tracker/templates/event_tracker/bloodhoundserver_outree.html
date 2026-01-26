@@ -15,7 +15,7 @@ BloodHound Servers
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/themes/default/style.min.css" media="(prefers-color-scheme: light) or (prefers-color-scheme: no-preference)" integrity="sha512-A5OJVuNqxRragmJeYTW19bnw9M2WyxoshScX/rGTgZYj5hRXuqwZ+1AVn2d6wYTZPzPXxDeAGlae0XwTQdXjQA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.16/themes/default-dark/style.min.css" media="(prefers-color-scheme: dark)" integrity="sha512-CQDjN7GvO35Yq+qvFhfRO6mNhjEHoJ2xGcCV4EOQB10jdBjLKZN5DkXkoNg0VKq4/BfKyMtkqoZ2WmhGnT9Tmw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-<style nonce="{{request.csp_nonce}}">
+<style nonce="{{csp_nonce}}">
 #jstree_div {
     background-color: transparent !important;
 }
@@ -44,7 +44,7 @@ BloodHound Servers
     </div>
 </div>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
 function updateIframeForNode(nodeId) {
   var encoded = encodeURIComponent(decodeURIComponent(nodeId.split(",").reverse().join(",")));
   $('#selected').attr("src", "{% url 'event_tracker:bloodhound-node' 'dndndn' %}".replace("dndndn", encoded));

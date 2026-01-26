@@ -14,7 +14,7 @@ MITRE Detection Summary
     {% include "base/external-libs/highlightjs.html" %}
     {% include "base/external-libs/clipboardjs.html" %}
 
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
     .language-html {
         white-space: break-spaces;
     }
@@ -22,7 +22,7 @@ MITRE Detection Summary
 {% endblock head %}
 
 {% block body %}
-<script nonce="{{request.csp_nonce}}">new ClipboardJS('.btn');</script>
+<script nonce="{{csp_nonce}}">new ClipboardJS('.btn');</script>
 <div class="container">
 
 <h2 class="mt-3">MITRE Detection Summary</h2>
@@ -50,5 +50,5 @@ MITRE Detection Summary
 </code></pre>
 
 </div>
-<script nonce="{{request.csp_nonce}}">hljs.highlightAll();</script>
+<script nonce="{{csp_nonce}}">hljs.highlightAll();</script>
 {% endblock body %}

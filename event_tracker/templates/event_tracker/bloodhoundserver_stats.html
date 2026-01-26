@@ -14,14 +14,14 @@ BloodHound Servers
     {% include "base/external-libs/jquery.html" %}
     {% include "base/external-libs/turndown-tables.html" %}
     
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
         .copyToClipboard { text-decoration: none; cursor: copy; color: var(--bs-body-color) }
         .copyToClipboard i { opacity: 25%; color: var(--bs-secondary-color) }
         .copyToClipboard:hover { text-decoration: none; cursor: copy}
         .copyToClipboard:hover i { opacity: 100% !important }
     </style>
     
-    <script nonce="{{request.csp_nonce}}">
+    <script nonce="{{csp_nonce}}">
         function copyToClipboard(element) {
             jq_element = $(element);
             navigator.clipboard.writeText(jq_element.text());

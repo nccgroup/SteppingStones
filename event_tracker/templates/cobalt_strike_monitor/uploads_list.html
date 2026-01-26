@@ -16,7 +16,7 @@ CS Uploads
 
     <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
 
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
     .fa-ul {margin-left: 30px; margin-bottom: 0px}
     div:has(>.dt-search) { padding-right: 0}
     div:has(+.dt-layout-table) {
@@ -86,7 +86,7 @@ CS Uploads
     </div>
   </div>
 
-    <script nonce="{{request.csp_nonce}}">
+    <script nonce="{{csp_nonce}}">
     $(function () {
       $('[data-toggle="tooltip"]').tooltip();
       $.fn.dataTable.moment('{% datetime_format_moment %}');

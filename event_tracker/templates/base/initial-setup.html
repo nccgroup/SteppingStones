@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css?family=Exo:200,400" rel="stylesheet">
 
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
         .header {
             color: white;
             font-family: 'Exo', sans-serif;
@@ -42,7 +42,7 @@
   </head>
 
   <body>
-    <script nonce="{{request.csp_nonce}}">
+    <script nonce="{{csp_nonce}}">
         // Set theme to the user's preferred color scheme
         function updateTheme() {
           const colorMode = window.matchMedia("(prefers-color-scheme: dark)").matches ?

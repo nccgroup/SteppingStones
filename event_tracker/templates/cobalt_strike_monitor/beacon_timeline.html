@@ -29,7 +29,7 @@ CS Beacon Timeline
 </div>
 
 <!-- CSS which the timelines JS ordinarily tries to embed into the page -->
-<style nonce="{{request.csp_nonce}}">
+<style nonce="{{csp_nonce}}">
 .timelines-chart {
 
   text-align: center;
@@ -148,7 +148,7 @@ CS Beacon Timeline
   }
 </style>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
 const myChart = TimelinesChart();
 myChart
   .dateMarker(true)

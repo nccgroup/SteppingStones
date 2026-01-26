@@ -18,7 +18,7 @@ CS Beacons
 
     <script src="{% static "scripts/maintainscroll.min.js" %}"></script>
     
-<style nonce="{{request.csp_nonce}}">
+<style nonce="{{csp_nonce}}">
 div:has(>.dt-search) { padding-right: 0}
 div:has(+.dt-layout-table) {
     padding-top: 0.5em;
@@ -160,7 +160,7 @@ div:has(+.dt-layout-table) {
   </div>
 </div>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
     $(function () {
       $('[data-toggle="tooltip"]').tooltip();
       $.fn.dataTable.moment('{% datetime_format_moment %}');

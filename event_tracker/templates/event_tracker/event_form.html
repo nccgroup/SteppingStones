@@ -14,11 +14,11 @@ Edit Event
     {% include "base/external-libs/jquery.html" %}
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.3/htmx.min.js" integrity="sha512-dQu3OKLMpRu85mW24LA1CUZG67BgLPR8Px3mcxmpdyijgl1UpCM1RtJoQP6h8UkufSnaHVRTUx98EQT9fcKohw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <meta name="htmx-config" content='{"inlineScriptNonce":"{{request.csp_nonce}}","inlineStyleNonce":"{{request.csp_nonce}}","allowEval":false}'>
+    <meta name="htmx-config" content='{"inlineScriptNonce":"{{csp_nonce}}","inlineStyleNonce":"{{csp_nonce}}","allowEval":false}'>
     <script src="{% static "scripts/safe-nonce.min.js" %}"></script>
     
     <script src="{% static "scripts/jquery.formset.js" %}"></script>
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
         .form-select { height: 2.5em !important;}
         .select2-selection__arrow { visibility: hidden; }
         .select2-container .select2-selection--single .select2-selection__rendered {
@@ -211,7 +211,7 @@ Edit Event
                                                     <div class="row mb-2 border-5 rounded-3 p-3 mx-auto border-dark-subtle border-dashed file-drop">
                                                         <p class="mt-3 text-center">Drop file here to set values below <i class="fas fa-level-down-alt"></i></p>
                                                     </div>
-                                                    <script nonce="{{request.csp_nonce}}">
+                                                    <script nonce="{{csp_nonce}}">
                                                         $(".file-drop")
                                                             .on("drop", function(event) {
                                                                 dropHandler(event.originalEvent)
@@ -272,7 +272,7 @@ Edit Event
             </div>
         </div>
 
-        <script nonce="{{request.csp_nonce}}">
+        <script nonce="{{csp_nonce}}">
           $("#mitre select").addClass("rounded-end").wrap("<div class='input-group'></div>");
           let inputGroups = $("#mitre .input-group");
           inputGroups.eq(0).append($('<button id="tacticLink" role="button" class="btn btn-link"><i class="fas fa-info-circle"></i></button>')
@@ -304,7 +304,7 @@ Edit Event
 
     {{ form.media }}
 
-    <script nonce="{{request.csp_nonce}}">
+    <script nonce="{{csp_nonce}}">
     
     // Define a custom language with the lang code "ss" to override some of the Select2 default strings.
     // This language is assigned via the `data-language` attribute on the form fields

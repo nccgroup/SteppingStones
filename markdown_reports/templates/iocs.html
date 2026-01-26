@@ -18,7 +18,7 @@ Indicators of Compromise
     {% include "base/external-libs/highlightjs.html" %}
     {% include "base/external-libs/clipboardjs.html" %}
 
-    <style nonce="{{request.csp_nonce}}">
+    <style nonce="{{csp_nonce}}">
     .language-html {
         white-space: break-spaces;
     }
@@ -30,7 +30,7 @@ Indicators of Compromise
 {% endblock %}
 
 {% block body %}
-<script nonce="{{request.csp_nonce}}">new ClipboardJS('.btn');</script>
+<script nonce="{{csp_nonce}}">new ClipboardJS('.btn');</script>
 <div class="container">
 
 <h2 class="mt-3">Indicators of Compromise</h2>
@@ -143,5 +143,5 @@ with the level of access that was obtained.
 </code></pre>
 
 </div>
-<script nonce="{{request.csp_nonce}}">hljs.highlightAll();</script>
+<script nonce="{{csp_nonce}}">hljs.highlightAll();</script>
 {% endblock body %}

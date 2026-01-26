@@ -4,7 +4,7 @@
 
 <script src="{% static "/scripts/bootstrap_input.js" %}"></script>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
     DataTable.datetime("{% datetime_format_moment %}")
     DataTable.defaults.column.orderSequence = ['asc', 'desc']; // Remove neutral column sorting as an option - it breaks the server side query string parsing and feels clunky
     DataTable.defaults.layout = {

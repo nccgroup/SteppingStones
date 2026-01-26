@@ -1,7 +1,7 @@
 <script src="https://unpkg.com/turndown@7.1.3/dist/turndown.js" integrity="sha384-uMuzvvCv65QPd6VIK3GjgOKkPIRYvUv58DxqGCI12xW3tClw6d/4ModZ1fRdPtbk" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/turndown-plugin-gfm@1.0.2/dist/turndown-plugin-gfm.js" integrity="sha384-2TroN1N6OfLQ+K4qttptnIfMREzUlMa3hW/nZqDZXv7Sm9BkESfGEupDEqCbzyRl" crossorigin="anonymous"></script>
 
-<script nonce="{{request.csp_nonce}}">
+<script nonce="{{csp_nonce}}">
 var tables = turndownPluginGfm.tables
 var turndownService = new TurndownService()
 turndownService.use(tables)
