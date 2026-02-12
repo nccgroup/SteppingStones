@@ -19,7 +19,7 @@ jsonschema==4.26.0
 json2table==1.1.5
 django-reversion==6.1.0
 django-taggit-bulk==0.0.4b1
-Pillow==12.1.0
+Pillow==12.1.1
 duckdb==1.4.3
 django-permissions-policy==4.28.0
 ansi2html==1.9.2
