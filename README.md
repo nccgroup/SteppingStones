@@ -26,7 +26,7 @@ Stepping Stones is a Python Django application, so to get a local copy running:
      * Run `python manage.py runserver` and `python manage.py process_tasks` concurrently
    * For production versions:
      * Run `python manage.py check --deploy` to obtain lockdown advice, and then follow a guide such as: 
-    https://docs.djangoproject.com/en/5.0/howto/deployment/
+    https://docs.djangoproject.com/en/6.0/howto/deployment/
 9) Visit the application to configure a task and an admin user: e.g. access <http://127.0.0.1:8000> if running locally
    * Note: The created user will also be used for the main app and shown as the "red team operator" against logged events, 
   so pick a suitable username, e.g. "ST", or "stephen", rather than "admin". If using the Cobalt Strike integration, 
