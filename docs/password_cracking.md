@@ -67,7 +67,7 @@ The parts wordlist is served up shuffled so if you need to stop the PRINCE attac
 downloaded wordlist to avoid going over the same set of candidates. 
 
 ```
-pp64.exe --pw-min=15 --pw-max=20 < parts-wordlist-20260121-223721.txt | hashcat -O -m 1000 -a 0 -r HashMob.50k.rule hashes-1000-20260112-113226.txt
+pp64.exe --pw-min=15 --pw-max=20 < all-parts-wordlist-20260121-223721.txt | hashcat -O -m 1000 -a 0 -r HashMob.50k.rule hashes-1000-20260112-113226.txt
 ```
 :::
 
