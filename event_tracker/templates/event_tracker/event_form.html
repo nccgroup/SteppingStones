@@ -289,6 +289,8 @@ Edit Event
           })
         </script>
 
+          {% bootstrap_form_errors form layout='inline' %}
+
           <a role="button" class="btn btn-secondary back-button">Cancel</a>
           {%  if action == 'Create' %}
             <button type="submit" class="btn btn-success">Create</button>

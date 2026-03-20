@@ -10,10 +10,11 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from taggit.managers import TaggableManager
-from django.db.models import BooleanField
+from django.db.models import BooleanField, F
 from django.urls import reverse
 from django.core import validators
 from django.forms.fields import URLField as FormURLField
@@ -115,10 +116,10 @@ class Event(models.Model):
     source = models.ForeignKey(Context, related_name="source", on_delete=models.DO_NOTHING)
     target = models.ForeignKey(Context, related_name="target", on_delete=models.DO_NOTHING)
     description = models.CharField(max_length=1000)
-    raw_evidence = models.TextField(blank=True, null=True)
+    raw_evidence = models.TextField(blank=True)
     detected = models.CharField(max_length=3, choices=DetectedChoices.choices, default=DetectedChoices.UNKNOWN)
     prevented = models.CharField(max_length=3, choices=PreventedChoices.choices, default=PreventedChoices.NOT_PREVENTED)
-    outcome = models.CharField(max_length=1000, blank=True, null=True)
+    outcome = models.CharField(max_length=1000, blank=True)
     starred = BooleanField(default=False)
     tags = TaggableManager()
 
@@ -127,12 +128,35 @@ class Event(models.Model):
         permissions = (
             ('change_event_limited', "Can modify a limited set of fields in an event - outcome and detection"),
         )
+        constraints = [
+            models.CheckConstraint(condition=models.Q(timestamp_end__isnull=True) | models.Q(timestamp_end__gte=F('timestamp')),
+                                   name="timestamp_end_after_timestamp_start",
+                                   violation_error_message="Timestamp End can not be before Timestamp"),
+        ]
 
     def get_absolute_url(self):
         return reverse('event_tracker:event-update', kwargs={'pk': self.id, "task_id": self.task.id})
 
     def __str__(self):
         return f"{self.timestamp.strftime('%Y-%m-%d %H:%M')} {self.description}"
+
+    def clean(self):
+        """
+        Validates the data model. Needs keeping in sync with :py:func:`api.v1.serializers.EventSerializer.validate`.
+        """
+        if self.mitre_attack_tactic:
+            if self.mitre_attack_technique:
+                if not self.mitre_attack_technique.tactics.contains(self.mitre_attack_tactic):
+                    raise ValidationError("MITRE ATT&CK Technique is not associated with with Tactic")
+        else:
+            if self.mitre_attack_technique:
+                raise ValidationError("Can't define a MITRE ATT&CK Technique without a Tactic")
+
+        if self.mitre_attack_subtechnique:
+            if not self.mitre_attack_technique:
+                raise ValidationError("Can't define a MITRE ATT&CK Subtechnique without a Technique")
+            if self.mitre_attack_subtechnique.parent_technique != self.mitre_attack_technique:
+                raise ValidationError("MITRE ATT&CK Subtechnique is not associated with Technique")
 
 
 class ImportedEvent(models.Model):
