@@ -12,5 +12,6 @@ class ApiRoot(generics.GenericAPIView):
         return Response({
             'token_obtain_pair': reverse("token_obtain_pair", request=request),
             'token_refresh': reverse("token_refresh", request=request),
-            'event-stream': reverse("event-list", request=request),
+            'events': reverse("event-list", request=request),
+            'eventstream': reverse("eventstream-list", request=request),
             })

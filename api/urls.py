@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
 
 from api.hashmob.views import HashMobViewSet
-from api.v1.views import EventStreamViewSet
+from api.v1.views import EventStreamViewSet, EventViewSet
 from api.views import ApiRoot
 
 
@@ -11,7 +11,8 @@ hashmob_router = routers.SimpleRouter(trailing_slash=False)
 hashmob_router.register(r"v2", HashMobViewSet, basename='hashmob_v2')
 
 api_v1_router = routers.SimpleRouter()
-api_v1_router.register(r"eventstream", EventStreamViewSet)
+api_v1_router.register(r"eventstream", EventStreamViewSet, basename='eventstream')
+api_v1_router.register(r"events", EventViewSet)
 
 urlpatterns = [
     path('hashmob/', include(hashmob_router.urls)),

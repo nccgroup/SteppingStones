@@ -4,7 +4,7 @@ from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 
 from api.v1.permissions import ListEventsPermission
 from api.v1.renderers import JSONLRenderer
-from api.v1.serializers import EventStreamSerializer
+from api.v1.serializers import EventStreamSerializer, EventSerializer
 from event_tracker.models import Event
 
 
@@ -16,3 +16,7 @@ class EventStreamViewSet(viewsets.ReadOnlyModelViewSet):
     renderer_classes = [JSONLRenderer, JSONRenderer, BrowsableAPIRenderer]
     serializer_class = EventStreamSerializer
     queryset = Event.objects.all()
+
+class EventViewSet(viewsets.ModelViewSet):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
