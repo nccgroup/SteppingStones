@@ -219,7 +219,7 @@ def linebreaksword(value):
     if not value:
         return ""
 
-    value = "\n" + value  # Prefix with a newline as we use this primarily after bolding the first sentence.
+    value = "\n" + conditional_escape(value)  # Prefix with a newline as we use this primarily after bolding the first sentence.
     value = re.sub("\n+", "<br/>\n", value)
 
     return mark_safe(value)
