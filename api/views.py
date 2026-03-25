@@ -1,9 +1,11 @@
-from rest_framework import generics
+from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
 
 class ApiRoot(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
     """
     Index of all browsable API pages.
     """
