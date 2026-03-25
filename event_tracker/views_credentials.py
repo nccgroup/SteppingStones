@@ -307,6 +307,7 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
         return credential_per_cracked_account, credential_per_uncracked_account, filtered_creds, ids_of_unqiue_accounts, system, enabled, plot_uncracked
 
 
+@permission_required('event_tracker.view_credential')
 def password_complexity_piechart(request, task_id):
     credential_per_cracked_account, credential_per_uncracked_account, _, _, system, enabled, plot_uncracked = CredentialStatsView.get_filtered_creds(request)
 
@@ -407,6 +408,7 @@ def plot_password_complexity_piechart(credential_per_cracked_account, credential
     return fig
 
 
+@permission_required('event_tracker.view_credential')
 def password_structure_piechart(request, task_id):
     credential_per_cracked_account, credential_per_uncracked_account, _, _, system, enabled, plot_uncracked = CredentialStatsView.get_filtered_creds(request)
 
@@ -459,6 +461,7 @@ def plot_password_structure_piechart(credential_per_cracked_account, credential_
     return fig
 
 
+@permission_required('event_tracker.view_credential')
 def password_length_chart(request, task_id):
     credential_per_cracked_account, credential_per_uncracked_account, _, _, system, enabled, plot_uncracked = CredentialStatsView.get_filtered_creds(request)
 
@@ -524,6 +527,7 @@ def plot_password_length_chart(credential_per_cracked_account, credential_per_un
     return fig
 
 
+@permission_required('event_tracker.view_credential')
 def password_age_chart(request, task_id):
     statsfilter = request.session.get('credentialstatsfilter', {})
     system = statsfilter.get("system", None) or None

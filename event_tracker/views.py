@@ -389,11 +389,10 @@ class FileDistributionForm(forms.ModelForm):
             super(FileDistributionForm, self).save(commit=commit)
 
 
-class UserListAutocomplete(autocomplete.Select2ListView):
-    def get_list(self):
-        if not self.request.user.has_perm('event_tracker.change_context'):
-            return []
+class UserListAutocomplete(PermissionRequiredMixin, autocomplete.Select2ListView):
+    permission_required = 'event_tracker.change_context'
 
+    def get_list(self):
         result = set(Context.objects.filter(user__contains=self.q).values_list('user', flat=True).order_by('user').distinct())
 
         for bloodhound_server in BloodhoundServer.objects.filter(active=True).all():
@@ -411,11 +410,10 @@ class UserListAutocomplete(autocomplete.Select2ListView):
         return result
 
 
-class HostListAutocomplete(autocomplete.Select2ListView):
-    def get_list(self):
-        if not self.request.user.has_perm('event_tracker.change_context'):
-            return []
+class HostListAutocomplete(PermissionRequiredMixin, autocomplete.Select2ListView):
+    permission_required = 'event_tracker.change_context'
 
+    def get_list(self):
         result = set(Context.objects.filter(host__contains=self.q).values_list('host', flat=True).order_by('host').distinct())
 
         for bloodhound_server in BloodhoundServer.objects.filter(active=True).all():
@@ -433,11 +431,10 @@ class HostListAutocomplete(autocomplete.Select2ListView):
         return result
 
 
-class ProcessListAutocomplete(autocomplete.Select2ListView):
-    def get_list(self):
-        if not self.request.user.has_perm('event_tracker.change_context'):
-            return []
+class ProcessListAutocomplete(PermissionRequiredMixin, autocomplete.Select2ListView):
+    permission_required = 'event_tracker.change_context'
 
+    def get_list(self):
         result = list(Context.objects.filter(process__contains=self.q).values_list('process', flat=True)
                        .order_by('process').distinct())
 
@@ -814,7 +811,8 @@ class TeamServerDeleteView(PermissionRequiredMixin, DeleteView):
         return reverse_lazy('event_tracker:team-server-list')
 
 
-class TeamServerHealthCheckView(TemplateView):
+class TeamServerHealthCheckView(PermissionRequiredMixin, TemplateView):
+    permission_required = 'cobalt_strike_monitor.view_teamserver'
     template_name = "cobalt_strike_monitor/teamserver_healthcheck.html"
 
     def get_context_data(self, **kwargs):
@@ -1724,7 +1722,9 @@ def toggle_qs_stars(request, task_id):
     return redirect(reverse_lazy("event_tracker:event-list", kwargs={"task_id": task_id}))
 
 
-class EventFieldSuggestions(View):
+class EventFieldSuggestions(PermissionRequiredMixin, View):
+    permission_required = 'event_tracker.add_event'
+
     def post(self, request, *args, **kwargs):
         event_form = EventForm(request.POST)
 
