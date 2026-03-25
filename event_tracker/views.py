@@ -825,10 +825,12 @@ class TeamServerHealthCheckView(TemplateView):
 
         if aggressor_output:
             conv = Ansi2HTMLConverter()
+            aggressor_output = escape(aggressor_output)
             context["aggressor_output"] = mark_safe(conv.convert(aggressor_output, full=False))
 
         if ssbot_status:
             conv = Ansi2HTMLConverter()
+            ssbot_status = escape(ssbot_status)
             context["ssbot_status"] = mark_safe(conv.convert(ssbot_status, full=False))
         return context
 
