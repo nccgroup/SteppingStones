@@ -269,8 +269,8 @@ class GraphicalMitreHeatMapEventListView(MitreEventListView):
             sql, params = percentiles.query.sql_with_params()
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f'SELECT percent_rank FROM ({sql}) WHERE mitre_attack_tactic_id=={tactic.id} ORDER BY {", ".join(sort_columns)}',
-                    params
+                    f'SELECT percent_rank FROM ({sql}) WHERE mitre_attack_tactic_id=%s ORDER BY {", ".join(sort_columns)}',
+                    (*params, tactic.id)
                 )
                 percentile_values = list(itertools.chain.from_iterable(cursor.fetchall()))
 
