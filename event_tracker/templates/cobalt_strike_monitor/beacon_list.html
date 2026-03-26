@@ -113,37 +113,37 @@ div:has(+.dt-layout-table) {
       <form method="post" action="{% url 'event_tracker:cs-beacons-create-exclusion' %}">
         <div class="modal-body">
             {% csrf_token %}
-            <div class="form-group">
+            <div class="mb-3">
               <input class="form-check-input" type="radio" name="exclusion_type" value="id" checked id="beacon_id">
               <label class="form-check-label" for="beacon_id">
                 Exclude only this specific beacon
               </label>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
               <input class="form-check-input" type="radio" name="exclusion_type" value="computer" id="computer">
               <label class="form-check-label" for="computer">
                 Exclude all beacons on host: <strong id="exclusion_computer">{{ form.computer.value }}</strong>
               </label>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
               <input class="form-check-input" type="radio" name="exclusion_type" value="user" id="user">
               <label class="form-check-label" for="user">
                 Exclude all beacons from user: <strong id="exclusion_user">{{ form.user.value }}</strong>
               </label>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
               <input class="form-check-input" type="radio" name="exclusion_type" value="process" id="process">
               <label class="form-check-label" for="process">
                 Exclude all beacons spawned as: <strong id="exclusion_process">{{ form.process.value }}</strong>
               </label>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
               <input class="form-check-input" type="radio" name="exclusion_type" value="internal" id="internal">
               <label class="form-check-label" for="internal">
                 Exclude all beacons with internal IP: <strong id="exclusion_internal">{{ form.internal.value }}</strong>
               </label>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
               <input class="form-check-input" type="radio" name="exclusion_type" value="external" id="external">
               <label class="form-check-label" for="external">
                 Exclude all beacons with external IP: <strong id="exclusion_external">{{ form.external.value }}</strong>
