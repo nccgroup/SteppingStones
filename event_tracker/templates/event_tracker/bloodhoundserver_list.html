@@ -46,12 +46,12 @@ BloodHound Servers
                     <div class="btn-toolbar" role="toolbar" >
                       <div class="btn-group" role="group">
                           {% if perms.event_tracker.change_bloodhoundserver %}
-                          <a href="{% url 'event_tracker:bloodhound-server-update' server.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit BloodHound Server"><i class="fa-regular fa-pen-to-square"></i></a>
+                          <a href="{% url 'event_tracker:bloodhound-server-update' server.id %}" role="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Edit BloodHound Server"><i class="fa-regular fa-pen-to-square"></i></a>
                           {% endif %}
                           {% if perms.event_tracker.delete_bloodhoundserver %}
-                          <a href="{% url 'event_tracker:bloodhound-server-delete' server.id %}" role="button" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Delete BloodHound Server"><i class="fa-regular fa-trash-can"></i></a>
+                          <a href="{% url 'event_tracker:bloodhound-server-delete' server.id %}" role="button" class="btn btn-danger btn-sm" data-bs-toggle="tooltip" title="Delete BloodHound Server"><i class="fa-regular fa-trash-can"></i></a>
                           {% endif %}
-                          <a href="{{ server.neo4j_browser_url }}/browser?dbms={{ server.neo4j_connection_url_for_browser }}" role="button" class="btn btn-secondary btn-sm" data-toggle="tooltip" title="Open Neo4j Browser" target="_blank"><i class="fa-solid fa-magnifying-glass-arrow-right"></i></a>
+                          <a href="{{ server.neo4j_browser_url }}/browser?dbms={{ server.neo4j_connection_url_for_browser }}" role="button" class="btn btn-secondary btn-sm" data-bs-toggle="tooltip" title="Open Neo4j Browser" target="_blank"><i class="fa-solid fa-magnifying-glass-arrow-right"></i></a>
                       </div>
                     </div>
                   </td>

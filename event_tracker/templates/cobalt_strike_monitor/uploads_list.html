@@ -70,9 +70,9 @@ CS Uploads
                     <div class="btn-toolbar" role="toolbar" >
                       <div class="btn-group" role="group">
                           {% if archive.cs_action.event_mappings.exists and perms.event_tracker.change_event %}
-                            <a href="{% url 'event_tracker:event-update' archive.cs_action.event_mappings.first.event.task_id archive.cs_action.event_mappings.first.event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                            <a href="{% url 'event_tracker:event-update' archive.cs_action.event_mappings.first.event.task_id archive.cs_action.event_mappings.first.event.id %}" role="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
                           {% elif not archive.cs_action.event_mappings.exists and perms.event_tracker.add_event %}
-                            <a href="{% url 'event_tracker:cs-log-to-event' archive.cs_action.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
+                            <a href="{% url 'event_tracker:cs-log-to-event' archive.cs_action.id %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
                           {% endif %}
                       </div>
                     </div>
@@ -88,7 +88,6 @@ CS Uploads
 
     <script nonce="{{csp_nonce}}">
     $(function () {
-      $('[data-toggle="tooltip"]').tooltip();
       $.fn.dataTable.moment('{% datetime_format_moment %}');
       $('.table').DataTable({
           fixedHeader: {

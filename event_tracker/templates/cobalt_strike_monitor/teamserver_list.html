@@ -75,12 +75,12 @@ div:has(+.dt-layout-table) {
                     <div class="btn-toolbar" role="toolbar" >
                       <div class="btn-group" role="group">
                           {% if perms.cobalt_strike_monitor.change_teamserver %}
-                          <a href="{% url 'event_tracker:team-server-update' teamserver.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Team Server"><i class="fa-regular fa-pen-to-square"></i></a>
+                          <a href="{% url 'event_tracker:team-server-update' teamserver.id %}" role="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Edit Team Server"><i class="fa-regular fa-pen-to-square"></i></a>
                           {% endif %}
                           {% if perms.cobalt_strike_monitor.delete_teamserver %}
-                          <a href="{% url 'event_tracker:team-server-delete' teamserver.id %}" role="button" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Delete Team Server"><i class="fa-regular fa-trash-can"></i></a>
+                          <a href="{% url 'event_tracker:team-server-delete' teamserver.id %}" role="button" class="btn btn-danger btn-sm" data-bs-toggle="tooltip" title="Delete Team Server"><i class="fa-regular fa-trash-can"></i></a>
                           {% endif %}
-                          <a href="{% url 'event_tracker:team-server-healthcheck' teamserver.id %}" role="button" class="btn btn-secondary btn-sm" data-toggle="tooltip" title="Team Server Healthcheck"><i class="fa-solid fa-heart-pulse"></i></a>
+                          <a href="{% url 'event_tracker:team-server-healthcheck' teamserver.id %}" role="button" class="btn btn-secondary btn-sm" data-bs-toggle="tooltip" title="Team Server Healthcheck"><i class="fa-solid fa-heart-pulse"></i></a>
                       </div>
                     </div>
                   </td>

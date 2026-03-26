@@ -79,17 +79,17 @@ div:has(+.dt-layout-table) {
                     <div class="btn-toolbar" role="toolbar" >
                         <div class="btn-group" role="group">
                             {% if beacon.event_mappings.exists and perms.event_tracker.change_event %}
-                                <a href="{% url 'event_tracker:event-update' beacon.event_mappings.first.event.task_id beacon.event_mappings.first.event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                                <a href="{% url 'event_tracker:event-update' beacon.event_mappings.first.event.task_id beacon.event_mappings.first.event.id %}" role="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
                             {% elif not beacon.event_mappings.exists and perms.event_tracker.add_event %}
-                                <a href="{% url 'event_tracker:cs-beacon-to-event' beacon.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
+                                <a href="{% url 'event_tracker:cs-beacon-to-event' beacon.id %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
                             {% endif %}
                             {% if perms.cobalt_strike_monitor.add_beaconexclusion %}
-                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal" data-bs-id="{{beacon.id}}" data-bs-user="{{beacon.user}}" data-bs-computer="{{beacon.computer}}" data-bs-process="{{beacon.process}}" data-bs-internal="{{beacon.internal}}" data-bs-external="{{beacon.external}}" data-toggle="tooltip" title="Exclude Beacons Like This"><i class="fa-solid fa-eye-slash"></i></a>
+                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal" data-bs-id="{{beacon.id}}" data-bs-user="{{beacon.user}}" data-bs-computer="{{beacon.computer}}" data-bs-process="{{beacon.process}}" data-bs-internal="{{beacon.internal}}" data-bs-external="{{beacon.external}}" data-bs-toggle="tooltip" title="Exclude Beacons Like This"><i class="fa-solid fa-eye-slash"></i></a>
                             {% endif %}
                             {% if beacon.id in reconnection_watcher_bids and perms.cobalt_strike_monitor.delete_beaconreconnectionwatcher %}
-                                <a href="{% url 'event_tracker:cs-beaconwatch-remove' beacon.id %}" role="button" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Stop watching for reconnect"><i class="fa-solid fa-bell-slash"></i></a>
+                                <a href="{% url 'event_tracker:cs-beaconwatch-remove' beacon.id %}" role="button" class="btn btn-danger btn-sm" data-bs-toggle="tooltip" title="Stop watching for reconnect"><i class="fa-solid fa-bell-slash"></i></a>
                             {% elif beacon.id not in reconnection_watcher_bids and perms.cobalt_strike_monitor.add_beaconreconnectionwatcher  %}
-                                <a href="{% url 'event_tracker:cs-beaconwatch-add' beacon.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Notify on reconnect"><i class="fa-solid fa-bell"></i></a>
+                                <a href="{% url 'event_tracker:cs-beaconwatch-add' beacon.id %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Notify on reconnect"><i class="fa-solid fa-bell"></i></a>
                             {% endif %}
                         </div>
                     </div>
@@ -162,7 +162,6 @@ div:has(+.dt-layout-table) {
 
 <script nonce="{{csp_nonce}}">
     $(function () {
-      $('[data-toggle="tooltip"]').tooltip();
       $.fn.dataTable.moment('{% datetime_format_moment %}');
       $('.table').DataTable({
           fixedHeader: {

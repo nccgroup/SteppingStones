@@ -66,6 +66,13 @@
 
         // Update theme when the preferred scheme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
+
+        // Initialise all Bootstrap tooltips
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+                new bootstrap.Tooltip(el);
+            });
+        });
     </script>
 
     <nav class="navbar sticky-top navbar-expand-lg navbar-dark">

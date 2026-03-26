@@ -212,16 +212,16 @@ Event List
                           <div class="btn-toolbar" role="toolbar" >
                               <div class="btn-group" role="group">
                                   {% if perms.event_tracker.change_event %}
-                                  <a href="{% url 'event_tracker:event-update' event.task_id event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                                  <a href="{% url 'event_tracker:event-update' event.task_id event.id %}" role="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
                                   {% elif perms.event_tracker.change_event_limited %}
-                                  <a href="{% url 'event_tracker:event-update-limited' event.task_id event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                                  <a href="{% url 'event_tracker:event-update-limited' event.task_id event.id %}" role="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
                                   {% endif %}
                                   {% if perms.event_tracker.add_event %}
-                                  <a href="{% url 'event_tracker:event-clone' view.kwargs.task_id event.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Clone Event"><i class="far fa-copy"></i></a>
-                                  <a href="{% url 'event_tracker:event-lat-move-clone' view.kwargs.task_id event.id %}" role="button" class="btn btn-success btn-sm" data-toggle="tooltip" title="Lat Move: New Event with this Target as Source"><i class="fa-solid fa-arrows-turn-to-dots"></i></a>
+                                  <a href="{% url 'event_tracker:event-clone' view.kwargs.task_id event.id %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Clone Event"><i class="far fa-copy"></i></a>
+                                  <a href="{% url 'event_tracker:event-lat-move-clone' view.kwargs.task_id event.id %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Lat Move: New Event with this Target as Source"><i class="fa-solid fa-arrows-turn-to-dots"></i></a>
                                   {% endif %}
                                   {% if perms.event_tracker.delete_event %}
-                                  <a data-delete-url="{% url 'event_tracker:event-delete' event.task_id event.id %}" role="button" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Delete Event"><i class="fa-regular fa-trash-can"></i></a>
+                                  <a data-delete-url="{% url 'event_tracker:event-delete' event.task_id event.id %}" role="button" class="btn btn-danger btn-sm" data-bs-toggle="tooltip" title="Delete Event"><i class="fa-regular fa-trash-can"></i></a>
                                   {% endif %}
                               </div>
                           </div>
@@ -308,7 +308,6 @@ if ($('.fa-star.fa-solid').length <= 1)  // 1 star for the filter icon itself
 
 <script nonce="{{csp_nonce}}">
 $(function () {
-    $('[data-toggle="tooltip"]').tooltip();
     $.fn.dataTable.moment('{% datetime_format_moment %}');
     $('.table').DataTable({
         searching: true,

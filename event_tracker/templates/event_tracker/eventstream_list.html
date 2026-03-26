@@ -142,7 +142,6 @@ EventStream
 
 <script nonce="{{csp_nonce}}">
     $(function () {
-      $('[data-toggle="tooltip"]').tooltip();
       $.fn.dataTable.moment('{% datetime_format_moment %}');
       $('.table').DataTable({
           "processing": true,

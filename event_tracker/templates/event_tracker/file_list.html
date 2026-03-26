@@ -45,7 +45,7 @@ File List
                       <td class="{{ filedistribution.removed|yesno:'bg-success,bg-danger'}} bg-opacity-25">{{ filedistribution.removed|yesno|capfirst }}</td>
                       {% if perms.event_tracker.change_event %}
                       <td>
-                          <a href="{% url 'event_tracker:event-update' filedistribution.event.task_id filedistribution.event.id %}" role="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
+                          <a href="{% url 'event_tracker:event-update' filedistribution.event.task_id filedistribution.event.id %}" role="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
                       </td>
                       {% endif %}
                     </tr>
@@ -60,7 +60,6 @@ File List
 
 <script nonce="{{csp_nonce}}">
 $(function () {
-  $('[data-toggle="tooltip"]').tooltip();
   $.fn.dataTable.moment('{% datetime_format_moment %}');
   $('.table').DataTable({
       searching: false,

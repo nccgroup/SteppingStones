@@ -44,10 +44,10 @@ Webhooks
                     <div class="btn-toolbar" role="toolbar" >
                         <div class="btn-group" role="group">
                             {% if perms.event_tracker.delete_webhook %}
-                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deletion-modal" data-bs-id="{{webhook.id}}" data-bs-string="{{webhook.url}}" data-toggle="tooltip" title="Remove Webhook"><i class="fa-solid fa-comment-slash"></i></a>
+                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deletion-modal" data-bs-id="{{webhook.id}}" data-bs-string="{{webhook.url}}" data-bs-toggle="tooltip" title="Remove Webhook"><i class="fa-solid fa-comment-slash"></i></a>
                             {% endif %}
                             {% if perms.event_tracker.add_webhook and perms.event_tracker.change_webhook %}
-                            <a href="{% url "event_tracker:webhook-manual-trigger" webhook.id %}" type="button" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Trigger Dummy Webhook"><i class="fa-solid fa-circle-play"></i></a>
+                            <a href="{% url "event_tracker:webhook-manual-trigger" webhook.id %}" type="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Trigger Dummy Webhook"><i class="fa-solid fa-circle-play"></i></a>
                             {% endif %}
                         </div>
                     </div>
@@ -90,7 +90,6 @@ Webhooks
 
 <script nonce="{{csp_nonce}}">
     $(function () {
-      $('[data-toggle="tooltip"]').tooltip();
       $('.table').DataTable({
           searching: false,
           paging: false,

@@ -54,7 +54,7 @@ CS Beacon Exclusions
                     {% if perms.cobalt_strike_monitor.delete_beaconexclusion %}
                     <div class="btn-toolbar" role="toolbar" >
                         <div class="btn-group" role="group">
-                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deletion-modal" data-bs-id="{{beaconexclusion.id}}" data-bs-string="{{beaconexclusion}}" data-toggle="tooltip" title="Remove Exclusion Rule"><i class="fa-solid fa-eye"></i></a>
+                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deletion-modal" data-bs-id="{{beaconexclusion.id}}" data-bs-string="{{beaconexclusion}}" data-bs-toggle="tooltip" title="Remove Exclusion Rule"><i class="fa-solid fa-eye"></i></a>
                         </div>
                     </div>
                     {% endif %}
@@ -91,7 +91,6 @@ CS Beacon Exclusions
 
 <script nonce="{{csp_nonce}}">
     $(function () {
-      $('[data-toggle="tooltip"]').tooltip();
       $('.table').DataTable({
           searching: false,
           paging: false,
