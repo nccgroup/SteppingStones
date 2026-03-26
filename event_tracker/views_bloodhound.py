@@ -254,7 +254,7 @@ def _toggle_node_highvalue_by_dn(tx, dn, user):
         dn=dn, user=user)
 
 
-@permission_required('event_tracker.view_bloodhoundserver')
+@permission_required('event_tracker.change_bloodhoundserver')
 def toggle_bloodhound_node_highvalue(request, dn):
     for server in BloodhoundServer.objects.filter(active=True).all():
         if driver := get_driver_for(server):
