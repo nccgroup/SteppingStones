@@ -73,7 +73,7 @@ def create_fixture(mitre_data):
                             "mitre_id": reference["external_id"],
                             "name": mitre_object["name"],
                             "tactics": tactics,
-                            "detection_advice": mitre_object["x_mitre_detection"]
+                            "detection_advice": mitre_object["x_mitre_detection"] if "x_mitre_detection" in mitre_object else ""
                         }
                     })
 
@@ -96,7 +96,7 @@ def create_fixture(mitre_data):
                             "mitre_id": reference["external_id"],
                             "name": mitre_object["name"],
                             "parent_technique": [reference["external_id"].split(".", 1)[0]],
-                            "detection_advice": mitre_object["x_mitre_detection"]
+                            "detection_advice": mitre_object["x_mitre_detection"] if "x_mitre_detection" in mitre_object else ""
                         }
                     })
 
