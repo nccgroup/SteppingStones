@@ -22,7 +22,7 @@ Event List
     <script src="{% static "scripts/event_table.js" %}"></script>
     <script nonce="{{csp_nonce}}">
     let eventTableConfig = {
-        monospaceFontURL: '{{request.scheme}}://{{request.META.HTTP_HOST}}{% static "fonts/RobotoMono-Regular.ttf" %}',
+        monospaceFontURL: '{% get_static_prefix as STATIC_URL %}{% if "://" not in STATIC_URL %}{{request.scheme}}://{{request.META.HTTP_HOST}}{% endif %}{% static "fonts/RobotoMono-Regular.ttf" %}',
         brandingSVG: '{{REPORT_FOOTER_IMAGE}}',
         brandingText: '{{REPORT_FOOTER_TEXT}}',
         totalColumns: 7,
