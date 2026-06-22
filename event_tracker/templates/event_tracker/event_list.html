@@ -307,6 +307,10 @@ if ($('.fa-star.fa-solid').length <= 1)  // 1 star for the filter icon itself
 {% endif %}
 
 <script nonce="{{csp_nonce}}">
+let filename_generator = function() {
+    return "Event Logs - " + moment().format('DDMMYYYY')
+}
+
 $(function () {
     $.fn.dataTable.moment('{% datetime_format_moment %}');
     $('.table').DataTable({
@@ -382,6 +386,7 @@ $(function () {
                 orientation: "landscape",
                 customize: pdfExportCustomize,
                 title: "Event Logs",
+                filename: filename_generator,
                 exportOptions: {
                     columns: [1,2,3,4,5,6,7],  // Do not export the 0th "star" column
                     stripNewlines: false,

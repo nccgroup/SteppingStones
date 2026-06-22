@@ -141,6 +141,10 @@ EventStream
 </div>
 
 <script nonce="{{csp_nonce}}">
+    let filename_generator = function() {
+        return "EventStream Logs - " + moment().format('DDMMYYYY')
+    }
+
     $(function () {
       $.fn.dataTable.moment('{% datetime_format_moment %}');
       $('.table').DataTable({
@@ -183,6 +187,7 @@ EventStream
                 orientation: "landscape",
                 customize: pdfExportCustomize,
                 title: "EventStream Logs",
+                filename: filename_generator,
                 exportOptions: {
                     stripNewlines: false,
                     orthogonal: 'export'  // Force a fresh call to the render function below passing in "export" as the type
