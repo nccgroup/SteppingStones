@@ -180,6 +180,11 @@ class EventBulkEdit(PermissionRequiredMixin, FormView):
     template_name = "event_tracker/event_bulk_edit.html"
     success_url = "/event-tracker/1"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['starred_count'] = Event.objects.filter(starred=True).count()
+        return context
+
     def form_valid(self, form):
         for event in Event.objects.filter(starred=True).all():
             event.tags.add(*form.cleaned_data["tags"])

@@ -7,7 +7,7 @@ active
 {% endblock %}
 
 {% block title %}
-Bulk Tag
+Bulk Edit
 {% endblock title %}
 
 {% block head %}
@@ -54,6 +54,7 @@ Bulk Tag
 <div class="container">
   <main>
     <div class="py-3">
+        <p class="text-muted">Editing <strong>{{ starred_count }}</strong> starred event{{ starred_count|pluralize }}</p>
         <form method="post">{% csrf_token %}
             {% bootstrap_form form layout='horizontal' %}
 
