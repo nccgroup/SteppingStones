@@ -45,10 +45,11 @@ from cobalt_strike_monitor.models import TeamServer, Archive, Beacon, BeaconExcl
 from cobalt_strike_monitor.poll_team_server import healthcheck_teamserver
 from .models import Task, Event, AttackTactic, AttackTechnique, Context, AttackSubTechnique, FileDistribution, File, \
     EventMapping, Webhook, BeaconReconnectionWatcher, BloodhoundServer, UserPreferences, \
-    ImportedEvent
+    ImportedEvent, timezones
 from django.urls import reverse_lazy, reverse
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from dal import autocomplete
 
@@ -448,14 +449,21 @@ class ProcessListAutocomplete(PermissionRequiredMixin, autocomplete.Select2ListV
         return result
 
 
+
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
         exclude = ('starred',)
 
+    TIMEZONE_CHOICES = [(tz, tz) for tz in timezones]
+
     task = forms.ModelChoiceField(Task.objects)
     timestamp = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
+    timestamp_tz = forms.ChoiceField(choices=TIMEZONE_CHOICES, label="", required=False,
+                                     widget=forms.Select(attrs={"class": "timezone-select"}))
     timestamp_end = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}), required=False)
+    timestamp_end_tz = forms.ChoiceField(choices=TIMEZONE_CHOICES, label="", required=False,
+                                         widget=forms.Select(attrs={"class": "timezone-select"}))
     operator = forms.ModelChoiceField(User.objects)
     mitre_attack_tactic = forms.ModelChoiceField(AttackTactic.objects, required=False, label="Tactic", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:event-field-suggestions"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
     mitre_attack_technique = forms.ModelChoiceField(AttackTechnique.objects, required=False, label="Technique", widget=forms.Select(attrs={"hx-post": reverse_lazy("event_tracker:event-field-suggestions"), "hx-target": "#mitre-attack-suggestions", "hx-trigger": "input delay:200ms"}))
@@ -473,6 +481,12 @@ class EventForm(forms.ModelForm):
 
     tags = TagField(required=False, widget=TaggitSelect2(url='event_tracker:eventtag-autocomplete', attrs={"data-theme": "bootstrap-5"}))
 
+    def __init__(self, *args, user_tz=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user_tz:
+            self.fields['timestamp_tz'].initial = user_tz
+            self.fields['timestamp_end_tz'].initial = user_tz
+
     def clean(self):
         cleaned_data = super().clean()
         if (not cleaned_data["source"] and
@@ -489,6 +503,18 @@ class EventForm(forms.ModelForm):
 
         if not cleaned_data["timestamp_end"]:
             cleaned_data["timestamp_end"] = None
+
+        # Convert timestamps using the submitted timezone
+        ts_tz_name = cleaned_data.get("timestamp_tz") or "UTC"
+        ts_tz = ZoneInfo(ts_tz_name)
+        if cleaned_data.get("timestamp") and cleaned_data["timestamp"].tzinfo is None:
+            cleaned_data["timestamp"] = cleaned_data["timestamp"].replace(tzinfo=ts_tz)
+
+        if cleaned_data.get("timestamp_end"):
+            end_tz_name = cleaned_data.get("timestamp_end_tz") or ts_tz_name
+            end_tz = ZoneInfo(end_tz_name)
+            if cleaned_data["timestamp_end"].tzinfo is None:
+                cleaned_data["timestamp_end"] = cleaned_data["timestamp_end"].replace(tzinfo=end_tz)
 
         return cleaned_data
 
@@ -595,7 +621,22 @@ class EventFilterForm(forms.Form):
 FileDistributionFormSet = inlineformset_factory(Event, FileDistribution, form=FileDistributionForm, exclude=[], extra=1, can_delete=True)
 
 
-class EventCreateView(PermissionRequiredMixin, RevisionMixin, CreateView):
+class EventFormUserTzMixin:
+    """Passes the user's configured timezone to EventForm."""
+
+    def _get_user_tz(self):
+        if not hasattr(self, '_user_tz'):
+            prefs = UserPreferences.objects.filter(user=self.request.user).first()
+            self._user_tz = prefs.timezone if prefs and prefs.timezone else "UTC"
+        return self._user_tz
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user_tz'] = self._get_user_tz()
+        return kwargs
+
+
+class EventCreateView(EventFormUserTzMixin, PermissionRequiredMixin, RevisionMixin, CreateView):
     permission_required = 'event_tracker.add_event'
     model = Event
     form_class = EventForm
@@ -611,9 +652,12 @@ class EventCreateView(PermissionRequiredMixin, RevisionMixin, CreateView):
 
     def get_initial(self):
         task = get_object_or_404(Task, pk=self.kwargs.get('task_id'))
+        user_tz = self._get_user_tz()
         return {
             "task": task,
             "timestamp": timezone.localtime().strftime("%Y-%m-%dT%H:%M"),
+            "timestamp_tz": user_tz,
+            "timestamp_end_tz": user_tz,
             "operator": self.request.user,
         }
 
@@ -709,7 +753,7 @@ class EventLatMoveCloneView(EventCreateView):
         }
 
 
-class EventUpdateView(PermissionRequiredMixin, RevisionMixin, UpdateView):
+class EventUpdateView(EventFormUserTzMixin, PermissionRequiredMixin, RevisionMixin, UpdateView):
     permission_required = 'event_tracker.change_event'
     model = Event
     form_class = EventForm
@@ -719,7 +763,12 @@ class EventUpdateView(PermissionRequiredMixin, RevisionMixin, UpdateView):
                             kwargs={"task_id": self.kwargs["task_id"]})
 
     def get_initial(self):
-        initial = {"timestamp": timezone.localtime(self.object.timestamp).strftime("%Y-%m-%dT%H:%M")}
+        user_tz = self._get_user_tz()
+        initial = {
+            "timestamp": timezone.localtime(self.object.timestamp).strftime("%Y-%m-%dT%H:%M"),
+            "timestamp_tz": user_tz,
+            "timestamp_end_tz": user_tz,
+        }
         if self.object.timestamp_end:
             initial["timestamp_end"] = timezone.localtime(self.object.timestamp_end).strftime("%Y-%m-%dT%H:%M")
         return initial

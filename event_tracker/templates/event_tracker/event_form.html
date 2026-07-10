@@ -91,6 +91,15 @@ Edit Event
         label[for="id_source_host"] + div .input-group-text {
             cursor: alias;
         }
+
+        .timezone-select + .select2-container {
+            width: 100% !important;
+        }
+
+        .timestamp-tz-wrapper {
+            width: 20em;
+            flex-shrink: 0;
+        }
         
         #mitre-attack-suggestions {
             margin: 0;
@@ -128,10 +137,16 @@ Edit Event
         <div class="mb-3 row">
             <div class="col-sm-2">{% bootstrap_label "Timestamp" label_class="col-form-label" label_for="timestamp"%}</div>
             <div class="col-sm-10">
-                {% bootstrap_field form.timestamp type='datetime-local' show_label=False wrapper_class="col" %}
+                <div class="d-flex gap-2 align-items-start">
+                    {% bootstrap_field form.timestamp type='datetime-local' show_label=False wrapper_class="flex-grow-1 mb-0" %}
+                    {% bootstrap_field form.timestamp_tz show_label=False wrapper_class="mb-0 timestamp-tz-wrapper" %}
+                </div>
                 <div class="collapse{% if form.timestamp_end.value %} show{% endif %}" id="timestamp_end_collapsible">
                     <div class="col-md-2">{% bootstrap_label "...until..." label_class="col-form-label" label_for="timestamp_end"%}</div>
-                    <div class="col">{% bootstrap_field form.timestamp_end type='datetime-local' show_label=False wrapper_class="col" %}</div>
+                    <div class="d-flex gap-2 align-items-start">
+                        {% bootstrap_field form.timestamp_end type='datetime-local' show_label=False wrapper_class="flex-grow-1 mb-0" %}
+                        {% bootstrap_field form.timestamp_end_tz show_label=False wrapper_class="mb-0 timestamp-tz-wrapper" %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -370,6 +385,57 @@ Edit Event
 
     // -- Timestamp & End Timestamp behavior ---
 
+    function convertDateTimeBetweenZones(dateTimeStr, fromTz, toTz) {
+        if (!dateTimeStr || fromTz === toTz) return dateTimeStr;
+        const match = dateTimeStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+        if (!match) return dateTimeStr;
+        const [, y, mo, d, h, mi] = match.map(Number);
+
+        // Iteratively find the UTC ms whose local representation in fromTz equals the input.
+        // Converges in ≤2 iterations even across DST boundaries.
+        const dtfOpts = { year: 'numeric', month: '2-digit', day: '2-digit',
+                          hour: '2-digit', minute: '2-digit', hour12: false };
+        const fromFmt = new Intl.DateTimeFormat('en-US', { ...dtfOpts, timeZone: fromTz });
+        let guess = Date.UTC(y, mo - 1, d, h, mi);
+        for (let i = 0; i < 3; i++) {
+            const p = Object.fromEntries(fromFmt.formatToParts(new Date(guess)).map(x => [x.type, x.value]));
+            const diff = Date.UTC(y, mo - 1, d, h, mi) -
+                         Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute);
+            if (diff === 0) break;
+            guess += diff;
+        }
+
+        // Re-format the UTC instant in the target timezone
+        const outFmt = new Intl.DateTimeFormat('en-US', { ...dtfOpts, timeZone: toTz });
+        const p = Object.fromEntries(outFmt.formatToParts(new Date(guess)).map(x => [x.type, x.value]));
+        const hh = String(+p.hour % 24).padStart(2, '0');
+        return `${p.year}-${p.month}-${p.day}T${hh}:${p.minute}`;
+    }
+
+    // Wire up timezone conversion: when the dropdown changes, update the paired datetime input.
+    function setupTimezoneConversion($tzSelect, $dtInput) {
+        $tzSelect[0].dataset.prevTz = $tzSelect.val();
+
+        // Select2 fires jQuery change events on the underlying <select>
+        $tzSelect.on('change', function () {
+            const prevTz = this.dataset.prevTz;
+            const newTz = this.value;
+            if ($dtInput.val()) {
+                $dtInput.val(convertDateTimeBetweenZones($dtInput.val(), prevTz, newTz));
+            }
+            this.dataset.prevTz = newTz;
+        });
+    }
+
+    // Initialise Select2 on the timezone dropdowns
+    $('.timezone-select').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+    });
+
+    setupTimezoneConversion($('#id_timestamp_tz'), $('#id_timestamp'));
+    setupTimezoneConversion($('#id_timestamp_end_tz'), $('#id_timestamp_end'));
+
     // Add "show timestamp end" button to end of timestamp field
     timestamp_field = $("#id_timestamp");
     timestamp_field.addClass("border-end-0").addClass("pe-0");
@@ -387,8 +453,9 @@ Edit Event
           show: true
         });
 
-        // Copy timestamp to timestamp end
+        // Copy timestamp and its timezone to timestamp end
         $("#id_timestamp_end").val($("#id_timestamp").val());
+        $("#id_timestamp_end_tz").val($("#id_timestamp_tz").val());
 
         // Don't submit the form
         return false;
