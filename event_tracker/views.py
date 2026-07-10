@@ -567,14 +567,29 @@ class LimitedEventForm(EventForm):
         del self.fields["tags"]
 
 
+UNTAGGED_KEY = "__untagged__"
+TAG_SEPARATOR_KEY = "__separator__"
+
+
+class SelectWithSeparator(forms.Select):
+    """Select widget that renders any option with value TAG_SEPARATOR_KEY as a disabled separator."""
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        if value == TAG_SEPARATOR_KEY:
+            option['attrs']['disabled'] = True
+            option['attrs']['role'] = 'separator'
+        return option
+
+
 class EventFilterForm(forms.Form):
     tactic = forms.ModelChoiceField(AttackTactic.objects,
                                     required=False,
                                     empty_label="All Tactics",
                                     widget=forms.Select(attrs={'class': 'form-select form-select-sm submit-on-change'}))
     starred = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'submit-on-change'}))
-    tag = forms.ModelChoiceField(Event.tags.get_queryset().order_by("name"), required=False, empty_label="All Tags",
-                                 widget=forms.Select(attrs={'class': 'form-select form-select-sm submit-on-change'}))
+    tag = forms.ChoiceField(required=False,
+                            widget=SelectWithSeparator(attrs={'class': 'form-select form-select-sm submit-on-change'}))
 
     class Media:
         js = ["scripts/ss-forms.js"]
@@ -586,20 +601,39 @@ class EventFilterForm(forms.Form):
         if task_id:
             self.task = get_object_or_404(Task, id=task_id)
 
+        # Build tag choices: "All Tags" and "Untagged" sit together at the top,
+        # separated from named tags by a disabled separator option
+        task_events = Event.objects.filter(task=self.task)
+        has_untagged = task_events.filter(tags__isnull=True).exists()
+        existing_tags = list(Event.tags.get_queryset().filter(
+            name__in=task_events.exclude(tags__isnull=True).values('tags__name')
+        ).order_by("name"))
+        tag_choices = [("", "All Tags")]
+        if has_untagged:
+            tag_choices.append((UNTAGGED_KEY, "Untagged"))
+        if existing_tags:
+            tag_choices.append((TAG_SEPARATOR_KEY, "─" * 16))
+            tag_choices.extend((str(t.pk), t.name) for t in existing_tags)
+        self.fields['tag'].choices = tag_choices
+
         if self.is_valid():
             qs = self.apply_to_queryset(Event.objects.all())
 
             # Disable widgets if there is no sane choice
-            self.fields['tag'].disabled = not self.fields['tag'].queryset.exists()
+            self.fields['tag'].disabled = not existing_tags and not has_untagged
             self.fields['starred'].disabled = not qs.filter(starred=True).exists()
             self.fields['tactic'].disabled = not self.fields['tactic'].queryset.exists()
 
-
     def get_tag_string(self):
         if 'tag' in self.data and self.data['tag']:
-            return self.fields['tag'].choices.queryset.get(pk=self.data['tag']).name
-        else:
-            return ''
+            tag_val = self.data['tag']
+            if tag_val == UNTAGGED_KEY:
+                return 'Untagged'
+            try:
+                return Event.tags.get_queryset().get(pk=tag_val).name
+            except Exception:
+                return ''
+        return ''
 
     def apply_to_queryset(self, qs):
         qs = qs.filter(task=self.task)
@@ -609,8 +643,10 @@ class EventFilterForm(forms.Form):
             qs = qs.filter(mitre_attack_tactic=tactic)
 
         tag = self.cleaned_data['tag']
-        if tag:
-            qs = qs.filter(tags__name=tag)
+        if tag == UNTAGGED_KEY:
+            qs = qs.filter(tags__isnull=True)
+        elif tag:
+            qs = qs.filter(tags__pk=tag)
 
         if self.cleaned_data['starred']:
             qs = qs.filter(starred=True)
