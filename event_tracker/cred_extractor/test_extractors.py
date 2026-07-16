@@ -85,3 +85,110 @@ DOMAIN.COMPANY.COM/tom:$DCC2$10240#tom#e4e938d12fe5974dc42a90120bd9c90f: (2024-1
         self.assertEqual("USER", result[0].account)
         self.assertEqual("Password123", result[0].secret)
 
+    def test_privcheck_credmanager_full(self):
+        result, _ = extract("""[CREDMANAGER] Found 1 credential(s)
+[CREDMANAGER] --- Credential [1] ---
+[CREDMANAGER]   Target: somehost
+[CREDMANAGER]   User:   jsmith
+[CREDMANAGER]   Secret: Password123
+""", "DUMMY")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("somehost", result[0].system)
+        self.assertEqual("jsmith", result[0].account)
+        self.assertEqual("Password123", result[0].secret)
+        self.assertEqual("SAL-BOF Privcheck", result[0].source)
+
+    def test_privcheck_credmanager_no_target_uses_default(self):
+        result, _ = extract("""[CREDMANAGER] --- Credential [1] ---
+[CREDMANAGER]   User:   jsmith
+[CREDMANAGER]   Secret: Password123
+""", "DUMMY")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("DUMMY", result[0].system)
+        self.assertEqual("jsmith", result[0].account)
+
+    def test_privcheck_credmanager_no_user(self):
+        result, _ = extract("""[CREDMANAGER] --- Credential [1] ---
+[CREDMANAGER]   Target: somehost
+[CREDMANAGER]   Secret: Password123
+""", "DUMMY")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("somehost", result[0].system)
+        self.assertIsNone(result[0].account)
+
+    def test_privcheck_credmanager_empty_secret(self):
+        result, _ = extract("""[CREDMANAGER] --- Credential [1] ---
+[CREDMANAGER]   Target: somehost
+[CREDMANAGER]   User:   jsmith
+[CREDMANAGER]   Secret: <empty or protected>
+""", "DUMMY")
+
+        self.assertEqual(1, len(result))
+        self.assertIsNone(result[0].secret)
+
+    def test_privcheck_credmanager_multiple_full(self):
+        result, _ = extract("""[CREDMANAGER] Found 3 credential(s)
+[CREDMANAGER] --- Credential [1] ---
+[CREDMANAGER]   Target: fileserver
+[CREDMANAGER]   User:   alice
+[CREDMANAGER]   Secret: PasswordOne
+[CREDMANAGER] --- Credential [2] ---
+[CREDMANAGER]   Target: mailserver
+[CREDMANAGER]   User:   bob
+[CREDMANAGER]   Secret: PasswordTwo
+[CREDMANAGER] --- Credential [3] ---
+[CREDMANAGER]   Target: vpngateway
+[CREDMANAGER]   User:   carol
+[CREDMANAGER]   Secret: PasswordThree
+[CREDMANAGER] Enumeration complete: 3 credential(s) found
+""", "DUMMY")
+
+        privcheck_results = sorted(
+            [c for c in result if c.source == "SAL-BOF Privcheck"],
+            key=lambda c: c.system)
+        self.assertEqual(3, len(privcheck_results))
+        self.assertEqual("fileserver",  privcheck_results[0].system)
+        self.assertEqual("alice",       privcheck_results[0].account)
+        self.assertEqual("PasswordOne", privcheck_results[0].secret)
+        self.assertEqual("mailserver",  privcheck_results[1].system)
+        self.assertEqual("bob",         privcheck_results[1].account)
+        self.assertEqual("PasswordTwo", privcheck_results[1].secret)
+        self.assertEqual("vpngateway",    privcheck_results[2].system)
+        self.assertEqual("carol",         privcheck_results[2].account)
+        self.assertEqual("PasswordThree", privcheck_results[2].secret)
+
+    def test_privcheck_credmanager_multiple_mixed_optional_fields(self):
+        # First credential has all fields; second has no User; third has no Target and an empty secret
+        result, _ = extract("""[CREDMANAGER] Found 3 credential(s)
+[CREDMANAGER] --- Credential [1] ---
+[CREDMANAGER]   Target: fileserver
+[CREDMANAGER]   User:   alice
+[CREDMANAGER]   Secret: PasswordOne
+[CREDMANAGER] --- Credential [2] ---
+[CREDMANAGER]   Target: mailserver
+[CREDMANAGER]   Secret: PasswordTwo
+[CREDMANAGER] --- Credential [3] ---
+[CREDMANAGER]   User:   carol
+[CREDMANAGER]   Secret: <empty or protected>
+[CREDMANAGER] Enumeration complete: 3 credential(s) found
+""", "DUMMY")
+
+        privcheck_results = sorted(
+            [c for c in result if c.source == "SAL-BOF Privcheck"],
+            key=lambda c: c.system)
+        self.assertEqual(3, len(privcheck_results))
+
+        dummy_cred = next(c for c in privcheck_results if c.system == "DUMMY")
+        self.assertEqual("carol", dummy_cred.account)
+        self.assertIsNone(dummy_cred.secret)
+
+        file_cred = next(c for c in privcheck_results if c.system == "fileserver")
+        self.assertEqual("alice",       file_cred.account)
+        self.assertEqual("PasswordOne", file_cred.secret)
+
+        mail_cred = next(c for c in privcheck_results if c.system == "mailserver")
+        self.assertIsNone(mail_cred.account)
+        self.assertEqual("PasswordTwo", mail_cred.secret)

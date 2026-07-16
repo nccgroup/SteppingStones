@@ -21,6 +21,7 @@ from event_tracker.cred_extractor.seatbelt_extractor import CredEnumExtractor
 from event_tracker.cred_extractor.secretsdump_extractor import SecretsDumpDCSyncExtractor
 from event_tracker.cred_extractor.sharpdpapi_extractor import SharpDPAPINAAExtractor
 from event_tracker.cred_extractor.sharpsccm_extractor import SharpSCCMNAAExtractor
+from event_tracker.cred_extractor.privcheck_extractor import PrivCheckBOFExtractor
 from event_tracker.cred_extractor.snaffler_extractor import SnafflerExtractor
 from event_tracker.cred_extractor.sprayad_extractor import SprayADExtractor
 from event_tracker.models import Credential
@@ -29,6 +30,7 @@ executor = ThreadPoolExecutor()
 
 extractor_classes = [SnafflerExtractor, BrowserExtractor, NetNTLMv1Extractor, NetNTLMv2Extractor,
                      AskCredsExtractor, CredPhisherExtractor, DCC2Extractor, SprayADExtractor, CredEnumExtractor,
+                     PrivCheckBOFExtractor,
                      OutflankKerberoastExtractor, RubeusU2UExtractor, RubeusKerberoastExtractor,
                      RubeusASREPRoastExtractor,
                      PlainKerberoastExtractor, PlainASREPRoastExtractor, SecretsDumpDCSyncExtractor,
