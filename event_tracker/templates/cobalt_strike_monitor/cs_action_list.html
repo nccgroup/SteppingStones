@@ -85,9 +85,7 @@ CS Logs
   </div>
 
   <script nonce="{{csp_nonce}}">
-    let filename_generator = function() {
-      return "Cobalt Strike Logs - " + moment().format('DDMMYYYY')
-    }
+    let filename_generator = makeFilenameGenerator("Cobalt Strike Logs", 0, '{% datetime_format_moment %}')
 
     $(function () {
       $.fn.dataTable.moment('{% datetime_format_moment %}');

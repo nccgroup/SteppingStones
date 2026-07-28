@@ -141,9 +141,7 @@ EventStream
 </div>
 
 <script nonce="{{csp_nonce}}">
-    let filename_generator = function() {
-        return "EventStream Logs - " + moment().format('DDMMYYYY')
-    }
+    let filename_generator = makeFilenameGenerator("EventStream Logs", 0, '{% datetime_format_moment %}')
 
     $(function () {
       $.fn.dataTable.moment('{% datetime_format_moment %}');

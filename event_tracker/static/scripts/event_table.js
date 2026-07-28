@@ -1,5 +1,20 @@
 pdfMake.preserveLeadingSpaces = true
 
+function makeFilenameGenerator(title, timestampColumn, datetimeFormat) {
+    return function() {
+        let dt = $('.table').DataTable();
+        let dates = dt.rows({search: 'applied'}).data().toArray()
+            .map(row => moment(String(row[timestampColumn]).replace(/<[^>]*>/g, '').trim(), datetimeFormat))
+            .filter(m => m.isValid());
+        let [earliest, latest] = dates.reduce(
+            ([min, max], d) => [d.isBefore(min) ? d : min, d.isAfter(max) ? d : max],
+            [dates[0], dates[0]]
+        );
+        let earliestStr = earliest.format('YYYYMMDD');
+        return title + " - " + (earliest.isSame(latest, 'day') ? earliestStr : earliestStr + '-' + latest.format('YYYYMMDD'));
+    }
+}
+
 function pdfExportCustomize(doc, config, dt) {
     pdfMake.fonts = {
         RobotoMono: {
@@ -98,5 +113,8 @@ function descriptionRender (data, type, row) {
 }
 
 function tableDrawCallback (settings) {
-      $('.output').expander({slicePoint: 200, normalizeWhitespace: false, detailPrefix: '',});
-  }
+    $('.output').expander({slicePoint: 200, normalizeWhitespace: false, detailPrefix: '',});
+    let hasRows = settings.fnRecordsDisplay() > 0;
+    $(settings.nTable).DataTable().buttons('.buttons-pdf').enable(hasRows);
+    $('#pdf-export').toggleClass('disabled', !hasRows);
+}
