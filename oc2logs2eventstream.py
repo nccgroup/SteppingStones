@@ -27,8 +27,10 @@ from datetime import datetime, timezone
 
 # Log line format: "2026-07-10 14:42:49 UTC {json}"
 LOG_LINE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \w+) (\{.+\})$")
+BOF_FMT_RE = re.compile(r"[iszZb]+")
 
 MAX_FIELD_BYTES = 4096
+MAX_PARAM_CHARS = 117
 
 
 def truncate(value: str, max_bytes: int = MAX_FIELD_BYTES) -> str:
@@ -78,26 +80,21 @@ def arch_label(arch_code: int) -> str:
     return {32: "x86", 64: "x64", 100: "x86", 200: "x64"}.get(arch_code, str(arch_code))
 
 
-def decode_bof_args(b64_str: str) -> list[tuple[str, str]]:
+def decode_bof_args(b64_str: str, fmt: str = "") -> list[tuple[str, str]]:
     """Decode Outflank C2 exec_bof argument blob into a list of (type_char, value) pairs.
 
-    Format (little-endian):
+    The blob layout (little-endian):
         uint32  total_size
         for each parameter:
-            uint32  param_size
-            byte    param_data[param_size]
+            s (int16)  — 2 raw bytes, no size prefix
+            i (int32)  — 4 raw bytes, no size prefix
+            z (narrow) — uint32 size prefix + UTF-8 bytes (null-terminated)
+            Z (wide)   — uint32 size prefix + UTF-16LE bytes (null-terminated)
+            b (binary) — uint32 size prefix + raw bytes
 
-    Type heuristics (no type tags stored in blob):
-        Z (wide string)   — even psize ≥ 6, UTF-16LE null-terminated, printable content;
-                            or psize=2 \x00\x00 (empty string)
-        z (narrow string) — UTF-8 null-terminated, printable content
-        i (int32)         — psize=4, fallback when z check doesn't match
-        s (short)         — psize=2, fallback when Z/z checks don't match
-        b (binary)        — everything else
-
-    Empty strings (Z "" = b"\\x00\\x00", z "" = b"\\x00") are handled:
-      Z "" explicitly (psize=2, \\x00\\x00 check before the general Z rule).
-      z "" naturally by the z rule (pdata[:-1] decodes to "", which passes isprintable).
+    If fmt is provided (e.g. "Zi"), it drives parsing exactly.
+    Without fmt, type heuristics are applied (works for z/Z/b args and i/s values
+    large enough that their bytes can't be mistaken for a valid size prefix).
     """
     try:
         data = base64.b64decode(b64_str)
@@ -110,10 +107,50 @@ def decode_bof_args(b64_str: str) -> list[tuple[str, str]]:
     offset = 4  # skip total_size field
     params: list[tuple[str, str]] = []
 
+    if fmt:
+        for type_char in fmt:
+            if offset >= len(data):
+                break
+            if type_char == "s":
+                if offset + 2 > len(data):
+                    break
+                params.append(("s", str(struct.unpack_from("<h", data, offset)[0])))
+                offset += 2
+            elif type_char == "i":
+                if offset + 4 > len(data):
+                    break
+                params.append(("i", str(struct.unpack_from("<i", data, offset)[0])))
+                offset += 4
+            elif type_char in ("z", "Z", "b"):
+                if offset + 4 > len(data):
+                    break
+                psize = struct.unpack_from("<I", data, offset)[0]
+                offset += 4
+                if offset + psize > len(data):
+                    break
+                pdata = data[offset : offset + psize]
+                offset += psize
+                if type_char == "z":
+                    try:
+                        s = pdata[:-1].decode("utf-8") if psize >= 1 else ""
+                        params.append(("z", s[:MAX_PARAM_CHARS] + "..." if len(s) > MAX_PARAM_CHARS else s))
+                    except UnicodeDecodeError:
+                        params.append(("b", f"0x{pdata.hex()}"))
+                elif type_char == "Z":
+                    try:
+                        s = pdata[:-2].decode("utf-16-le") if psize >= 2 else ""
+                        params.append(("Z", s[:MAX_PARAM_CHARS] + "..." if len(s) > MAX_PARAM_CHARS else s))
+                    except UnicodeDecodeError:
+                        params.append(("b", f"0x{pdata.hex()}"))
+                else:
+                    params.append(("b", f"0x{pdata.hex()}"))
+        return params
+
+    # Heuristic fallback (no format string available).
+    # Works reliably for z/Z/b args and for i/s values whose bytes exceed the
+    # remaining data length (so they can't be mistaken for a valid size prefix).
     while offset < len(data):
         if offset + 4 > len(data):
-            # Fewer than 4 bytes remain — can't read a psize header.
-            # Two trailing bytes are treated as a bare uint16 (defensive fallback).
             if len(data) - offset == 2:
                 params.append(("s", str(struct.unpack_from("<H", data, offset)[0])))
             break
@@ -121,22 +158,14 @@ def decode_bof_args(b64_str: str) -> list[tuple[str, str]]:
         psize = struct.unpack_from("<I", data, offset)[0]
         offset += 4
         if offset + psize > len(data):
-            # The 4 bytes we read as psize are likely a raw int32 value — OC2 stores
-            # i-type args without a psize header (the value sits directly in the stream).
-            # E.g. i=1433 → \x99\x05\x00\x00 is misread as psize=1433.
             params.append(("i", str(struct.unpack_from("<i", data, offset - 4)[0])))
             continue
         pdata = data[offset : offset + psize]
         offset += psize
 
         if psize == 0:
-            continue  # skip zero-size padding
+            continue
 
-        # Z (wide string): even psize, UTF-16LE null-terminated.
-        # Empty Z "" (psize=2, \x00\x00) is handled explicitly.
-        # Non-empty Z requires psize >= 6 (at least 2 characters) to prevent
-        # 4-byte integers like port numbers from being misread — e.g. i=1433
-        # encodes as \x99\x05\x00\x00 which is a printable Unicode char (U+0599).
         if psize == 2 and pdata == b"\x00\x00":
             params.append(("Z", ""))
             continue
@@ -144,23 +173,20 @@ def decode_bof_args(b64_str: str) -> list[tuple[str, str]]:
             try:
                 s = pdata[:-2].decode("utf-16-le")
                 if s.isprintable():
-                    params.append(("Z", s[:117] + "..." if len(s) > 117 else s))
+                    params.append(("Z", s[:MAX_PARAM_CHARS] + "..." if len(s) > MAX_PARAM_CHARS else s))
                     continue
             except UnicodeDecodeError:
                 pass
 
-        # z (narrow string): UTF-8 null-terminated.
-        # Empty string z "" (psize=1, \x00) passes naturally for the same reason.
         if pdata[-1:] == b"\x00":
             try:
                 s = pdata[:-1].decode("utf-8")
                 if not s or s.isprintable():
-                    params.append(("z", s[:117] + "..." if len(s) > 117 else s))
+                    params.append(("z", s[:MAX_PARAM_CHARS] + "..." if len(s) > MAX_PARAM_CHARS else s))
                     continue
             except UnicodeDecodeError:
                 pass
 
-        # i (int32) or s (short) — reached when Z/z checks don't match
         if psize == 4:
             params.append(("i", str(struct.unpack_from("<i", pdata)[0])))
         elif psize == 2:
@@ -226,19 +252,26 @@ def new_implant_entry(log_ts: str, event: dict) -> dict:
 def build_command_line(task: dict) -> str:
     """Build a human-readable command line from a task object, decoding exec_bof args."""
     task_name = task.get("out_name") or task.get("name", "")
-    arguments = task.get("out_arguments") or task.get("arguments", "")
+    orig_args = task.get("arguments") or ""
+    b64 = task.get("out_arguments") or ""
 
-    if task_name in ("exec_bof", "exec_bof_async") and arguments:
-        parts = arguments.split(None, 1)  # "exec_bof <b64>" or just "<b64>"
-        decoded = decode_bof_args(parts[-1].strip())
-        if decoded:
-            types, formatted = [], []
-            for t, v in decoded:
-                types.append(t)
-                formatted.append(f'"{v}"' if t in ("z", "Z") else v)
-            return f"{task_name} {''.join(types)} {' '.join(formatted)}"
-        return task_name
+    if task_name in ("exec_bof", "exec_bof_async") and (b64 or orig_args):
+        # 'arguments' is the original operator command, e.g. "sis 1 17432 0"
+        # 'out_arguments' is the b64-encoded arg blob.
+        # Extract the format string from arguments (if present) and decode the blob.
+        fmt_parts = orig_args.split(None, 1)
+        fmt = fmt_parts[0] if fmt_parts and BOF_FMT_RE.fullmatch(fmt_parts[0]) else ""
+        if b64:
+            decoded = decode_bof_args(b64.strip(), fmt)
+            if decoded:
+                types, formatted = [], []
+                for t, v in decoded:
+                    types.append(t)
+                    formatted.append(f'"{v}"' if t in ("z", "Z") else v)
+                return f"{task_name} {''.join(types)} {' '.join(formatted)}"
+        return f"{task_name} {orig_args}".strip()
 
+    arguments = b64 or orig_args
     return f"{task_name} {arguments}" if arguments else task_name
 
 
