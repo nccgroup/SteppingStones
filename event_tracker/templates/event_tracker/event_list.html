@@ -146,9 +146,11 @@ Event List
                     {% if perms.event_tracker.change_event %}
                     <a href="{% url "event_tracker:toggle_qs_stars" view.kwargs.task_id %}">
                         {% if all_starred %}
-                            <span title="Clear all visible stars"><i class="fa-regular fa-circle-xmark"></i></span>
+                            <span title="Clear all visible stars"><i id="star-header-icon" class="fa-solid fa-star fa-flip-vertical"></i></span>
+                        {% elif some_starred %}
+                            <span title="Set all visible stars"><i id="star-header-icon" class="fa-solid fa-star-half-stroke fa-flip-vertical"></i></span>
                         {% else %}
-                            <span title="Set all visible stars"><i class="fa-solid fa-circle-check"></i></span>
+                            <span title="Set all visible stars"><i id="star-header-icon" class="fa-regular fa-star fa-flip-vertical"></i></span>
                         {% endif %}
                     </a>
                     {% endif %}
@@ -281,25 +283,35 @@ function deleteEvent(src) {
     $.getJSON(src_q.attr("data-star-toggle"))
        .done(function (data) {
           if(data['starred'])
-          {
             src_q.removeClass('fa-regular text-opacity-50').addClass('fa-solid');
+          else
+            src_q.removeClass('fa-solid').addClass('fa-regular text-opacity-50');
+
+          var total = $('.fa-star.clickable-star').length;
+          var starred = $('.fa-star.fa-solid.clickable-star').length;
+          var icon = $('#star-header-icon');
+
+          if (starred === 0) {
+            icon.attr('class', 'fa-regular fa-star fa-flip-vertical');
+            icon.closest('span').attr('title', 'Set all visible stars');
+            $('#id_starred').attr('disabled', true); //Ensure the star filter option is disabled as there is nothing starred anymore
+            $('#bulk_update').addClass('disabled'); //Ensure the bulk update button is disabled as there is nothing starred anymore
+          } else if (starred === total) {
+            icon.attr('class', 'fa-solid fa-star fa-flip-vertical');
+            icon.closest('span').attr('title', 'Clear all visible stars');
             $('#id_starred').removeAttr('disabled'); //Ensure the star filter option is enabled as we now have at least one to filter on
             $('#bulk_update').removeClass('disabled'); //Ensure the bulk update button is enabled as we now have at least one to filter on
-          }
-          else
-          {
-            src_q.removeClass('fa-solid').addClass('fa-regular text-opacity-50');
-            if ($('.fa-star.fa-solid').length <= 1)  // 1 star for the filter icon itself
-            {
-              $('#id_starred').attr('disabled', true); //Ensure the star filter option is disabled as there is nothing starred anymore
-              $('#bulk_update').addClass('disabled'); //Ensure the bulk update button is disabled as there is nothing starred anymore
-            }
+          } else {
+            icon.attr('class', 'fa-solid fa-star-half-stroke fa-flip-vertical');
+            icon.closest('span').attr('title', 'Set all visible stars');
+            $('#id_starred').removeAttr('disabled'); //Ensure the star filter option is enabled as we now have at least one to filter on
+            $('#bulk_update').removeClass('disabled'); //Ensure the bulk update button is enabled as we now have at least one to filter on
           }
        }
     );
   }
 
-if ($('.fa-star.fa-solid').length <= 1)  // 1 star for the filter icon itself
+if ($('.fa-star.fa-solid.clickable-star').length === 0)
 {
     $('#bulk_update').addClass('disabled'); //Ensure the bulk update button is disabled as there is nothing starred anymore
 }

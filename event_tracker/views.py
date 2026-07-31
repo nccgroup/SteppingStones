@@ -225,8 +225,12 @@ class EventListView(PermissionRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['eventfilter'] = EventFilterForm(self.request.session.get('eventfilter'), task_id=self.kwargs["task_id"])
 
-        context['all_starred'] = not self.get_queryset().filter(starred=False).exists()
-        context['contexts'] = Context.objects.filter(source__in=self.get_queryset()).distinct() | Context.objects.filter(target__in=self.get_queryset()).distinct()
+        qs = self.get_queryset()
+        context['contexts'] = Context.objects.filter(source__in=qs).distinct() | Context.objects.filter(target__in=qs).distinct()
+        has_unstarred = qs.filter(starred=False).exists()
+        has_starred = qs.filter(starred=True).exists()
+        context['all_starred'] = has_starred and not has_unstarred
+        context['some_starred'] = has_starred and has_unstarred
 
         if EventReportingPluginPoint.get_plugins_qs().filter(status=ENABLED).exists():
             context['plugins'] = []
