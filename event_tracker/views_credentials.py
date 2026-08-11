@@ -599,10 +599,10 @@ class CredentialListView(PermissionRequiredMixin, ListView):
             context['hashtypes'].append(HashCatMode(mode))
 
         if CredentialReportingPluginPoint.get_plugins_qs().filter(status=ENABLED).exists():
-            context['plugins'] = []
-            for plugin in CredentialReportingPluginPoint.get_plugins():
-                if plugin.is_access_permitted(self.request.user):
-                    context['plugins'].append(plugin)
+            context['plugins'] = sorted(
+                (p for p in CredentialReportingPluginPoint.get_plugins() if p.is_access_permitted(self.request.user)),
+                key=lambda p: (p.category, p.title)
+            )
 
         return context
 

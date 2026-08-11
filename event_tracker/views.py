@@ -233,10 +233,10 @@ class EventListView(PermissionRequiredMixin, ListView):
         context['some_starred'] = has_starred and has_unstarred
 
         if EventReportingPluginPoint.get_plugins_qs().filter(status=ENABLED).exists():
-            context['plugins'] = []
-            for plugin in EventReportingPluginPoint.get_plugins():
-                if plugin.is_access_permitted(self.request.user):
-                    context['plugins'].append(plugin)
+            context['plugins'] = sorted(
+                (p for p in EventReportingPluginPoint.get_plugins() if p.is_access_permitted(self.request.user)),
+                key=lambda p: (p.category, p.title)
+            )
 
         return context
 
@@ -1105,10 +1105,10 @@ class EventStreamListView(PermissionRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         if EventStreamSourcePluginPoint.get_plugins_qs().filter(status=ENABLED).exists():
-            context['source_plugins'] = []
-            for plugin in EventStreamSourcePluginPoint.get_plugins():
-                if plugin.is_access_permitted(self.request.user):
-                    context['source_plugins'].append(plugin)
+            context['source_plugins'] = sorted(
+                (p for p in EventStreamSourcePluginPoint.get_plugins() if p.is_access_permitted(self.request.user)),
+                key=lambda p: (p.category, p.title)
+            )
 
         return context
 
