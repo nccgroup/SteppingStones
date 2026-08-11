@@ -55,6 +55,13 @@ When performing internal testing, the following hosts were predominantly used:
 {% for internal_host in internal_sources %}
 * {{ internal_host }}{% endfor %}
 
+# Compromised Accounts
+
+The following accounts were identified as having been used or impersonated on compromised hosts during the exercise:
+
+{% for account in compromised_accounts %}
+* {{ account }}{% endfor %}
+
 # Command and Control – Sessions Established
 
 The following table shows a complete list of systems on which the implant was used to established command and control or to move laterally within the environment.

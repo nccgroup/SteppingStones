@@ -13,13 +13,14 @@ class MarkdownIOCView(EventListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        qs = self.get_queryset()
 
         internal_ips = []
         external_ips = []
         internal_domains = []
         external_domains = []
 
-        for source in self.get_queryset().order_by().values("source__host").distinct():
+        for source in qs.order_by().values("source__host").distinct():
             host = source['source__host']
             try:
                 ipaddress = IPv4Address(host)
@@ -47,8 +48,18 @@ class MarkdownIOCView(EventListView):
         context['visible_beacons'] = Beacon.visible_beacons().order_by("opened")
 
         context['associated_files'] = (File.objects
-            .filter(filedistribution__in=FileDistribution.objects.filter(event__in=self.get_queryset()))
+            .filter(filedistribution__in=FileDistribution.objects.filter(event__in=qs))
             .annotate(first_use=Min('filedistribution__event__timestamp')).order_by('first_use', 'pk'))
+
+        internal_host_strings = [str(h) for h in internal_ips + internal_domains]
+        context['compromised_accounts'] = (
+            qs
+            .filter(source__host__in=internal_host_strings)
+            .exclude(source__user__exact="")
+            .order_by("source__user")
+            .values_list("source__user", flat=True)
+            .distinct()
+        )
 
         return context
 
