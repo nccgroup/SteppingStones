@@ -4,7 +4,10 @@ function makeFilenameGenerator(title, timestampColumn, datetimeFormat) {
     return function() {
         let dt = $('.table').DataTable();
         let dates = dt.rows({search: 'applied'}).data().toArray()
-            .map(row => moment(String(row[timestampColumn]).replace(/<[^>]*>/g, '').trim(), datetimeFormat))
+            .map(row => {
+                let timestampText = $('<div>').html(String(row[timestampColumn])).text().trim();
+                return moment(timestampText, datetimeFormat);
+            })
             .filter(m => m.isValid());
         let [earliest, latest] = dates.reduce(
             ([min, max], d) => [d.isBefore(min) ? d : min, d.isAfter(max) ? d : max],
