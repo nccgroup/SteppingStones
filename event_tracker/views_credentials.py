@@ -7,6 +7,8 @@ import re
 import time
 from datetime import datetime
 
+from PIL import Image, ImageChops
+
 import numpy as np
 from django import forms
 from django.contrib.auth.decorators import permission_required
@@ -335,16 +337,37 @@ class CredentialStatsView(PermissionRequiredMixin, CredentialFilterMixin, Templa
         return credential_per_cracked_account, credential_per_uncracked_account, filtered_creds, ids_of_unqiue_accounts, system, enabled, plot_uncracked
 
 
+def _fig_to_cropped_png_response(fig):
+    buf = _crop_figure(fig)
+    return HttpResponse(buf, content_type='image/png')
+
+
+def _crop_figure(fig, dpi=100):
+    """Render a matplotlib figure to a cropped PNG BytesIO, trimming whitespace borders."""
+    fig.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=dpi, bbox_inches='tight')
+    buf.seek(0)
+    img = Image.open(buf)
+    img.load()
+    img_rgb = img.convert('RGB')
+    bg = Image.new('RGB', img_rgb.size, img_rgb.getpixel((0, 0)))
+    bbox = ImageChops.difference(img_rgb, bg).getbbox()
+    if bbox:
+        img = img.crop(bbox)
+    out = io.BytesIO()
+    img.save(out, format='png')
+    out.seek(0)
+    return out
+
+
 @permission_required('event_tracker.view_credential')
 def password_complexity_piechart(request, task_id):
     credential_per_cracked_account, credential_per_uncracked_account, _, _, system, enabled, plot_uncracked = CredentialStatsView.get_filtered_creds(request)
 
     fig = plot_password_complexity_piechart(credential_per_cracked_account, credential_per_uncracked_account, system,
                                             enabled, plot_uncracked)
-    response = HttpResponse(content_type='image/png')
-    fig.savefig(response, format='png')
-
-    return response
+    return _fig_to_cropped_png_response(fig)
 
 def plot_password_complexity_piechart(credential_per_cracked_account, credential_per_uncracked_account, system, enabled,
                                       plot_uncracked):
@@ -442,10 +465,7 @@ def password_structure_piechart(request, task_id):
 
     fig = plot_password_structure_piechart(credential_per_cracked_account, credential_per_uncracked_account, system,
                                            enabled, plot_uncracked)
-    response = HttpResponse(content_type='image/png')
-    fig.savefig(response, format='png')
-
-    return response
+    return _fig_to_cropped_png_response(fig)
 
 def plot_password_structure_piechart(credential_per_cracked_account, credential_per_uncracked_account, system, enabled,
                                      plot_uncracked):
@@ -495,10 +515,7 @@ def password_length_chart(request, task_id):
 
     fig = plot_password_length_chart(credential_per_cracked_account, credential_per_uncracked_account, system, enabled,
                                      plot_uncracked)
-    response = HttpResponse(content_type='image/png')
-    fig.savefig(response, format='png')
-
-    return response
+    return _fig_to_cropped_png_response(fig)
 
 def plot_password_length_chart(credential_per_cracked_account, credential_per_uncracked_account, system, enabled,
                                plot_uncracked):
@@ -561,10 +578,7 @@ def password_age_chart(request, task_id):
 
     fig = plot_password_age_chart(enabled, system)
     if fig:
-        response = HttpResponse(content_type='image/png')
-        fig.savefig(response, format='png')
-
-        return response
+        return _fig_to_cropped_png_response(fig)
     else:
         return HttpResponseNotFound()
 
