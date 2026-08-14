@@ -66,11 +66,27 @@ class GraphicalMitreEventTimelineView(PermissionRequiredMixin, View):
 
         ax.eventplot(data, colors=colors1, lineoffsets=labels)
 
+        ax.set_title("MITRE Event Timeline")
         ax.grid(axis="y")
         ax.xaxis.set_tick_params(labelrotation=45/2)
+
+        start, end = date_range["start"], date_range["end"]
+        span_days = (end - start).days
+        if span_days >= 14:
+            # Find the first Monday on or after start
+            days_until_monday = (7 - start.weekday()) % 7
+            first_monday = start + timedelta(days=days_until_monday)
+            mondays = []
+            monday = first_monday
+            while monday < end:
+                mondays.append(monday)
+                monday += timedelta(weeks=1)
+            ticks = sorted({start, *mondays, end})
+            ax.set_xticks(ticks)
+
         fig.tight_layout()
 
-        fig.savefig(response, dpi=300, transparent=True)
+        fig.savefig(response, dpi=300)
         return response
 
 
@@ -184,10 +200,11 @@ class GraphicalDailyDetectionsAndPreventionsView(PermissionRequiredMixin, View):
                bottom=neither_detected_nor_prevented, color=badness_colormap(0.2))
         ax.bar(labels, neither_detected_nor_prevented, width, label=f"Neither Detected Nor Prevented {(total_summary['neither_detected_nor_prevented'] / total_summary['total_events']):.2%}", color=badness_colormap(0.0))
 
+        ax.set_title("Daily Detections and Preventions")
         ax.legend()
         ax.xaxis.set_tick_params(labelrotation=45/2)
 
-        fig.savefig(response, dpi=300, transparent=True)
+        fig.savefig(response, dpi=300)
         return response
 
 
