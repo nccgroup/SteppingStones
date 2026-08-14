@@ -57,13 +57,13 @@ DIGIT_REGEX = "[0-9]"
 
 class CredentialSystemFilter(forms.Form):
     enabled = BooleanField(widget=forms.CheckboxInput(attrs={'class': 'submit-on-change'}), required=False, initial=False)
-    plot_uncracked = BooleanField(widget=forms.CheckboxInput(attrs={'class': 'submit-on-change'}), required=False, initial=False)
+    show_uncracked = BooleanField(widget=forms.CheckboxInput(attrs={'class': 'submit-on-change'}), required=False, initial=True)
 
     class Media:
         js = ["scripts/ss-forms.js"]
 
-    def __init__(self, **kwargs):
-        super(CredentialSystemFilter, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(CredentialSystemFilter, self).__init__(*args, **kwargs)
 
         systems = Credential.objects.filter(system__isnull=False).annotate(syslower=Lower("system")).values("syslower").annotate(syscount=Count("syslower")).order_by("-syscount")
         total_credentials = Credential.objects.count()
@@ -75,22 +75,57 @@ class CredentialSystemFilter(forms.Form):
                                                   widget=forms.Select(attrs={'class': 'form-select form-select-sm submit-on-change'}))
 
 
-class CredentialStatsView(PermissionRequiredMixin, FormView):
-    permission_required = 'event_tracker.view_credential'
-    template_name = "event_tracker/credential_stats.html"
-    form_class = CredentialSystemFilter
+CREDENTIAL_STATS_FILTER_SESSION_KEY = 'credentialstatsfilter'
 
-    def get_initial(self):
-        """
-        Merge the session stored filter into the form's initial state
-        """
-        initial = super().get_initial()
-        initial.update(self.request.session.get("credentialstatsfilter", default={}))
+
+def _get_session_credential_filter(request):
+    statsfilter = request.session.get(CREDENTIAL_STATS_FILTER_SESSION_KEY, {})
+    system = statsfilter.get("system", None) or None
+    enabled = statsfilter.get("enabled", False)
+    show_uncracked = statsfilter.get("show_uncracked", True)
+    return system, enabled, show_uncracked
+
+
+def _apply_credential_filters(qs, system, enabled):
+    if system:
+        qs = qs.filter(system=system)
+    if enabled:
+        qs = qs.filter(enabled=True)
+    return qs
+
+
+def _setup_filtered_duckdb_view(system, enabled):
+    sql = "CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''"
+    if system:
+        safe_system = system.replace("'", "")  # Strip single quotes to defend against SQL injection via system names
+        sql += f" and system COLLATE NOCASE = '{safe_system}'"
+    if enabled:
+        sql += " and enabled='1'"
+    duckdb.execute(sql)
+
+
+class CredentialFilterMixin:
+    """Mixin for views that read/write the credential session filter."""
+
+    def _get_filter_form_initial(self):
+        statsfilter = self.request.session.get(CREDENTIAL_STATS_FILTER_SESSION_KEY, {})
+        initial = {'show_uncracked': True}
+        initial.update(statsfilter)
         return initial
 
-    def form_valid(self, form):
-        self.request.session['credentialstatsfilter'] = form.cleaned_data
-        return self.render_to_response(self.get_context_data())
+    def _add_filter_form_to_context(self, context):
+        context['filter_form'] = CredentialSystemFilter(initial=self._get_filter_form_initial())
+
+    def post(self, request, *args, **kwargs):
+        form = CredentialSystemFilter(request.POST)
+        if form.is_valid():
+            request.session[CREDENTIAL_STATS_FILTER_SESSION_KEY] = form.cleaned_data
+        return redirect(request.path)
+
+
+class CredentialStatsView(PermissionRequiredMixin, CredentialFilterMixin, TemplateView):
+    permission_required = 'event_tracker.view_credential'
+    template_name = "event_tracker/credential_stats.html"
 
     @staticmethod
     def _has_bloodhound_users(tx, system):
@@ -133,6 +168,10 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
 
         self.add_crack_rates_to_context(credential_per_cracked_account, ids_of_unqiue_accounts, context)
 
+        context['system'] = system
+        context['enabled'] = enabled
+        self._add_filter_form_to_context(context)
+
         context['hash_types'] = dict()
         for hash_type in filtered_creds.filter(hash_type__isnull=False).values("hash_type").distinct():
             context['hash_types'][HashCatMode(hash_type['hash_type']).name.replace("_", " ")] =\
@@ -142,7 +181,7 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
 
         self.add_reused_passwords_to_context(credential_per_cracked_account, context)
         self.add_common_prefixes_to_context(system, enabled, context)
-        self.add_common_suffixes_to_context(system, enabled, context)
+        self.add_common_suffixes_to_context(system, enabled, context, refresh_view=False)
 
         # HaveIBeenPwned data
         records_still_to_process = filtered_creds.exclude(hash__isnull=True).exclude(hash="")\
@@ -177,7 +216,7 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
 
         # Cred reuse across systems
 
-        if 'system' not in kwargs or not kwargs['system']:
+        if not system:
             context['spanning_accounts'] = dict()  # Dict of account:bool to show if an account has been cracked (and to signify it is a spanning account by virtue of its presence)
             context['spanned_systems'] = dict()  # Dict of system:set(account) to show which systems the account spans
             for spanning_account in Credential.objects.raw("select * from event_tracker_credential as a, event_tracker_credential as b "
@@ -221,13 +260,7 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
 
     @staticmethod
     def add_common_prefixes_to_context(system, enabled, context):
-        if not system:
-            duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''" +
-                           (" and enabled='1'" if enabled else ""))
-        else:
-            system = system.replace("'", "")
-            duckdb.execute(f"CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != '' and system COLLATE NOCASE = '{system}'" +
-                           (" and enabled='1'" if enabled else ""))
+        _setup_filtered_duckdb_view(system, enabled)
 
         # Extract the rtrimed words
         duckdb.execute(
@@ -237,14 +270,9 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
         context['top10prefixstrings'] = duckdb.fetchmany(10)
 
     @staticmethod
-    def add_common_suffixes_to_context(system, enabled, context):
-        if not system:
-            duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''" +
-                           (" and enabled='1'" if enabled else ""))
-        else:
-            system = system.replace("'", "")
-            duckdb.execute(f"CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != '' and system COLLATE NOCASE = '{system}'" +
-                           (" and enabled='1'" if enabled else ""))
+    def add_common_suffixes_to_context(system, enabled, context, refresh_view=True):
+        if refresh_view:
+            _setup_filtered_duckdb_view(system, enabled)
 
         # Extract the ltrimed words
         duckdb.execute(
@@ -270,10 +298,10 @@ class CredentialStatsView(PermissionRequiredMixin, FormView):
     def get_filtered_creds(request):
         start = time.time()
 
-        statsfilter = request.session.get('credentialstatsfilter', {})
+        statsfilter = request.session.get(CREDENTIAL_STATS_FILTER_SESSION_KEY, {})
         system = statsfilter.get("system", None) or None
         enabled = statsfilter.get("enabled", False)
-        plot_uncracked = statsfilter.get("plot_uncracked", False)
+        plot_uncracked = statsfilter.get("show_uncracked", True)
 
         if system:
             filtered_creds = Credential.objects.filter(system=system)
@@ -529,9 +557,7 @@ def plot_password_length_chart(credential_per_cracked_account, credential_per_un
 
 @permission_required('event_tracker.view_credential')
 def password_age_chart(request, task_id):
-    statsfilter = request.session.get('credentialstatsfilter', {})
-    system = statsfilter.get("system", None) or None
-    enabled = statsfilter.get("enabled", False)
+    system, enabled, _ = _get_session_credential_filter(request)
 
     fig = plot_password_age_chart(enabled, system)
     if fig:
@@ -582,7 +608,8 @@ def plot_password_age_chart(enabled, system):
     else:
         return None
 
-class CredentialListView(PermissionRequiredMixin, ListView):
+
+class CredentialListView(PermissionRequiredMixin, CredentialFilterMixin, ListView):
     permission_required = 'event_tracker.view_credential'
     model = Credential
     template_name = 'event_tracker/credential_list.html'
@@ -603,6 +630,8 @@ class CredentialListView(PermissionRequiredMixin, ListView):
                 (p for p in CredentialReportingPluginPoint.get_plugins() if p.is_access_permitted(self.request.user)),
                 key=lambda p: (p.category, p.title)
             )
+
+        self._add_filter_form_to_context(context)
 
         return context
 
@@ -655,9 +684,11 @@ class CredentialListJson(PermissionRequiredMixin, BaseDatatableView):
 
 
     def filter_queryset(self, qs):
-        # use parameters passed in GET request to filter queryset
+        system, enabled, show_uncracked = _get_session_credential_filter(self.request)
+        qs = _apply_credential_filters(qs, system, enabled)
+        if not show_uncracked:
+            qs = qs.exclude(secret__isnull=True)
 
-        # simple example:
         search = self.request.GET.get('search[value]', None)
         if search:
             terms = search.split(" ")
@@ -726,10 +757,13 @@ class CredentialDeleteView(PermissionRequiredMixin, DeleteView):
 
 @permission_required('event_tracker.view_credential')
 def credential_masklist(request, task_id, min_len):
-    calculate_char_masks(Credential.objects.all())
+    system, enabled, _ = _get_session_credential_filter(request)
+    qs = _apply_credential_filters(Credential.objects.all(), system, enabled)
+
+    calculate_char_masks(qs)
 
     # The char_masks of found secrets, ordered by the minimal effort boosted by most commonly occurring
-    optimised_masks = Credential.objects.exclude(char_mask="").exclude(char_mask__isnull=True).values("char_mask", "char_mask_effort").annotate(
+    optimised_masks = qs.exclude(char_mask="").exclude(char_mask__isnull=True).values("char_mask", "char_mask_effort").annotate(
         freq=Cast(Count("char_mask"), FloatField())).annotate(
         prob=ExpressionWrapper(F('char_mask_effort') / F('freq'), output_field=FloatField())).annotate(
         len_tot=Length("char_mask")).annotate(len=F('len_tot') / 2).filter(len__gte = min_len).order_by("prob")
@@ -741,8 +775,8 @@ def credential_masklist(request, task_id, min_len):
 
 @permission_required('event_tracker.view_credential')
 def prefix_masklist(request, task_id):
-    # Extract the prefix masks
-    duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+    system, enabled, _ = _get_session_credential_filter(request)
+    _setup_filtered_duckdb_view(system, enabled)
     results = duckdb.execute("select premask, searchspace, count(*) as c, searchspace / count(*) as hitrate from (select secret, ltrim(secret, $1) as t, "
                           "secret[:-length(t) - 1] as pre, "
                           "regexp_replace(regexp_replace(pre, $2, '?s', 'g'), $3, '?d', 'g') as premask, "
@@ -758,8 +792,8 @@ def prefix_masklist(request, task_id):
 
 @permission_required('event_tracker.view_credential')
 def suffix_masklist(request, task_id):
-    # Extract the suffix masks
-    duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+    system, enabled, _ = _get_session_credential_filter(request)
+    _setup_filtered_duckdb_view(system, enabled)
     results = duckdb.execute("select sufmask, searchspace, count(*) as c, searchspace / count(*) as hitrate from (select secret, rtrim(secret, $1) as t, "
                           "secret[length(t) + 1:] as suf, "
                           "regexp_replace(regexp_replace(suf, $2, '?s', 'g'), $3, '?d', 'g') as sufmask, "
@@ -838,11 +872,13 @@ def _get_dn_words(tx):
 
 @permission_required('event_tracker.view_credential')
 def credential_wordlist(request, task_id):
-    description_words = set()
+    system, enabled, _ = _get_session_credential_filter(request)
+    qs = _apply_credential_filters(Credential.objects.all(), system, enabled)
 
-    description_words.update(Credential.objects.filter(secret__isnull=False).values_list("secret", flat=True).distinct())
-    description_words.update(Credential.objects.filter(account__isnull=False).values_list("account", flat=True).distinct())
-    description_words.update(Credential.objects.filter(system__isnull=False).values_list("system", flat=True).distinct())
+    description_words = set()
+    description_words.update(qs.filter(secret__isnull=False).values_list("secret", flat=True).distinct())
+    description_words.update(qs.filter(account__isnull=False).values_list("account", flat=True).distinct())
+    description_words.update(qs.filter(system__isnull=False).values_list("system", flat=True).distinct())
 
     special_char_seperated = re.compile(r'[a-zA-Z0-9]{3,}')
     camel_case_subwords = re.compile(r'[A-Z][a-z]+')
@@ -878,15 +914,17 @@ def credential_wordlist(request, task_id):
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets(request, task_id):
-    known_secrets = Credential.objects.filter(secret__isnull=False).values_list("secret", flat=True).distinct()
+    system, enabled, _ = _get_session_credential_filter(request)
+    qs = _apply_credential_filters(Credential.objects.filter(secret__isnull=False), system, enabled)
+    known_secrets = qs.values_list("secret", flat=True).distinct()
 
     return HttpResponse(content="\n".join(known_secrets),
                         headers={'Content-Disposition':
                                      f'attachment; filename="knownsecrets-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
-def fetch_known_secrets_letter_parts(refresh_view=True):
+def fetch_known_secrets_letter_parts(refresh_view=True, system=None, enabled=False):
     if refresh_view:
-        duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+        _setup_filtered_duckdb_view(system, enabled)
 
     # No need for "distinct" as union has the same effect
     results = duckdb.execute("select unnest(regexp_extract_all(secret, '([A-Z][a-z]{2,})')) from distinct_secrets "
@@ -898,25 +936,25 @@ def fetch_known_secrets_letter_parts(refresh_view=True):
 
     return [row[0] for row in results.fetchall()]
 
-def fetch_known_secrets_number_parts(refresh_view=True):
+def fetch_known_secrets_number_parts(refresh_view=True, system=None, enabled=False):
     # Extract the regex matching words
     if refresh_view:
-        duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+        _setup_filtered_duckdb_view(system, enabled)
     results = duckdb.execute("select distinct unnest(regexp_extract_all(secret, '(\\d+)')) from distinct_secrets")
 
     return [row[0] for row in results.fetchall()]
 
-def fetch_known_secrets_symbol_parts(refresh_view=True):
+def fetch_known_secrets_symbol_parts(refresh_view=True, system=None, enabled=False):
     # Extract the regex matching words
     if refresh_view:
-        duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+        _setup_filtered_duckdb_view(system, enabled)
     results = duckdb.execute("select distinct unnest(regexp_extract_all(secret, '(\\W+)')) from distinct_secrets")
 
     return [row[0] for row in results.fetchall()]
 
-def fetch_known_secrets_all_parts():
+def fetch_known_secrets_all_parts(system=None, enabled=False):
     # Extract the regex matching words
-    duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
+    _setup_filtered_duckdb_view(system, enabled)
     results = (fetch_known_secrets_letter_parts(refresh_view=False)
                + fetch_known_secrets_number_parts(refresh_view=False)
                + fetch_known_secrets_symbol_parts(refresh_view=False))
@@ -931,13 +969,15 @@ def list_to_append_rules(wordlist):
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets_parts(request, task_id):
-    return HttpResponse(content="\n".join(fetch_known_secrets_all_parts()),
+    system, enabled, _ = _get_session_credential_filter(request)
+    return HttpResponse(content="\n".join(fetch_known_secrets_all_parts(system, enabled)),
                         headers={'Content-Disposition':
                                      f'attachment; filename="all-parts-wordlist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets_parts_appendrules(request, task_id):
-    all_parts = fetch_known_secrets_all_parts()
+    system, enabled, _ = _get_session_credential_filter(request)
+    all_parts = fetch_known_secrets_all_parts(system, enabled)
     rules = list_to_append_rules(all_parts)
 
     return HttpResponse(content="\n".join(rules),
@@ -946,13 +986,15 @@ def credential_known_secrets_parts_appendrules(request, task_id):
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets_parts_letters(request, task_id):
-    return HttpResponse(content="\n".join(fetch_known_secrets_letter_parts()),
+    system, enabled, _ = _get_session_credential_filter(request)
+    return HttpResponse(content="\n".join(fetch_known_secrets_letter_parts(system=system, enabled=enabled)),
                         headers={'Content-Disposition':
                                      f'attachment; filename="letter-parts-wordlist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets_parts_appendrules_letters(request, task_id):
-    letter_parts = fetch_known_secrets_letter_parts()
+    system, enabled, _ = _get_session_credential_filter(request)
+    letter_parts = fetch_known_secrets_letter_parts(system=system, enabled=enabled)
     rules = list_to_append_rules(letter_parts)
 
     return HttpResponse(content="\n".join(rules),
@@ -961,13 +1003,15 @@ def credential_known_secrets_parts_appendrules_letters(request, task_id):
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets_parts_numbers(request, task_id):
-    return HttpResponse(content="\n".join(fetch_known_secrets_number_parts()),
+    system, enabled, _ = _get_session_credential_filter(request)
+    return HttpResponse(content="\n".join(fetch_known_secrets_number_parts(system=system, enabled=enabled)),
                         headers={'Content-Disposition':
                                      f'attachment; filename="number-parts-wordlist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets_parts_appendrules_numbers(request, task_id):
-    number_parts = fetch_known_secrets_number_parts()
+    system, enabled, _ = _get_session_credential_filter(request)
+    number_parts = fetch_known_secrets_number_parts(system=system, enabled=enabled)
     rules = list_to_append_rules(number_parts)
 
     return HttpResponse(content="\n".join(rules),
@@ -976,13 +1020,15 @@ def credential_known_secrets_parts_appendrules_numbers(request, task_id):
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets_parts_symbols(request, task_id):
-    return HttpResponse(content="\n".join(fetch_known_secrets_symbol_parts()),
+    system, enabled, _ = _get_session_credential_filter(request)
+    return HttpResponse(content="\n".join(fetch_known_secrets_symbol_parts(system=system, enabled=enabled)),
                         headers={'Content-Disposition':
                                      f'attachment; filename="symbol-parts-wordlist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
 @permission_required('event_tracker.view_credential')
 def credential_known_secrets_parts_appendrules_symbols(request, task_id):
-    symbol_parts = fetch_known_secrets_symbol_parts()
+    system, enabled, _ = _get_session_credential_filter(request)
+    symbol_parts = fetch_known_secrets_symbol_parts(system=system, enabled=enabled)
     rules = list_to_append_rules(symbol_parts)
 
     return HttpResponse(content="\n".join(rules),
@@ -991,8 +1037,9 @@ def credential_known_secrets_parts_appendrules_symbols(request, task_id):
 
 @permission_required('event_tracker.view_credential')
 def prefix_wordlist(request, task_id):
+    system, enabled, _ = _get_session_credential_filter(request)
+    _setup_filtered_duckdb_view(system, enabled)
     # Extract the rtrimed words
-    duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
     results = duckdb.execute("select rtrim(secret, $1) as t, count(*) as c from distinct_secrets where t != secret  and t != '' group by t order by c desc", [SYMBOLS + DIGITS])
 
     return HttpResponse(content="\n".join([row[0] for row in results.fetchall()]),
@@ -1002,8 +1049,9 @@ def prefix_wordlist(request, task_id):
 
 @permission_required('event_tracker.view_credential')
 def suffix_wordlist(request, task_id):
+    system, enabled, _ = _get_session_credential_filter(request)
+    _setup_filtered_duckdb_view(system, enabled)
     # Extract the ltrimed words
-    duckdb.execute("CREATE OR REPLACE TEMP VIEW distinct_secrets AS SELECT distinct secret FROM event_tracker_credential where secret is not null and secret != ''")
     results = duckdb.execute("select ltrim(secret, $1) as t, count(*) as c from distinct_secrets where t != secret and t != '' group by t order by c desc", [SYMBOLS + DIGITS])
 
     return HttpResponse(content="\n".join([row[0] for row in results.fetchall()]),
@@ -1013,16 +1061,19 @@ def suffix_wordlist(request, task_id):
 
 @permission_required('event_tracker.view_credential')
 def credential_uncracked_hashes(request, task_id, hash_type):
-    values = Credential.objects.filter(secret__isnull=True, hash_type=hash_type).values_list("hash", flat=True).distinct()
+    system, enabled, _ = _get_session_credential_filter(request)
+    qs = _apply_credential_filters(Credential.objects.filter(secret__isnull=True, hash_type=hash_type), system, enabled)
+    values = qs.values_list("hash", flat=True).distinct()
 
     return HttpResponse(content="\n".join(values),
                         headers={'Content-Disposition':
                                      f'attachment; filename="hashes-{hash_type}-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
 
-def pwdump_iterator():
+def pwdump_iterator(system=None, enabled=False):
     # Gets the newest lm hash and nt hash for each user that has at least one lm hash or nt hash
-    values = Credential.objects.filter(Q(hash_type=1000) | Q(hash_type=3000)).annotate(lmhash=Subquery(
+    qs = _apply_credential_filters(Credential.objects.filter(Q(hash_type=1000) | Q(hash_type=3000)), system, enabled)
+    values = qs.annotate(lmhash=Subquery(
         Credential.objects.filter(hash_type=3000, system=OuterRef("system"), account=OuterRef("account")).order_by(
             "-id").values("hash"))).annotate(nthash=Subquery(
         Credential.objects.filter(hash_type=1000, system=OuterRef("system"), account=OuterRef("account")).order_by(
@@ -1038,7 +1089,8 @@ def pwdump_iterator():
 
 @permission_required('event_tracker.view_credential')
 def credential_uncracked_hashes_pwdump(request, task_id):
-    return StreamingHttpResponse(pwdump_iterator(),
+    system, enabled, _ = _get_session_credential_filter(request)
+    return StreamingHttpResponse(pwdump_iterator(system, enabled),
                         headers={'Content-Disposition':
                                      f'attachment; filename="hashes-pwdump-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt"'})
 
