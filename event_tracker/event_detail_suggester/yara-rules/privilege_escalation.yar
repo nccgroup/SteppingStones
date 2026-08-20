@@ -64,3 +64,14 @@ rule certipy_ldapshell_change_password {
     condition:
         all of them
 }
+
+rule process_token_manipulation {
+    meta:
+        mitre_att_tactic = "TA0004"
+        mitre_att_technique = "T1134.003"
+    strings:
+        $ = "getsystem"
+        $ = "steal_token"
+    condition:
+        any of them
+}

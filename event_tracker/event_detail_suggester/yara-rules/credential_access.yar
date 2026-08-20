@@ -23,6 +23,23 @@ rule impacket_kerberoast {
         $command and $request_param
 }
 
+
+rule outflank_kerberoast {
+    meta:
+        mitre_att_tactic = "TA0006"
+        mitre_att_technique = "T1558.003"
+        tool_owner = "Outflank"
+        tool_name = "C2 Tool Collection"
+        tool_component = "Kerberoast"
+        tool_url = "https://github.com/outflanknl/C2-Tool-Collection"
+    strings:
+        $output_1 = "copy paste TICKET output to file and decode with TicketToHashcat.py"
+        $output_2 = "</TICKET>"
+        $output_3 = "[*] Using LDAP filter:"
+    condition:
+        2 of them
+}
+
 rule sprayad {
     meta:
         mitre_att_tactic = "TA0006"
@@ -31,7 +48,8 @@ rule sprayad {
         tool_name = "Spray-AD"
         tool_url = "https://github.com/outflanknl/Spray-AD"
     strings:
-        $ = "SprayAD"
+        $bofname = "SprayAD"
+        $output = "Let's start spraying"
     condition:
         any of them
 }
@@ -152,4 +170,36 @@ rule nanodump {
         $command_1 = "nanodump"
     condition:
         any of them
+}
+
+rule askcreds {
+    meta:
+        mitre_att_tactic = "TA0006"
+        mitre_att_technique = "T1003.001"
+        tool_owner = "Outflank"
+        tool_name = "C2 Tool Collection"
+        tool_component = "Askcreds"
+        tool_url = "https://github.com/outflanknl/C2-Tool-Collection"
+    strings:
+        $output = "Askcreds BOF by Outflank"
+    condition:
+        any of them
+}
+
+rule volumiser_sam_dump {
+    meta:
+        mitre_att_tactic = "TA0007"
+        mitre_att_technique = "T1003.002"
+        tool_name = "Volumiser"
+        tool_url = "https://github.com/CCob/Volumiser"
+    strings:
+        $command_param = "download"
+        $output = "[+] Opened disk image, Size: "
+        $file_sam = "SAM"
+        $file_system = "SYSTEM"
+        $file_security = "SECURITY"
+    condition:
+        $command_param and
+        $output and
+        1 of ($file_sam, $file_system, $file_security)
 }
