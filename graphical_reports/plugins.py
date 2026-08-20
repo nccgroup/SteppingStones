@@ -28,14 +28,27 @@ class GraphicalDailyDetectionsAndPreventions(EventReportingPluginPoint):
     ]
 
 
-class GraphicalMitreHeatMap(EventReportingPluginPoint):
+class GraphicalMitreActivityHeatMap(EventReportingPluginPoint):
     category = "Images"
     icon_class = "fas fa-border-all"
-    title = "MITRE Heat Map"
-    name = "graphical-mitre-heat-map"
-    view_class = views.GraphicalMitreHeatMapEventListView
+    title = "Activity MITRE Heatmap"
+    name = "graphical-mitre-activity-heat-map"
+    view_class = views.GraphicalMitreActivityHeatMapEventListView
 
     urls = [
         path("<int:task_id>/report", view_class.as_view(), name=f"{name}-entry-point"),
-        path("<int:task_id>/report/<str:include_subtechniques>", views.GraphicalMitreHeatMapEventListView.as_view(), name=f"heat-map-with-options"),
+        path("<int:task_id>/report/<str:include_subtechniques>", views.GraphicalMitreActivityHeatMapEventListView.as_view(), name="activity-heat-map-with-options"),
+    ]
+
+
+class GraphicalMitreDetectionPreventionHeatMap(EventReportingPluginPoint):
+    category = "Images"
+    icon_class = "fas fa-shield-halved"
+    title = "Detection and Prevention MITRE Heatmap"
+    name = "graphical-mitre-detection-prevention-heat-map"
+    view_class = views.GraphicalMitreDetectionPreventionHeatMapEventListView
+
+    urls = [
+        path("<int:task_id>/report", view_class.as_view(), name=f"{name}-entry-point"),
+        path("<int:task_id>/report/<str:include_subtechniques>", views.GraphicalMitreDetectionPreventionHeatMapEventListView.as_view(), name="detection-prevention-heat-map-with-options"),
     ]

@@ -7,7 +7,7 @@ active
 {% endblock %}
 
 {% block title %}
-MITRE Heat Map
+Activity MITRE Heatmap
 {% endblock title %}
 
 {% block head %}
@@ -21,14 +21,14 @@ MITRE Heat Map
 {% block body %}
 <div class="container">
 
-<h2 class="mt-3">MITRE Heat Map</h2>
+<h2 class="mt-3">Activity MITRE Heatmap</h2>
 
 <ul class="nav nav-pills">
   <li class="nav-item">
-    <a class="nav-link {% if not include_subtechniques %}active{% endif %}" aria-current="page" href="{% url 'heat-map-with-options' view.kwargs.task_id 'exclude_subtechniques' %}">Summarise by Technique</a>
+    <a class="nav-link {% if not include_subtechniques %}active{% endif %}" aria-current="page" href="{% url 'activity-heat-map-with-options' view.kwargs.task_id 'exclude_subtechniques' %}">Summarise by Technique</a>
   </li>
   <li class="nav-item">
-     <a class="nav-link {% if include_subtechniques %}active{% endif %}" aria-current="page" href="{% url 'heat-map-with-options' view.kwargs.task_id 'include_subtechniques' %}">Break-out Subtechniques</a>
+     <a class="nav-link {% if include_subtechniques %}active{% endif %}" aria-current="page" href="{% url 'activity-heat-map-with-options' view.kwargs.task_id 'include_subtechniques' %}">Break-out Subtechniques</a>
   </li>
 </ul>
 
