@@ -233,6 +233,9 @@ def _render_heatmap(tactic_cells, colormap, colorbar_kwargs):
     colormap: matplotlib colormap to use for cell colours.
     colorbar_kwargs: extra kwargs forwarded to fig.colorbar().
     """
+    # Drop any tactic that produced no cells (e.g. event has tactic but no technique set)
+    tactic_cells = {tactic: cells for tactic, cells in tactic_cells.items() if cells}
+
     subplot_heights = [0.4, 0.1]
     for tactic, cells in tactic_cells.items():
         subplot_heights.append(ceil(len(cells) / 4))
