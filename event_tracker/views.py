@@ -1329,7 +1329,7 @@ class EventStreamToEventView(EventCreateView):
         return {
             "task": task,
             "timestamp": imported_event.timestamp,
-            "timestamp_end": imported_event.timestamp_end if imported_event.timestamp_end != imported_event.timestamp else None,
+            "timestamp_end": imported_event.timestamp_end if imported_event.timestamp_end is not None and imported_event.timestamp_end.replace(second=0, microsecond=0) != imported_event.timestamp.replace(second=0, microsecond=0) else None,
             "source": source,
             "target": target,
             "operator": operator,
