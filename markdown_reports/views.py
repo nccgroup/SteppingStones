@@ -20,7 +20,7 @@ class MarkdownIOCView(EventListView):
         internal_domains = []
         external_domains = []
 
-        for source in qs.order_by().values("source__host").distinct():
+        for source in qs.exclude(source__host='n/a', source__user='', source__process='').order_by().values("source__host").distinct():
             host = source['source__host']
             try:
                 ipaddress = IPv4Address(host)

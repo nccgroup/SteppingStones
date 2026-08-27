@@ -64,6 +64,10 @@ class Context(models.Model):
         return self.get_visible_html() +\
             f'<span class="rawdata" hidden>{json.dumps([escape(self.host),escape(self.user),escape(self.process)])}</span>'
 
+    @property
+    def is_na(self):
+        return self.host == 'n/a' and self.user == '' and self.process == ''
+
     def short_string(self):
         short_string = self.user
         short_string += ' on ' if (self.user and self.host) else ''

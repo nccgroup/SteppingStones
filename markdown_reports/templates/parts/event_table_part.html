@@ -36,11 +36,12 @@
 ~~~
 
 {% endif %}{% filter tidytextformarkdown %}{% if event.source != event.target %}
-Source: {{ event.source.short_string }}
+{% if not event.source.is_na %}Source: {{ event.source.short_string }}
 
-Target: {{ event.target.short_string }}
-{% elif event.source is not None %}
-{%  if event.source.host %}
+{% endif %}{% if not event.target.is_na %}Target: {{ event.target.short_string }}
+
+{% endif %}{% elif event.source is not None %}
+{%  if event.source.host and not event.source.is_na %}
 Host: {{ event.source.host }}
 {% endif %}{%  if event.source.user %}
 User: {{ event.source.user }}
