@@ -77,7 +77,7 @@ class OfficeTimelineExportGenerate(EventListView):
                 else:
                     worksheet.write(row, 2, firstsentence(event.outcome))  # First sentence of the outcome
                 worksheet.write(row, 3, event.timestamp.strftime(excel_date_format))
-                if event.timestamp_end and event.timestamp_end.strftime(excel_date_format) != event.timestamp.strftime(excel_date_format):
+                if event.timestamp_end and event.timestamp_end != event.timestamp and event.timestamp_end.strftime(excel_date_format) != event.timestamp.strftime(excel_date_format):
                     worksheet.write(row, 4, event.timestamp_end.strftime(excel_date_format))
                 row += 1
 

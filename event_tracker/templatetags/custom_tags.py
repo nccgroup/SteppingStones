@@ -240,7 +240,9 @@ def render_ts_utc(value):
 
 @register.filter
 def render_ts_to_ts_utc(value, until):
-    if value.date() == until.date():
+    if value == until:
+        return render_ts_utc(value)
+    elif value.date() == until.date():
         return f"{render_ts_utc(value)} to {until.strftime('%H:%M')}"
     else:
         return f"{render_ts_utc(value)} to {render_ts_utc(until)}"
