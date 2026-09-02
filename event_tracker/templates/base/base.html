@@ -30,10 +30,40 @@
             color: unset !important;
         }
 
-        @media (prefers-color-scheme: dark) {
-            .select2-container--bootstrap-5 .select2-selection--single {
-                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23DEE2E6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
-            }
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection--single {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23DEE2E6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+        }
+
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection {
+            background-color: var(--bs-body-bg);
+            border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection__placeholder {
+            color: var(--bs-secondary-color);
+        }
+
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-dropdown {
+            background-color: var(--bs-body-bg);
+            border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-search__field {
+            background-color: var(--bs-body-bg) !important;
+            border-color: var(--bs-border-color) !important;
+            color: var(--bs-body-color) !important;
+        }
+
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-results__option {
+            color: var(--bs-body-color);
+        }
+
+        [data-bs-theme="dark"] .select2-container--bootstrap-5 .select2-selection__choice {
+            background-color: var(--bs-secondary-bg);
+            border-color: var(--bs-border-color);
+            color: var(--bs-body-color);
         }
     </style>
         <link rel="apple-touch-icon" sizes="180x180" href="{% static '/favicons/apple-touch-icon.png' %}">
