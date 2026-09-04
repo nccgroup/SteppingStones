@@ -27,7 +27,7 @@ django-plugins-bihealth==0.5.2
 yara-x==1.14.0
 django-import-export==4.4.0
 chevron-blue==0.3.0
-djangorestframework==3.17.1
+djangorestframework==3.17.2
 django-rest-durin==1.1.0
 djangorestframework-simplejwt==5.5.1
 jsonlines==4.0.0
