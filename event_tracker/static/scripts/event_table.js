@@ -1,5 +1,3 @@
-pdfMake.preserveLeadingSpaces = true
-
 function makeFilenameGenerator(title, timestampColumn, datetimeFormat) {
     return function() {
         let dt = $('.table').DataTable();
@@ -19,6 +17,7 @@ function makeFilenameGenerator(title, timestampColumn, datetimeFormat) {
 }
 
 function pdfExportCustomize(doc, config, dt) {
+    pdfMake.preserveLeadingSpaces = true
     pdfMake.fonts = {
         RobotoMono: {
             normal: eventTableConfig.monospaceFontURL,
