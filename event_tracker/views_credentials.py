@@ -821,6 +821,23 @@ def suffix_masklist(request, task_id):
                                      f'attachment; filename="suffix-masklist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.hcmask"'})
 
 
+@permission_required('event_tracker.view_credential')
+def digits_masklist(request, task_id):
+    system, enabled, _ = _get_session_credential_filter(request)
+    _setup_filtered_duckdb_view(system, enabled)
+    results = duckdb.execute(
+        "select digits_mask, searchspace, count(*) as c, searchspace / count(*) as hitrate "
+        "from (select regexp_replace(replace(secret, '?', '??'), '[0-9]', '?d', 'g') as digits_mask, "
+        "power(10, length(regexp_replace(secret, '[^0-9]', '', 'g'))) as searchspace "
+        "from distinct_secrets where regexp_matches(secret, '[0-9]')) "
+        "group by digits_mask, searchspace order by hitrate"
+    )
+
+    return HttpResponse(content="\n".join([row[0] for row in results.fetchall()]),
+                        headers={'Content-Disposition':
+                                     f'attachment; filename="digits-masklist-{datetime.now().strftime("%Y%m%d-%H%M%S")}.hcmask"'})
+
+
 def calculate_char_masks(credential_queryset):
     """
     Algorithms based on https://github.com/crypt0rr/pack/
