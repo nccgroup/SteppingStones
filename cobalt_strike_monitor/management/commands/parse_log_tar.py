@@ -10,6 +10,9 @@ from django.core.management import BaseCommand
 from cobalt_strike_monitor.models import Beacon, TeamServer, Listener, Download, BeaconLog, Archive
 
 BINARY_CHAR_REGEX = re.compile(r"[^ -~\r\n\t][0-9A-F]")
+BRACKET_TOKEN_REGEX = re.compile(r"^<([^>]+)>\s+")
+TASK_REF_REGEX = re.compile(r"^<task ([0-9a-f]+)>\s*\n?")
+OUTPUT_TASK_PREFIX_REGEX = re.compile(r"^(?:<[^>]+>\s+)?<task ([0-9a-f]+)>\s*\n?")
 
 
 def get_pseudo_ctime(root, tarinfo):
@@ -122,17 +125,53 @@ class Command(BaseCommand):
     def parse_cslog_data_event(self, line_type, body, line_datetime, beacon, team_server):
         operator = None
         tactic = None
+        task_id = None
 
         if line_type == "input":
-            open_bracket = body.index("<")
-            close_bracket = body.index(">", open_bracket)
-            operator = body[open_bracket + 1:close_bracket]
-            body = body[close_bracket + 2:]
+            # Old format: <operator> command
+            # New format: <operator> <task hex_id> command
+            m = BRACKET_TOKEN_REGEX.match(body)
+            if m:
+                operator = m.group(1)
+                body = body[m.end():]
+                task_m = TASK_REF_REGEX.match(body)
+                if task_m:
+                    task_id = task_m.group(1)
+                    body = body[task_m.end():]
         elif line_type == "task":
-            open_bracket = body.index("<")
-            close_bracket = body.index(">", open_bracket)
-            tactic = body[open_bracket + 1:close_bracket]
-            body = body[close_bracket + 2:]
+            # Old format: <tactic> description
+            # New format: <operator> [<tactic>] <task hex_id> description
+            m = BRACKET_TOKEN_REGEX.match(body)
+            if m:
+                first_token = m.group(1)
+                rest = body[m.end():]
+                task_m = TASK_REF_REGEX.match(rest)
+                if task_m:
+                    # New format without tactic: <operator> <task hex_id> description
+                    task_id = task_m.group(1)
+                    body = rest[task_m.end():]
+                else:
+                    tactic_m = BRACKET_TOKEN_REGEX.match(rest)
+                    if tactic_m:
+                        # New format with tactic: <operator> <tactic> <task hex_id> description
+                        tactic = tactic_m.group(1)
+                        rest = rest[tactic_m.end():]
+                        task_m = TASK_REF_REGEX.match(rest)
+                        if task_m:
+                            task_id = task_m.group(1)
+                            body = rest[task_m.end():]
+                        else:
+                            body = rest
+                    else:
+                        # Old format: <tactic> description
+                        tactic = first_token
+                        body = rest
+        elif line_type in ["output", "error", "indicator"]:
+            # New format adds [<operator> ]<task hex_id> prefix before content
+            m = OUTPUT_TASK_PREFIX_REGEX.match(body)
+            if m:
+                task_id = m.group(1)
+                body = body[m.end():]
 
         body = body.replace("received output:\n", "")
         body = re.sub(r"\x03[0-9A-F]+", "", body)
@@ -142,14 +181,16 @@ class Command(BaseCommand):
                                         beacon=beacon,
                                         type=line_type,
                                         data=body,
-                                        operator=operator)
+                                        operator=operator,
+                                        task_id=task_id)
 
         Archive.objects.get_or_create(team_server=team_server,
                                         when=line_datetime,
                                         beacon=beacon,
                                         type=line_type,
                                         data=body,
-                                        tactic=tactic)
+                                        tactic=tactic,
+                                        task_id=task_id)
 
     def parse_cslog_metadata_event(self, body, line_datetime, filename_parts, listener, team_server):
         beacon_metadata = {"listener": listener}

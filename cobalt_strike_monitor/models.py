@@ -283,6 +283,7 @@ class Archive(models.Model):
     type = models.CharField(max_length=20)  # One of: initial, input, task, checkin, output, indicator
     data = models.CharField(max_length=100)  # The content of the log
     tactic = models.CharField(max_length=100, null=True)  # One or more (comma seperated) MITRE tactics
+    task_id = models.CharField(max_length=20, null=True)  # CS6+ task reference ID (hex string)
 
     cs_action = ForeignKey(CSAction, on_delete=models.CASCADE, null=True)
 
@@ -320,6 +321,7 @@ class BeaconLog(models.Model):
     output_job = models.IntegerField(null=True)
 
     operator = models.CharField(max_length=100, null=True)  # The user initiating the request
+    task_id = models.CharField(max_length=20, null=True)  # CS6+ task reference ID (hex string)
     cs_action = ForeignKey(CSAction, on_delete=models.CASCADE, null=True)
 
 
