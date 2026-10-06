@@ -1,3 +1,5 @@
+import csv
+import io
 import json
 from datetime import datetime
 from functools import cmp_to_key
@@ -6,7 +8,7 @@ from typing import Optional
 from django import forms
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views import View
@@ -141,6 +143,17 @@ def _get_recent_os_distribution(tx, domain: Optional[str], most_recent_machine_l
         return tx.run(
             "match (n:Computer) where n.lastlogontimestamp > $most_recent_machine_login - 2628000 return n.operatingsystem as os, count(n.operatingsystem) as freq order by os desc",
             most_recent_machine_login=most_recent_machine_login).values()
+
+
+def _get_active_users(tx):
+    return tx.run(
+        "match (n:User) where n.enabled=true return n.name, n.lastlogontimestamp order by n.domain, n.name").values()
+
+
+def _get_active_hosts(tx, most_recent_machine_login):
+    return tx.run(
+        "match (n:Computer) where n.lastlogontimestamp > $most_recent_machine_login - 2628000 return n.name, n.lastlogontimestamp order by n.domain, n.name",
+        most_recent_machine_login=most_recent_machine_login).values()
 
 
 def _get_most_recent_machine_login(tx, domain: Optional[str]):
@@ -380,6 +393,60 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, FormView):
         context["asreproastable_cracked_count"] = asreproastable_cracked_count
         context["asreproastable_domain_count"] = len(asreproastable_domains)
         return context
+
+
+class BloodhoundExportActiveUsersView(PermissionRequiredMixin, View):
+    permission_required = 'event_tracker.view_bloodhoundserver'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['username', 'domain', 'last_logon'])
+
+        for server in BloodhoundServer.objects.filter(active=True).all():
+            if driver := get_driver_for(server):
+                with driver.session() as session:
+                    results = session.execute_read(_get_active_users)
+                    for name, lastlogon in results:
+                        if not name:
+                            continue
+                        parts = name.lower().split('@')
+                        username = parts[0]
+                        domain = parts[1] if len(parts) > 1 else ''
+                        last_logon = datetime.utcfromtimestamp(lastlogon).isoformat() if lastlogon else ''
+                        writer.writerow([username, domain, last_logon])
+
+        response = HttpResponse(output.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="active-users-{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv"'
+        return response
+
+
+class BloodhoundExportActiveHostsView(PermissionRequiredMixin, View):
+    permission_required = 'event_tracker.view_bloodhoundserver'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['hostname', 'domain', 'last_logon'])
+
+        for server in BloodhoundServer.objects.filter(active=True).all():
+            if driver := get_driver_for(server):
+                with driver.session() as session:
+                    most_recent_machine_login = session.execute_read(_get_most_recent_machine_login, None)
+                    if most_recent_machine_login:
+                        results = session.execute_read(_get_active_hosts, int(most_recent_machine_login))
+                        for name, lastlogon in results:
+                            if not name:
+                                continue
+                            parts = name.lower().split('.')
+                            hostname = parts[0]
+                            domain = '.'.join(parts[1:]) if len(parts) > 1 else ''
+                            last_logon = datetime.utcfromtimestamp(lastlogon).isoformat() if lastlogon else ''
+                            writer.writerow([hostname, domain, last_logon])
+
+        response = HttpResponse(output.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="active-hosts-{datetime.now().strftime("%Y%m%d-%H%M%S")}.csv"'
+        return response
 
 
 class BloodhoundServerCreateView(PermissionRequiredMixin, CreateView):

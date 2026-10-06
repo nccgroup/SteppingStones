@@ -139,6 +139,8 @@ urlpatterns = [
          event_tracker.views_bloodhound.toggle_bloodhound_node_highvalue, name='bloodhound-node-toggle-highvalue'),
     path('bloodhound-server/ou-api', event_tracker.views_bloodhound.BloodhoundServerOUAPI.as_view(), name='bloodhound-ou-api'),
     path('bloodhound-server/ou-search', event_tracker.views_bloodhound.BloodhoundServerOUSearchAPI.as_view(), name='bloodhound-ou-search'),
+    path('bloodhound-server/export/active-users', event_tracker.views_bloodhound.BloodhoundExportActiveUsersView.as_view(), name='bloodhound-export-active-users'),
+    path('bloodhound-server/export/active-hosts', event_tracker.views_bloodhound.BloodhoundExportActiveHostsView.as_view(), name='bloodhound-export-active-hosts'),
 
     path('host-list-autocomplete/', HostListAutocomplete.as_view(), name='host-list-autocomplete'),
     path('user-list-autocomplete/', UserListAutocomplete.as_view(), name='user-list-autocomplete'),
