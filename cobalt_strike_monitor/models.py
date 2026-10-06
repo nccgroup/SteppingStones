@@ -76,6 +76,32 @@ class Listener(models.Model):
 
         return mark_safe(result)
 
+WINDOWS_BUILDS = {
+    # Windows 10 & Early Servers
+    "14393": "Windows 10 (1607) / Windows Server 2016 (Released Oct 2016)",
+    "15063": "Windows 10 (1703)",
+    "17763": "Windows 10 (1809) / Windows Server 2019 (Released Nov 2018)",
+    "18363": "Windows 10 / Windows Server (1909) (Released Nov 2019)",
+    "19041": "Windows 10 / Windows Server (2004) (Released May 2020)",
+    "19042": "Windows 10 / Windows Server (20H2) (Released Oct 2020)",
+    "19043": "Windows 10 / Windows Server (21H1) (Released May 2021)",
+    "19044": "Windows 10 (21H2)",
+    "19045": "Windows 10 (22H2)",
+
+    # Modern Servers & Windows 11
+    "20348": "Windows Server 2022 (21H2) (Released Aug 2021)",
+    "22000": "Windows 11 (21H2)",
+    "22621": "Windows 11 (22H2)",
+    "22631": "Windows 11 (23H2)",
+    "25398": "Windows Server (23H2) (Released Oct 2023)",
+    "26100": "Windows 11 (24H2) / Windows Server 2025 (Released Nov 2024)",
+
+    # Previews and Future releases
+    "26200": "Windows 11 (25H2)",
+    "28000": "Windows 11 (26H1)",
+    "26300": "Windows 11 (26H2)",
+}
+
 class Beacon(models.Model):
     team_server = models.ForeignKey(TeamServer, on_delete=models.CASCADE)
     id = models.IntegerField(primary_key=True)  # ID used internally by a Team Server to refer to the beacon
@@ -115,32 +141,7 @@ class Beacon(models.Model):
                 return f"MacOS {self.ver}.{self.build}"
             else:  # A regular beacon
                 if self.ver == "10.0":
-                    if self.build == "14393":
-                        return "Windows 10 (1607) / Windows Server 2016"
-                    elif self.build == "15063":
-                        return "Windows 10 (1703)"
-                    elif self.build == "17763":
-                        return "Windows 10 (1809) / Windows Server 2019"
-                    elif self.build == "18363":
-                        return "Windows 10 / Windows Server (1909)"
-                    elif self.build == "19041":
-                        return "Windows 10 / Windows Server (2004)"
-                    elif self.build == "19042":
-                        return "Windows 10 / Windows Server (20H2)"
-                    elif self.build == "19043":
-                        return "Windows 10 / Windows Server (21H1)"
-                    elif self.build == "19044":
-                        return "Windows 10 (21H2)"
-                    elif self.build == "19045":
-                        return "Windows 10 (22H2)"
-                    elif self.build == "20348":
-                        return "Windows Server 2022 (21H2)"
-                    elif self.build == "22000":
-                        return "Windows 11 (21H2)"
-                    elif self.build == "22621":
-                        return "Windows 11 (22H2)"
-                    elif self.build == "22631":
-                        return "Windows 11 (23H2)"
+                    return WINDOWS_BUILDS.get(self.build, "Unknown Windows 10/11 version")
                 elif self.ver == "6.3":
                     return "Windows 8.1 / Windows Server 2012 R2"
                 elif self.ver == "6.2":
