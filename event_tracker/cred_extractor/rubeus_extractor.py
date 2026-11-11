@@ -14,6 +14,8 @@ rubeus_u2u_ntlm_regex = re.compile(
     r'^  UserName                 :  (?P<account>\S+).*^  UserRealm                :  (?P<system>\S+).+\[*] Getting credentials using U2U.*NTLM              : (?P<hash>\S+)',
     flags=re.DOTALL + re.MULTILINE)
 
+CharField.register_lookup(Length)
+
 
 class RubeusU2UExtractor(CredentialExtractorGenerator):
     def cred_generator(self, input_text: str, default_system: str):
@@ -25,6 +27,7 @@ class RubeusU2UExtractor(CredentialExtractorGenerator):
 class RubeusKerberoastExtractor(CredentialExtractor):
     def extract(self, input_text: str, default_system: str) -> ([Credential], [Credential]):
         credentials_to_add = []
+        credentials_to_remove = []
 
         for match in rubeus_kerberoast_regex.finditer(input_text):
             hash_str = match.groupdict()["hash"].replace(" ", "").replace("\n", "").replace("\r", "")
@@ -45,15 +48,14 @@ class RubeusKerberoastExtractor(CredentialExtractor):
 
             # Remove any similar but truncated hashes which haven't cracked, these are a result of stream processing kicking
             # in before the multiline kerberos ticket has been fully parsed from CS logs
-            CharField.register_lookup(Length)
-            credentials_to_remove = list(Credential.objects.filter(account=match.groupdict()["account"],
+            credentials_to_remove += list(Credential.objects.filter(account=match.groupdict()["account"],
                                       hash_type=hash_type, system=match.groupdict()["system"] or default_system,
                                       purpose=f"Windows Login (used by SPN: {match.groupdict()['purpose'].strip()})",
                                       source="Rubeus Kerberoasting") \
                 .filter(hash__length__lt=len(hash_str), secret__isnull=True) \
                 .annotate(stri=StrIndex(Value(hash_str), "hash")).filter(stri=1))
 
-            return credentials_to_add, credentials_to_remove
+        return credentials_to_add, credentials_to_remove
 
 
 class RubeusASREPRoastExtractor(CredentialExtractorGenerator):

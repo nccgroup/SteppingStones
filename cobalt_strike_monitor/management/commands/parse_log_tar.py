@@ -85,6 +85,14 @@ class Command(BaseCommand):
         beacon = None
         logevent = None
 
+        # Large task output (e.g. Rubeus kerberoasting of many SPNs) gets split by Cobalt Strike into many
+        # consecutive "output" log lines, due to C2 channel packet size limits. These need to be reassembled
+        # into a single BeaconLog entry before credential extraction runs on them, otherwise multi-line content
+        # like kerberoast hashes gets truncated at an arbitrary chunk boundary. They're identified as belonging
+        # to the same task by having no intervening "input"/"task" line, rather than by a task_id, since older
+        # Cobalt Strike log formats don't include one.
+        self.pending_log = None
+
         for logevent in re.finditer(r"(^\d{2}/\d{2}.+?)(?=\n\d{2}/\d{2})", buffer_str, re.MULTILINE + re.DOTALL):
             beacon = self.parse_cslog_generic_event(logevent[0].strip(), file_date, filename_parts, beacon, listener, team_server)
 
@@ -94,6 +102,8 @@ class Command(BaseCommand):
         else:
             # Handle whole of file
             self.parse_cslog_generic_event(buffer_str.strip(), file_date, filename_parts, beacon, listener, team_server)
+
+        self.flush_pending_log()
 
 
     def parse_cslog_generic_event(self, line, file_date, filename_parts, beacon, listener, team_server):
@@ -111,8 +121,14 @@ class Command(BaseCommand):
         line_datetime = datetime.combine(file_date, line_time.timetz())
 
         if line_type == "metadata":
+            self.flush_pending_log()
             beacon = self.parse_cslog_metadata_event(line[close_bracket + 2:], line_datetime, filename_parts, listener, team_server)
         elif line_type in ["input", "output", "task", "error", "indicator"]:
+            if line_type in ["input", "task"]:
+                # A new command has been issued, so any buffered output/error/indicator lines being merged
+                # must belong to a previous task and can't be continuations of whatever comes next
+                self.flush_pending_log()
+
             if not beacon:
                 try:
                     beacon = Beacon.objects.get(id=filename_parts["id"], team_server=team_server)
@@ -176,21 +192,46 @@ class Command(BaseCommand):
         body = body.replace("received output:\n", "")
         body = re.sub(r"\x03[0-9A-F]+", "", body)
 
-        BeaconLog.objects.get_or_create(team_server=team_server,
-                                        when=line_datetime,
-                                        beacon=beacon,
-                                        type=line_type,
-                                        data=body,
-                                        operator=operator,
-                                        task_id=task_id)
+        candidate = {
+            "team_server": team_server,
+            "when": line_datetime,
+            "beacon": beacon,
+            "type": line_type,
+            "data": [body],
+            "operator": operator,
+            "task_id": task_id,
+            "tactic": tactic,
+        }
 
-        Archive.objects.get_or_create(team_server=team_server,
-                                        when=line_datetime,
-                                        beacon=beacon,
-                                        type=line_type,
-                                        data=body,
-                                        tactic=tactic,
-                                        task_id=task_id)
+        if self.pending_log and line_type in ("output", "error", "indicator") \
+                and self.pending_log["type"] == line_type \
+                and self.pending_log["beacon"] == beacon \
+                and self.pending_log["team_server"] == team_server:
+            # No input/task line has started a new command since the pending entry, so this is a continuation
+            # of the same chunked output, not a separate event - merge rather than treating as a new entry,
+            # otherwise multi-line content (e.g. kerberoast hashes) gets truncated at the chunk boundary
+            self.pending_log["data"].append(body)
+            self.pending_log["when"] = line_datetime
+            if task_id and not self.pending_log["task_id"]:
+                self.pending_log["task_id"] = task_id
+        else:
+            self.flush_pending_log()
+            if line_type in ("output", "error", "indicator"):
+                self.pending_log = candidate
+            else:
+                self._save_beacon_log(candidate)
+
+    def flush_pending_log(self):
+        if self.pending_log:
+            self._save_beacon_log(self.pending_log)
+            self.pending_log = None
+
+    def _save_beacon_log(self, fields):
+        common = dict(team_server=fields["team_server"], when=fields["when"], beacon=fields["beacon"],
+                     type=fields["type"], data="".join(fields["data"]), task_id=fields["task_id"])
+
+        BeaconLog.objects.get_or_create(**common, operator=fields["operator"])
+        Archive.objects.get_or_create(**common, tactic=fields["tactic"])
 
     def parse_cslog_metadata_event(self, body, line_datetime, filename_parts, listener, team_server):
         beacon_metadata = {"listener": listener}
