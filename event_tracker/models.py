@@ -318,6 +318,8 @@ class HashCatMode(IntEnum):
     Kerberos_5_TGSREP_AES128 = 19600  # etype 17
     Kerberos_5_TGSREP_AES256 = 19700  # etype 18
     Kerberos_5_ASREP_RC4 = 18200  # etype 23
+    Kerberos_5_ASREP_AES128 = 32100  # etype 17
+    Kerberos_5_ASREP_AES256 = 32200  # etype 18
 
 
 class Credential(models.Model):

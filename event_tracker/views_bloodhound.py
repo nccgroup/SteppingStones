@@ -304,7 +304,9 @@ class BloodhoundServerStatsView(PermissionRequiredMixin, FormView):
                                      HashCatMode.Kerberos_5_TGSREP_AES128,
                                      HashCatMode.Kerberos_5_TGSREP_AES256]
 
-        asreproastable_hashtypes = [HashCatMode.Kerberos_5_ASREP_RC4]
+        asreproastable_hashtypes = [HashCatMode.Kerberos_5_ASREP_RC4,
+                                    HashCatMode.Kerberos_5_ASREP_AES128,
+                                    HashCatMode.Kerberos_5_ASREP_AES256]
 
         os_distribution = {}
         os_distribution_query = {}
