@@ -245,16 +245,16 @@ class Command(BaseCommand):
             beacon_metadata["host"] = body_parts["host"]
             if parent_beacon := re.match(r"beacon_(?P<bid>\d+)", body_parts["parent"]):
                 parent_bid = parent_beacon["bid"]
-                if Beacon.objects.filter(id=parent_bid).exists():
-                    beacon_metadata["parent_beacon"] = Beacon.objects.get(id=parent_bid)
+                if Beacon.objects.filter(id=parent_bid, team_server=team_server).exists():
+                    beacon_metadata["parent_beacon"] = Beacon.objects.get(id=parent_bid, team_server=team_server)
 
             pairs_list = body_parts["pairs"].split(";")
             for pair in pairs_list:
                 name, value = pair.split(":", 1)
                 beacon_metadata[name.strip()] = value.strip()
 
-            if Beacon.objects.filter(id=beacon_metadata['id']).exists():
-                existing_beacon = Beacon.objects.get(id=beacon_metadata['id'])
+            if Beacon.objects.filter(id=beacon_metadata['id'], team_server=team_server).exists():
+                existing_beacon = Beacon.objects.get(id=beacon_metadata['id'], team_server=team_server)
                 if existing_beacon.opened > line_datetime:
                     # existing is newer than parsed
                     existing_beacon.opened = line_datetime
