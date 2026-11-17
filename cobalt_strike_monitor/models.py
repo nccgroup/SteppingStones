@@ -104,7 +104,8 @@ WINDOWS_BUILDS = {
 
 class Beacon(models.Model):
     team_server = models.ForeignKey(TeamServer, on_delete=models.CASCADE)
-    id = models.IntegerField(primary_key=True)  # ID used internally by a Team Server to refer to the beacon
+    row_id = models.AutoField(primary_key=True)
+    id = models.IntegerField()  # ID used internally by a Team Server to refer to the beacon; unique per team server, NOT globally
     note = models.CharField(max_length=100)  # Notes added by the user in the UI
     charset = models.CharField(max_length=100)  # Character set in use by the host, e.g. windows-1252
 
@@ -203,6 +204,11 @@ class Beacon(models.Model):
             .exclude(id__in=BeaconExclusion.objects.filter(beacon_id__isnull=False).values_list("beacon_id", flat=True)) \
             .exclude(internal__in=BeaconExclusion.objects.filter(internal__isnull=False).values_list("internal", flat=True)) \
             .exclude(external__in=BeaconExclusion.objects.filter(external__isnull=False).values_list("external", flat=True))
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["team_server", "id"], name="unique_beacon_id_per_team_server"),
+        ]
 
 
 

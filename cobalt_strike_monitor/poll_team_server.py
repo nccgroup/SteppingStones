@@ -290,7 +290,7 @@ def parse(p, server):
                                                                               # generated
                     # Only update beacons if their last seen was over a minute since the current value to reduce DB load
                     # and compensate for constantly changing values due to the approximation error
-                    beacons_to_update = Beacon.objects.filter(Q(pk=int(line_id)),
+                    beacons_to_update = Beacon.objects.filter(Q(id=int(line_id), team_server=server),
                                                    Q(last__lte=approx_last_seen-timedelta(minutes=1)) | Q(last__isnull=True))
 
                     # Sanity check that it's worth locking the DB for
@@ -298,7 +298,7 @@ def parse(p, server):
                         update_count = beacons_to_update.update(last=approx_last_seen)
 
                         if update_count > 0 and delta < timedelta(minutes=1):
-                            beacon_to_update = Beacon.objects.get(pk=int(line_id))
+                            beacon_to_update = Beacon.objects.get(id=int(line_id), team_server=server)
                             recent_checkin.send_robust(sender="ssbot", beacon=beacon_to_update, metadata=line_data)
 
                 elif line.startswith("[S]"):  # Beacon sessions

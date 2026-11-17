@@ -304,7 +304,7 @@ class Command(BaseCommand):
                 r"^(?P<date>\d{2}/\d{2}) (?P<time>.+)\t(?P<host>[^\t]+)\t(?P<bid>[^\t]+)\t(?P<size>[^\t]+)\t(?P<localpath>[^\t]+)\t(?P<name>[^\t]+)\t(?P<path>[^\t]+)",
                 line)
             if match:
-                beacon = Beacon.objects.get(id=match["bid"])
+                beacon = Beacon.objects.get(id=match["bid"], team_server=team_server)
 
                 line_time = dateparser.parse(match["time"])
                 line_datetime = datetime.combine(file_date, line_time.timetz())

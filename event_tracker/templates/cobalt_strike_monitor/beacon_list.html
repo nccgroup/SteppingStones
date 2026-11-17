@@ -81,15 +81,15 @@ div:has(+.dt-layout-table) {
                             {% if beacon.event_mappings.exists and perms.event_tracker.change_event %}
                                 <a href="{% url 'event_tracker:event-update' beacon.event_mappings.first.event.task_id beacon.event_mappings.first.event.id %}" role="button" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Edit Event"><i class="fa-regular fa-pen-to-square"></i></a>
                             {% elif not beacon.event_mappings.exists and perms.event_tracker.add_event %}
-                                <a href="{% url 'event_tracker:cs-beacon-to-event' beacon.id %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
+                                <a href="{% url 'event_tracker:cs-beacon-to-event' beacon.pk %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Clone to Event"><i class="far fa-copy"></i></a>
                             {% endif %}
                             {% if perms.cobalt_strike_monitor.add_beaconexclusion %}
-                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal" data-bs-id="{{beacon.id}}" data-bs-user="{{beacon.user}}" data-bs-computer="{{beacon.computer}}" data-bs-process="{{beacon.process}}" data-bs-internal="{{beacon.internal}}" data-bs-external="{{beacon.external}}" data-bs-toggle="tooltip" title="Exclude Beacons Like This"><i class="fa-solid fa-eye-slash"></i></a>
+                            <a type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal" data-bs-id="{{beacon.pk}}" data-bs-user="{{beacon.user}}" data-bs-computer="{{beacon.computer}}" data-bs-process="{{beacon.process}}" data-bs-internal="{{beacon.internal}}" data-bs-external="{{beacon.external}}" data-bs-toggle="tooltip" title="Exclude Beacons Like This"><i class="fa-solid fa-eye-slash"></i></a>
                             {% endif %}
-                            {% if beacon.id in reconnection_watcher_bids and perms.cobalt_strike_monitor.delete_beaconreconnectionwatcher %}
-                                <a href="{% url 'event_tracker:cs-beaconwatch-remove' beacon.id %}" role="button" class="btn btn-danger btn-sm" data-bs-toggle="tooltip" title="Stop watching for reconnect"><i class="fa-solid fa-bell-slash"></i></a>
-                            {% elif beacon.id not in reconnection_watcher_bids and perms.cobalt_strike_monitor.add_beaconreconnectionwatcher  %}
-                                <a href="{% url 'event_tracker:cs-beaconwatch-add' beacon.id %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Notify on reconnect"><i class="fa-solid fa-bell"></i></a>
+                            {% if beacon.pk in reconnection_watcher_bids and perms.cobalt_strike_monitor.delete_beaconreconnectionwatcher %}
+                                <a href="{% url 'event_tracker:cs-beaconwatch-remove' beacon.pk %}" role="button" class="btn btn-danger btn-sm" data-bs-toggle="tooltip" title="Stop watching for reconnect"><i class="fa-solid fa-bell-slash"></i></a>
+                            {% elif beacon.pk not in reconnection_watcher_bids and perms.cobalt_strike_monitor.add_beaconreconnectionwatcher  %}
+                                <a href="{% url 'event_tracker:cs-beaconwatch-add' beacon.pk %}" role="button" class="btn btn-success btn-sm" data-bs-toggle="tooltip" title="Notify on reconnect"><i class="fa-solid fa-bell"></i></a>
                             {% endif %}
                         </div>
                     </div>

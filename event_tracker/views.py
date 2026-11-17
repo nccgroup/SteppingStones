@@ -1632,7 +1632,7 @@ class BeaconExclusionForm(forms.Form):
 def create_beacon_exclusion(request):
     form = BeaconExclusionForm(request.POST)
     if form.is_valid():
-        original_beacon = Beacon.objects.get(id=form.cleaned_data['beacon_id'])
+        original_beacon = Beacon.objects.get(pk=form.cleaned_data['beacon_id'])
 
         if form.cleaned_data['exclusion_type'] == "id":
             obj, _ = BeaconExclusion.objects.get_or_create(**{"beacon_id":
