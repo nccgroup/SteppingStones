@@ -121,7 +121,7 @@ class Beacon(models.Model):
     process = models.CharField(max_length=100)  # Process name hosting the beacon
     pid = models.CharField(max_length=20)  # Process ID of the beacon
     barch = models.CharField(max_length=20)  # Beacon architecture e.g. x64
-    is64 = models.BooleanField(),  # Flag for if the beacon is 64 bit
+    is64 = models.BooleanField(null=True, default=None)  # Flag for if the beacon is 64 bit; unknown (null) for SSH sessions
 
     os = models.CharField(max_length=20)  # Operating system name
     ver = models.CharField(max_length=20)  # Operating system version
