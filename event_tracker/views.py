@@ -1160,7 +1160,7 @@ class EventStreamListJSON(PermissionRequiredMixin, FilterableDatatableView):
             return truncatechars_html((super(EventStreamListJSON, self).render_column(row, column)), 400)
 
     def filter_queryset_by_searchterm(self, qs, term):
-        q = Q(operator__icontains=term) | Q(description__icontains=term) | \
+        q = Q(operator__icontains=term) | Q(description__icontains=term) | Q(raw_evidence__icontains=term) | \
             Q(source_user__icontains=term) | Q(source_host__icontains=term) | Q(source_process__icontains=term) | \
             Q(target_user__icontains=term) | Q(target_host__icontains=term) | Q(target_process__icontains=term) | \
             Q(mitre_tactic__icontains=term) | Q(mitre_technique__icontains=term) | Q(additional_data__icontains=term)
