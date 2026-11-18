@@ -123,7 +123,7 @@ class Command(BaseCommand):
         if line_type == "metadata":
             self.flush_pending_log()
             beacon = self.parse_cslog_metadata_event(line[close_bracket + 2:], line_datetime, filename_parts, listener, team_server)
-        elif line_type in ["input", "output", "task", "error", "indicator"]:
+        elif line_type in ["input", "output", "task", "error", "indicator", "note"]:
             if line_type in ["input", "task"]:
                 # A new command has been issued, so any buffered output/error/indicator lines being merged
                 # must belong to a previous task and can't be continuations of whatever comes next
@@ -182,7 +182,7 @@ class Command(BaseCommand):
                         # Old format: <tactic> description
                         tactic = first_token
                         body = rest
-        elif line_type in ["output", "error", "indicator"]:
+        elif line_type in ["output", "error", "indicator", "note"]:
             # New format adds [<operator> ]<task hex_id> prefix before content
             m = OUTPUT_TASK_PREFIX_REGEX.match(body)
             if m:
