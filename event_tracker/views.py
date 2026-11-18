@@ -1169,7 +1169,7 @@ class EventStreamListJSON(PermissionRequiredMixin, FilterableDatatableView):
 
 
 class EventStreamUploadForm(forms.Form):
-    file = forms.FileField(help_text="A text file containing an EventStream JSON blob per line", widget=forms.FileInput(attrs={'accept':'.json,text/json'}))
+    file = forms.FileField(help_text="A text file containing an EventStream JSON blob per line", widget=forms.FileInput(attrs={'accept':'.json,text/json,.jsonl,application/jsonl'}))
 
 
 class EventStreamUpload(PermissionRequiredMixin, TemplateView):
