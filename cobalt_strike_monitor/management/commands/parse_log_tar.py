@@ -192,6 +192,10 @@ class Command(BaseCommand):
         body = body.replace("received output:\n", "")
         body = re.sub(r"\x03[0-9A-F]+", "", body)
 
+        if line_type == "note" and beacon:
+            beacon.note = body.strip()[:100]
+            beacon.save()
+
         candidate = {
             "team_server": team_server,
             "when": line_datetime,

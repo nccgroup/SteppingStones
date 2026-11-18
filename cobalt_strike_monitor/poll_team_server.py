@@ -295,7 +295,7 @@ def parse(p, server):
 
                     # Sanity check that it's worth locking the DB for
                     if beacons_to_update.exists():
-                        update_count = beacons_to_update.update(last=approx_last_seen)
+                        update_count = beacons_to_update.update(last=approx_last_seen, note=line_data.get("note", "")[:100])
 
                         if update_count > 0 and delta < timedelta(minutes=1):
                             beacon_to_update = Beacon.objects.get(id=int(line_id), team_server=server)
@@ -384,6 +384,10 @@ def parse(p, server):
                         else:
                             # There's no pending beacon log, just save this non-output log straight to the DB
                             beacon_log.save()
+
+                    if beacon_log.type == "note" and beacon_log.beacon:
+                        beacon_log.beacon.note = beacon_log.data.strip()[:100]
+                        beacon_log.beacon.save()
                 elif line.startswith("[C]"):  # Credentials
                     credential = Credential(**dict(filter(
                         lambda elem: elem[0] in ["user", "password", "host", "realm", "source"],
