@@ -85,6 +85,18 @@ DOMAIN.COMPANY.COM/tom:$DCC2$10240#tom#e4e938d12fe5974dc42a90120bd9c90f: (2024-1
         self.assertEqual("USER", result[0].account)
         self.assertEqual("Password123", result[0].secret)
 
+    def test_browser_logins(self):
+        result, _ = extract(r"""
+C:\Users\jsmith\AppData\Local\Google\Chrome\User Data\Default\Login Data,https://intranet.example.org/login,https://intranet.example.org/j_security_check,10/17/2024 12:31:41 PM,13371337133713371,jsmith,Password123
+""", "DUMMY")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("https://intranet.example.org/j_security_check", result[0].system)
+        self.assertEqual("jsmith", result[0].account)
+        self.assertEqual("Password123", result[0].secret)
+        self.assertEqual("Web Login", result[0].purpose)
+        self.assertIsNotNone(result[0].source_time)
+
     def test_privcheck_credmanager_full(self):
         result, _ = extract("""[CREDMANAGER] Found 1 credential(s)
 [CREDMANAGER] --- Credential [1] ---

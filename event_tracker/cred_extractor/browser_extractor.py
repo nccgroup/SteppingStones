@@ -1,4 +1,5 @@
 import re
+from datetime import timezone
 
 import dateparser
 
